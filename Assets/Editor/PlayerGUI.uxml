@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="LabelContainer" style="background-color: rgba(41, 41, 41, 255);">
+        <ui:Label text="Points: 0" name="PlayerPoints" style="color: rgb(255, 176, 0); font-size: 50px;" />
+    </ui:VisualElement>
+    <ui:VisualElement name="ButtonContainer" style="align-items: center; justify-content: center; width: 100%; height: 100%;">
+        <ui:Label text="0" display-tooltip-when-elided="true" name="CountdownTimer" style="color: rgb(255, 255, 255); font-size: 75px; -unity-font-style: bold; -unity-text-outline-width: 2px; display: none;" />
+        <ui:Button text="Restart" name="RestartButton" style="font-size: 35%; background-color: rgb(50, 108, 25); width: 50%; margin-left: 5px; margin-right: 5px; margin-top: 5px; margin-bottom: 5px; padding-left: 6px; padding-right: 6px; padding-top: 10px; padding-bottom: 10px; display: none;" />
+        <ui:Button text="Quit" name="QuitButton" style="font-size: 35px; background-color: rgb(118, 0, 0); width: 50%; padding-top: 10px; padding-bottom: 10px; padding-left: 6px; padding-right: 6px; margin-left: 5px; margin-right: 5px; margin-top: 5px; margin-bottom: 5px; display: none;" />
+    </ui:VisualElement>
+</ui:UXML>
