@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -11,10 +9,17 @@ public class FollowFinger : MonoBehaviour
 	public float touchOffsetY = 1f;
 	public InputActionAsset inputActions; // Reference to the Input Actions Asset
 
+	public ParticleSystem rightParticleSystem;
+	public ParticleSystem leftParticleSystem;
+	public ParticleSystem downParticleSystem;
+
 	private InputAction touchPositionAction;
 	private Camera mainCamera;
 
 	private GameStateMachine gameStateMachine;
+
+	private Vector3 previousPosition;
+
 
 	private void Awake()
 	{
@@ -34,6 +39,13 @@ public class FollowFinger : MonoBehaviour
 		{
 			gameStateMachine.OnGameStateChanged += HandleGameStateChanged;
 		}
+
+		previousPosition = transform.position;
+
+		//stop our pulseengine particle systems
+		rightParticleSystem.Stop();
+		leftParticleSystem.Stop();
+		downParticleSystem.Stop();
 	}
 
 	private void OnEnable()
@@ -58,6 +70,41 @@ public class FollowFinger : MonoBehaviour
 
 			// Smoothly move the GameObject towards the touch position
 			transform.position = Vector3.Lerp(transform.position, touchWorldPosition, followSpeed * Time.deltaTime);
+
+			// Determine the movement direction
+			Vector3 direction = (transform.position - previousPosition).normalized;
+
+			// Update the left and right particle systems based on the movement direction
+			if (direction.x > 0)
+			{
+				rightParticleSystem.Play();
+				leftParticleSystem.Stop();
+			}
+			else if (direction.x < 0)
+			{
+				rightParticleSystem.Stop();
+				leftParticleSystem.Play();
+			}
+
+			// Update the down particle systems based on the movement direction
+			if (direction.y < 0)
+			{
+				downParticleSystem.Play();
+			}
+			else
+			{
+				downParticleSystem.Stop();
+			}
+
+			// Update the previous position
+			previousPosition = transform.position;
+		}
+		else
+		{
+			//stop our pulseengine particle systems
+			rightParticleSystem.Stop();
+			leftParticleSystem.Stop();
+			downParticleSystem.Stop();
 		}
 	}
 

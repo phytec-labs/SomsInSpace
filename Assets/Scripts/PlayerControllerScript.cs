@@ -17,6 +17,8 @@ public class PlayerControllerScript : MonoBehaviour
 
 	public ParticleSystem engineParticleSystem;
 
+	public GameObject explosionPrefab;
+
 	private GameStateMachine gameStateMachine;
 
 	private void Awake()
@@ -66,6 +68,8 @@ public class PlayerControllerScript : MonoBehaviour
 		alive = false;
 		ShowRestartButton();
 		UpdateGameState(GameState.PlayerDied);
+		Instantiate(explosionPrefab, this.transform.position, Quaternion.identity);
+		Destroy(gameObject);
 	}
 
 	public void ShowRestartButton()
