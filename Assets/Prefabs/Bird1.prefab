@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 2892874894220609191}
   - component: {fileID: 6545087539367092055}
   - component: {fileID: 2658118208933389549}
+  - component: {fileID: -8716417515365724868}
   m_Layer: 0
   m_Name: Bird1
   m_TagString: Untagged
@@ -146,3 +147,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 355c20c4ad829c346b060c004b567ffa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &-8716417515365724868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6405360801983979771}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4ba1b98db2a32f4390470b7c2828988, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  positionThreshold: 0.001
