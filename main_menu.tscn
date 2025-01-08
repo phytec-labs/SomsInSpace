@@ -1,0 +1,65 @@
+[gd_scene load_steps=7 format=3 uid="uid://b4rhfggb5gt1r"]
+
+[ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_asjc8"]
+[ext_resource type="Script" path="res://scripts/main_menu_starfield.gd" id="2_i1dkb"]
+[ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="2_nns3j"]
+[ext_resource type="Script" path="res://scripts/main_menu_ship_anim.gd" id="3_s34vo"]
+[ext_resource type="Texture2D" uid="uid://bnq6x0t2gtqsb" path="res://sprites/AM62A7.png" id="4_74tbw"]
+
+[sub_resource type="Curve2D" id="Curve2D_r03yt"]
+_data = {
+"points": PackedVector2Array(-2.99661, 299.661, 2.99661, -299.661, 228, 348, -35.9594, -122.861, 35.9594, 122.861, 653, 352, 4.49492, 329.628, -4.49492, -329.628, 1058, 355, -4.49492, -100.387, 4.49492, 100.387, 655, 355, 17.9797, 331.126, -17.9797, -331.126, 228, 350)
+}
+point_count = 5
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_asjc8")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+z_index = -5
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.05, 0.1, 1)
+
+[node name="Starfield" type="Node2D" parent="."]
+z_index = -2
+script = ExtResource("2_i1dkb")
+
+[node name="MenuContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BackgroundMusic" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("2_nns3j")
+
+[node name="ShipPath" type="Path2D" parent="."]
+curve = SubResource("Curve2D_r03yt")
+
+[node name="ShipFollow" type="PathFollow2D" parent="ShipPath"]
+position = Vector2(228, 348)
+rotation = -1.5608
+script = ExtResource("3_s34vo")
+rotation_speed = 0.5
+
+[node name="ShipSprite" type="Sprite2D" parent="ShipPath/ShipFollow"]
+z_index = -1
+scale = Vector2(2, 2)
+texture = ExtResource("4_74tbw")
