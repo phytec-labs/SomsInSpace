@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3 uid="uid://gwpp4ntseiq0"]
+
+[ext_resource type="Script" path="res://scripts/main_level.gd" id="1_2pdtn"]
+[ext_resource type="PackedScene" uid="uid://fgrg1yvq87i7" path="res://scenes/player.tscn" id="1_g7xgq"]
+
+[node name="MainLevel" type="Node2D"]
+script = ExtResource("1_2pdtn")
+
+[node name="SpawnManager" type="Node2D" parent="."]
+
+[node name="Player" parent="." instance=ExtResource("1_g7xgq")]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="CountdownLabel" type="Label" parent="UI"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+text = "Countdown"
+horizontal_alignment = 1
+vertical_alignment = 1
