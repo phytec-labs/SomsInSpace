@@ -1,12 +1,17 @@
 # level.gd
 extends Node2D
 
+# Node references
+@onready var player: CharacterBody2D = $Player
+@onready var spawn_manager: Node2D = $SpawnManager
+@onready var countdown_label: Label = $UI/CountdownLabel
+
 # Game States
 enum GameState {COUNTDOWN, PLAYING, PAUSED, GAME_OVER}
-var current_state = GameState.COUNTDOWN
+var current_state: GameState = GameState.COUNTDOWN
 
 # Height tracking
-var height_score: float = 0
+var height_score: float = 0.0
 var scroll_speed: float = 200.0
 
 # Countdown
@@ -17,9 +22,9 @@ func _ready():
 	# Initialize game
 	current_countdown = countdown_time
 	update_countdown_display()
-	$Player.disable_movement()  # Disable player movement during countdown
+	player.disable_movement()  # Disable player movement during countdown
 
-func _process(delta):
+func _process(delta: float) -> void:
 	match current_state:
 		GameState.COUNTDOWN:
 			process_countdown(delta)
@@ -29,17 +34,17 @@ func _process(delta):
 		GameState.GAME_OVER:
 			pass
 
-func process_countdown(delta):
+func process_countdown(delta: float) -> void:
 	current_countdown -= delta
 	update_countdown_display()
-	
+
 	if current_countdown <= 0:
 		start_game()
 
-func update_countdown_display():
-	var countdown_text = ""
+func update_countdown_display() -> void:
+	var countdown_text: String = ""
 	if current_countdown > 0:
-		var count = ceil(current_countdown)
+		var count: int = ceil(current_countdown)
 		match count:
 			3:
 				countdown_text = "3"
@@ -49,17 +54,17 @@ func update_countdown_display():
 				countdown_text = "1"
 	else:
 		countdown_text = "LAUNCH!"
-	
-	$UI/CountdownLabel.text = countdown_text
 
-func start_game():
-	$UI/CountdownLabel.visible = false
+	countdown_label.text = countdown_text
+
+func start_game() -> void:
+	countdown_label.visible = false
 	current_state = GameState.PLAYING
-	$Player.enable_movement()  # Enable player movement
-	$SpawnManager.start_spawning()  # Start spawning objects
+	player.enable_movement()  # Enable player movement
+	spawn_manager.start_spawning()  # Start spawning objects
 
-func game_over():
+func game_over() -> void:
 	current_state = GameState.GAME_OVER
-	$Player.disable_movement()
-	$SpawnManager.stop_spawning()
+	player.disable_movement()
+	spawn_manager.stop_spawning()
 	# Show game over UI, high score, etc.
