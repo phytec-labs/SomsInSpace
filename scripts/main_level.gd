@@ -68,3 +68,14 @@ func game_over() -> void:
 	player.disable_movement()
 	spawn_manager.stop_spawning()
 	# Show game over UI, high score, etc.
+
+func update_spawn_difficulty(height: int) -> void:
+	# Update spawn manager parameters based on height
+	if height < 1000:  # Ground level
+		spawn_manager.set_spawn_zone("ground")
+	elif height < 20000:  # Atmosphere
+		spawn_manager.set_spawn_zone("atmosphere")
+	elif height < 100000:  # Upper atmosphere
+		spawn_manager.set_spawn_zone("upper_atmosphere")
+	else:  # Space
+		spawn_manager.set_spawn_zone("space")
