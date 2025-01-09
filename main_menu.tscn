@@ -34,7 +34,12 @@ color = Color(0.05, 0.05, 0.1, 1)
 [node name="Starfield" type="Node2D" parent="."]
 z_index = -2
 script = ExtResource("2_i1dkb")
-shooting_star_chance = 1.0
+star_count = 150
+min_star_size = 0.25
+max_star_size = 2.0
+min_flicker_speed = 2.0
+max_flicker_speed = 5.0
+shooting_star_chance = 0.75
 shooting_star_lifetime = 2.0
 
 [node name="MenuContainer" type="VBoxContainer" parent="."]
