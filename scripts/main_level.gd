@@ -18,7 +18,7 @@ var scroll_speed: float = 200.0
 var countdown_time: float = 3.0
 var current_countdown: float = 0.0
 
-func _ready():
+func _ready() -> void:
 	# Initialize game
 	current_countdown = countdown_time
 	update_countdown_display()
@@ -30,7 +30,6 @@ func _process(delta: float) -> void:
 			process_countdown(delta)
 		GameState.PLAYING:
 			process_game(delta)
-			height_score += scroll_speed * delta
 		GameState.GAME_OVER:
 			pass
 
@@ -40,6 +39,17 @@ func process_countdown(delta: float) -> void:
 
 	if current_countdown <= 0:
 		start_game()
+
+func process_game(delta: float) -> void:
+	# Update height score
+	height_score += scroll_speed * delta
+
+	# Increase scroll speed gradually based on height
+	scroll_speed = 200.0 + (height_score * 0.01)
+
+	# Update spawn difficulty based on height
+	var current_height: int = int(height_score)
+	update_spawn_difficulty(current_height)
 
 func update_countdown_display() -> void:
 	var countdown_text: String = ""
