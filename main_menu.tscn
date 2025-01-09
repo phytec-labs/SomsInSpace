@@ -22,7 +22,7 @@ grow_vertical = 2
 script = ExtResource("1_asjc8")
 
 [node name="ColorRect" type="ColorRect" parent="."]
-z_index = -5
+z_index = -20
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
