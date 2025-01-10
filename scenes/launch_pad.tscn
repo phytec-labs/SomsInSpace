@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://drddnlaqg13vc"]
+
+[ext_resource type="Texture2D" uid="uid://c8pngu0316dt5" path="res://sprites/LaunchPad.png" id="1_5vjv3"]
+[ext_resource type="Script" path="res://scripts/main_level/launch_pad.gd" id="1_esbxg"]
+
+[node name="LaunchPad" type="Node2D"]
+script = ExtResource("1_esbxg")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_5vjv3")

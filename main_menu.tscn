@@ -1,9 +1,9 @@
 [gd_scene load_steps=7 format=3 uid="uid://b4rhfggb5gt1r"]
 
 [ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_asjc8"]
-[ext_resource type="Script" path="res://scripts/main_menu_starfield.gd" id="2_i1dkb"]
+[ext_resource type="Script" path="res://scripts/main_menu/main_menu_starfield.gd" id="2_i1dkb"]
 [ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="2_nns3j"]
-[ext_resource type="Script" path="res://scripts/main_menu_ship_anim.gd" id="3_s34vo"]
+[ext_resource type="Script" path="res://scripts/main_menu/main_menu_ship_anim.gd" id="3_s34vo"]
 [ext_resource type="Texture2D" uid="uid://bnq6x0t2gtqsb" path="res://sprites/AM62A7.png" id="4_74tbw"]
 
 [sub_resource type="Curve2D" id="Curve2D_r03yt"]

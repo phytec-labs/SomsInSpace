@@ -36,17 +36,17 @@ func _process(delta: float) -> void:
 func process_countdown(delta: float) -> void:
 	current_countdown -= delta
 	update_countdown_display()
-
+	
 	if current_countdown <= 0:
 		start_game()
 
 func process_game(delta: float) -> void:
 	# Update height score
 	height_score += scroll_speed * delta
-
+	
 	# Increase scroll speed gradually based on height
 	scroll_speed = 200.0 + (height_score * 0.01)
-
+	
 	# Update spawn difficulty based on height
 	var current_height: int = int(height_score)
 	update_spawn_difficulty(current_height)
@@ -64,7 +64,7 @@ func update_countdown_display() -> void:
 				countdown_text = "1"
 	else:
 		countdown_text = "LAUNCH!"
-
+	
 	countdown_label.text = countdown_text
 
 func start_game() -> void:
@@ -72,6 +72,10 @@ func start_game() -> void:
 	current_state = GameState.PLAYING
 	player.enable_movement()  # Enable player movement
 	spawn_manager.start_spawning()  # Start spawning objects
+	
+	# Start launch pad animation
+	if $LaunchPad:
+		$LaunchPad.start_launch()
 
 func game_over() -> void:
 	current_state = GameState.GAME_OVER
@@ -81,11 +85,15 @@ func game_over() -> void:
 
 func update_spawn_difficulty(height: int) -> void:
 	# Update spawn manager parameters based on height
+	var new_zone: String
 	if height < 1000:  # Ground level
-		spawn_manager.set_spawn_zone("ground")
+		new_zone = "ground"
 	elif height < 20000:  # Atmosphere
-		spawn_manager.set_spawn_zone("atmosphere")
+		new_zone = "atmosphere"
 	elif height < 100000:  # Upper atmosphere
-		spawn_manager.set_spawn_zone("upper_atmosphere")
+		new_zone = "upper_atmosphere"
 	else:  # Space
-		spawn_manager.set_spawn_zone("space")
+		new_zone = "space"
+	
+	spawn_manager.set_spawn_zone(new_zone)
+	$AtmosphereManager.set_zone(new_zone)
