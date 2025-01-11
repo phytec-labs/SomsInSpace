@@ -90,6 +90,30 @@ text = "Countdown"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="HeightDisplay" type="PanelContainer" parent="UI"]
+offset_right = 89.0
+offset_bottom = 23.0
+
+[node name="HeightLabel" type="Label" parent="UI/HeightDisplay"]
+layout_mode = 2
+text = "Height: 0 m"
+
+[node name="StatsDisplay" type="PanelContainer" parent="UI"]
+offset_top = 28.0
+offset_right = 103.0
+offset_bottom = 78.0
+
+[node name="StatsContainer" type="VBoxContainer" parent="UI/StatsDisplay"]
+layout_mode = 2
+
+[node name="HealthLabel" type="Label" parent="UI/StatsDisplay/StatsContainer"]
+layout_mode = 2
+text = "Health: 100%"
+
+[node name="EnergyLabel" type="Label" parent="UI/StatsDisplay/StatsContainer"]
+layout_mode = 2
+text = "Energy: 100%"
+
 [node name="LaunchPad" parent="." instance=ExtResource("4_cui3l")]
 z_index = -5
 position = Vector2(640, 424)
