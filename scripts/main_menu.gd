@@ -28,7 +28,7 @@ func move_selection(direction):
 	if menu_items.size() == 0:
 		print("Warning: menu_items is empty")
 		return
-		
+
 	# Update the selected item
 	current_selection = (current_selection + direction) % menu_items.size()
 	if current_selection < 0:
@@ -39,7 +39,7 @@ func update_menu_display():
 	# Clear existing menu items
 	for child in $MenuContainer.get_children():
 		child.queue_free()
-	
+
 	# Create menu items
 	for i in range(menu_items.size()):
 		var item = Label.new()
@@ -55,7 +55,7 @@ func select_current_item():
 	if current_selection < 0 or current_selection >= menu_items.size():
 		print("Error: current_selection out of bounds")
 		return
-	
+
 	match menu_items[current_selection]:
 		"Start Game":
 			start_game()
@@ -67,9 +67,9 @@ func select_current_item():
 			get_tree().quit()
 
 func start_game():
-	# Replace with your game scene
+	# Load the main level scene
 	print("Starting game...")
-	# get_tree().change_scene_to_file("res://Game.tscn")
+	get_tree().change_scene_to_file("res://main_level.tscn")
 
 func open_options():
 	print("Opening options...")

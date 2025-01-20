@@ -2,9 +2,9 @@
 
 [ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_asjc8"]
 [ext_resource type="Script" path="res://scripts/main_menu/main_menu_starfield.gd" id="2_i1dkb"]
-[ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="2_nns3j"]
 [ext_resource type="Script" path="res://scripts/main_menu/main_menu_ship_anim.gd" id="3_s34vo"]
 [ext_resource type="Texture2D" uid="uid://bnq6x0t2gtqsb" path="res://sprites/AM62A7.png" id="4_74tbw"]
+[ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="5_5s81q"]
 
 [sub_resource type="Curve2D" id="Curve2D_r03yt"]
 _data = {
@@ -52,9 +52,6 @@ anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="BackgroundMusic" type="AudioStreamPlayer2D" parent="."]
-stream = ExtResource("2_nns3j")
-
 [node name="ShipPath" type="Path2D" parent="."]
 curve = SubResource("Curve2D_r03yt")
 
@@ -68,3 +65,6 @@ rotation_speed = 0.5
 z_index = -1
 scale = Vector2(2, 2)
 texture = ExtResource("4_74tbw")
+
+[node name="BackgroundMusic" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("5_5s81q")
