@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://fgrg1yvq87i7"]
+[gd_scene load_steps=5 format=3 uid="uid://fgrg1yvq87i7"]
 
 [ext_resource type="Script" path="res://scripts/main_level/player.gd" id="1_vp455"]
 [ext_resource type="Texture2D" uid="uid://bnq6x0t2gtqsb" path="res://sprites/AM62A7.png" id="2_5i6wo"]
@@ -6,7 +6,12 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_7cpi1"]
 size = Vector2(64, 64)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_yly5b"]
+size = Vector2(64, 64)
+
 [node name="Player" type="CharacterBody2D"]
+z_index = 1
+collision_mask = 2
 script = ExtResource("1_vp455")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
@@ -15,3 +20,8 @@ texture = ExtResource("2_5i6wo")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_7cpi1")
+
+[node name="CollisionArea" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionArea"]
+shape = SubResource("RectangleShape2D_yly5b")

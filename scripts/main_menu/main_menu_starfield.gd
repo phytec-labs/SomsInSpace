@@ -23,10 +23,10 @@ class ShootingStar:
 	var lifetime: float
 	var max_lifetime: float
 
-	func _init(pos: Vector2, vel: Vector2, len: float, life: float):
+	func _init(pos: Vector2, vel: Vector2, tail_length: float, life: float):
 		position = pos
 		velocity = vel
-		length = len
+		length = tail_length
 		lifetime = life
 		max_lifetime = life
 

@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://b8gmx0hwp5te7"]
+
+[ext_resource type="Shader" path="res://shaders/atmosphere_shader.gdshader" id="1_av4no"]
+
+[resource]
+shader = ExtResource("1_av4no")
+shader_parameter/current_color = null
+shader_parameter/target_color = null
+shader_parameter/transition_progress = 1.0
+shader_parameter/gradient_size = 0.1

@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3 uid="uid://dup553fpddnhl"]
+
+[ext_resource type="Script" path="res://scripts/main_level/bird_obstacle.gd" id="1_ygggi"]
+[ext_resource type="Texture2D" uid="uid://bd5hnsp1dulpm" path="res://sprites/meteor_1.png" id="2_n241v"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dspdq"]
+radius = 14.3734
+height = 57.1174
+
+[node name="Plane" type="Area2D"]
+collision_layer = 2
+script = ExtResource("1_ygggi")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_n241v")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = -2.07653
+shape = SubResource("CapsuleShape2D_dspdq")

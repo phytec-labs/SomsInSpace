@@ -8,6 +8,7 @@ radius = 16.0
 height = 40.0
 
 [node name="Bird" type="Area2D"]
+collision_layer = 2
 script = ExtResource("1_7xt4v")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]

@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3 uid="uid://blbiws7px1ytq"]
+
+[ext_resource type="Script" path="res://scripts/main_level/cloud_obstacles.gd" id="1_7iy1d"]
+[ext_resource type="Texture2D" uid="uid://dv7qwyswssqca" path="res://sprites/cloud_2.png" id="2_nhhv8"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_2hpug"]
+
+[node name="Cloud" type="Area2D"]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_7iy1d")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(6, 6)
+texture = ExtResource("2_nhhv8")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = -1.33296
+shape = SubResource("CircleShape2D_2hpug")

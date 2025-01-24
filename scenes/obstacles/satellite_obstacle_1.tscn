@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3 uid="uid://bq5hqbrb6wff3"]
+
+[ext_resource type="Script" path="res://scripts/main_level/bird_obstacle.gd" id="1_0owhc"]
+[ext_resource type="Texture2D" uid="uid://dkoiqhjtm2dxk" path="res://sprites/satelite_2.png" id="2_wafpr"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dspdq"]
+radius = 11.0
+height = 52.3307
+
+[node name="Satellite" type="Area2D"]
+collision_layer = 2
+script = ExtResource("1_0owhc")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_wafpr")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = -2.30576
+shape = SubResource("CapsuleShape2D_dspdq")

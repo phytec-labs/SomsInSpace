@@ -4,10 +4,13 @@ extends Node2D
 # Node references
 @onready var player: CharacterBody2D = $Player
 @onready var spawn_manager: Node2D = $SpawnManager
+@onready var background_music = $BackgroundMusic
+#@onready var atmosphere_manager = $AtmosphereManager
 @onready var countdown_label: Label = $UI/CountdownLabel
 @onready var height_label: Label = $UI/HeightDisplay/HeightLabel
 @onready var health_label: Label = $UI/StatsDisplay/StatsContainer/HealthLabel
 @onready var energy_label: Label = $UI/StatsDisplay/StatsContainer/EnergyLabel
+@onready var game_over_screen: Control = $UI/GameOverScreen
 
 # Game States
 enum GameState {COUNTDOWN, PLAYING, PAUSED, GAME_OVER}
@@ -15,7 +18,8 @@ var current_state: GameState = GameState.COUNTDOWN
 
 # Height tracking
 var height_score: float = 0.0
-var scroll_speed: float = 200.0
+@export var base_player_speed: float = 100.0
+var scroll_speed: float = base_player_speed
 
 # Player stats
 var max_health: float = 100.0
@@ -29,6 +33,11 @@ var countdown_time: float = 3.0
 var current_countdown: float = 0.0
 
 func _ready() -> void:
+	#Start background music
+	if background_music:
+		background_music.play()
+	else:
+		print("Warning: background_music node not found")
 	# Initialize game
 	current_countdown = countdown_time
 	update_countdown_display()
@@ -41,6 +50,8 @@ func _ready() -> void:
 
 	# Connect signals from collectibles and obstacles
 	connect_game_objects()
+	$UI/GameOverScreen.retry_pressed.connect(_on_game_over_retry)
+	$UI/GameOverScreen.main_menu_pressed.connect(_on_game_over_main_menu)
 
 	update_all_displays()
 
@@ -50,10 +61,10 @@ func connect_game_objects() -> void:
 		spawn_manager.connect("object_spawned", _on_object_spawned)
 
 func _on_object_spawned(game_object: Node2D) -> void:
-	# Connect signals from newly spawned objects
-	if game_object.has_signal("object_collected"):
+	# Connect signals from newly spawned objects if they aren't already connected
+	if game_object.has_signal("object_collected") and not game_object.is_connected("object_collected", _on_object_collected):
 		game_object.connect("object_collected", _on_object_collected.bind(game_object))
-	if game_object.has_signal("object_hit"):
+	if game_object.has_signal("object_hit") and not game_object.is_connected("object_hit", _on_object_hit):
 		game_object.connect("object_hit", _on_object_hit.bind(game_object))
 
 func _process(delta: float) -> void:
@@ -77,7 +88,7 @@ func process_game(delta: float) -> void:
 	height_score += scroll_speed * delta
 
 	# Update energy (decrease over time)
-	update_energy(-energy_decay_rate * delta)
+	#update_energy(-energy_decay_rate * delta)
 
 	# Check if out of energy or health
 	if current_energy <= 0 or current_health <= 0:
@@ -87,7 +98,7 @@ func process_game(delta: float) -> void:
 	update_all_displays()
 
 	# Increase scroll speed gradually based on height
-	scroll_speed = 200.0 + (height_score * 0.01)
+	scroll_speed = base_player_speed + (height_score * 0.01)
 
 	# Update spawn difficulty based on height
 	var current_height: int = int(height_score)
@@ -160,19 +171,31 @@ func game_over() -> void:
 	current_state = GameState.GAME_OVER
 	player.disable_movement()
 	spawn_manager.stop_spawning()
-	# Show game over UI with final height, etc.
+	
+	# Show game over screen with final height score
+	if game_over_screen:
+		game_over_screen.show()
+		game_over_screen.set_final_height(height_score)
 
 func update_spawn_difficulty(height: int) -> void:
 	# Update spawn manager parameters based on height
 	var new_zone: String
-	if height < 1000:  # Ground level
+	if height < 3000:  # Ground level
 		new_zone = "ground"
-	elif height < 20000:  # Atmosphere
+	elif height < 10000:  # Atmosphere
 		new_zone = "atmosphere"
-	elif height < 100000:  # Upper atmosphere
+	elif height < 30000:  # Upper atmosphere
 		new_zone = "upper_atmosphere"
 	else:  # Space
 		new_zone = "space"
 
 	spawn_manager.set_spawn_zone(new_zone)
-	$AtmosphereManager.set_zone(new_zone)
+	#atmosphere_manager.set_zone(new_zone)
+
+func _on_game_over_retry() -> void:
+	# Reload the current scene
+	get_tree().reload_current_scene()
+
+func _on_game_over_main_menu() -> void:
+	# Transition to main menu scene
+	get_tree().change_scene_to_file("res://main_menu.tscn")

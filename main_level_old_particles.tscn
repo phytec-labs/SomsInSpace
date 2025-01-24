@@ -1,0 +1,101 @@
+[gd_scene load_steps=12 format=3 uid="uid://gwpp4ntseiq0"]
+
+[ext_resource type="Script" path="res://scripts/main_level.gd" id="1_2pdtn"]
+[ext_resource type="PackedScene" uid="uid://fgrg1yvq87i7" path="res://scenes/player.tscn" id="1_g7xgq"]
+[ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="2_nv7gk"]
+[ext_resource type="Script" path="res://scripts/main_level/spawn_manager.gd" id="2_tm85j"]
+[ext_resource type="PackedScene" uid="uid://drddnlaqg13vc" path="res://scenes/launch_pad.tscn" id="4_cui3l"]
+[ext_resource type="Material" uid="uid://b8gmx0hwp5te7" path="res://materials/atmosphere_shader.tres" id="4_t57q0"]
+[ext_resource type="Script" path="res://scripts/main_level/atmosphere_manager.gd" id="5_bbf81"]
+[ext_resource type="PackedScene" uid="uid://ch54sqe6coblr" path="res://scenes/game_over_screen.tscn" id="7_jqd7p"]
+
+[sub_resource type="Gradient" id="Gradient_rvbf5"]
+offsets = PackedFloat32Array(0, 0.1, 0.9, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+metadata/_snap_enabled = true
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_xo4e2"]
+gradient = SubResource("Gradient_rvbf5")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_5ujyi"]
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(640, 360, 1)
+direction = Vector3(0, 1, 0)
+spread = 0.0
+initial_velocity_min = 10.0
+initial_velocity_max = 20.0
+gravity = Vector3(0, 0, 0)
+scale_max = 2.0
+color_ramp = SubResource("GradientTexture1D_xo4e2")
+
+[node name="MainLevel" type="Node2D"]
+script = ExtResource("1_2pdtn")
+
+[node name="BackgroundMusic" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("2_nv7gk")
+
+[node name="AtmosphereManager" type="Node2D" parent="."]
+script = ExtResource("5_bbf81")
+
+[node name="Background" type="ColorRect" parent="AtmosphereManager"]
+z_index = -20
+material = ExtResource("4_t57q0")
+
+[node name="SpawnManager" type="Node2D" parent="."]
+script = ExtResource("2_tm85j")
+base_spawn_rate = 0.75
+pool_size = 50
+
+[node name="Player" parent="." instance=ExtResource("1_g7xgq")]
+position = Vector2(640, 490)
+speed = 500.0
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="CountdownLabel" type="Label" parent="UI"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+text = "Countdown"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HeightDisplay" type="PanelContainer" parent="UI"]
+offset_right = 89.0
+offset_bottom = 23.0
+
+[node name="HeightLabel" type="Label" parent="UI/HeightDisplay"]
+layout_mode = 2
+text = "Height: 0 m"
+
+[node name="StatsDisplay" type="PanelContainer" parent="UI"]
+offset_top = 28.0
+offset_right = 103.0
+offset_bottom = 78.0
+
+[node name="StatsContainer" type="VBoxContainer" parent="UI/StatsDisplay"]
+layout_mode = 2
+
+[node name="HealthLabel" type="Label" parent="UI/StatsDisplay/StatsContainer"]
+layout_mode = 2
+text = "Health: 100%"
+
+[node name="EnergyLabel" type="Label" parent="UI/StatsDisplay/StatsContainer"]
+layout_mode = 2
+text = "Energy: 100%"
+
+[node name="GameOverScreen" parent="UI" instance=ExtResource("7_jqd7p")]
+visible = false
+
+[node name="LaunchPad" parent="." instance=ExtResource("4_cui3l")]
+position = Vector2(640, 424)
+scale = Vector2(0.621341, 0.621341)

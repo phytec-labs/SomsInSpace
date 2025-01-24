@@ -1,18 +1,17 @@
 [gd_scene load_steps=4 format=3 uid="uid://5tcbqrpdutal"]
 
 [ext_resource type="Script" path="res://scripts/main_level/energy_collectible.gd" id="1_7pvfx"]
-[ext_resource type="Texture2D" uid="uid://c0up0fm25vljh" path="res://sprites/energy1.png" id="2_w247l"]
+[ext_resource type="Texture2D" uid="uid://co8pfdb5q12or" path="res://sprites/pixil-frame-0(1).png" id="2_cwfl6"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_j5veu"]
-radius = 19.0
+radius = 16.0
 
 [node name="EnergyCollectible" type="Area2D"]
+collision_layer = 2
 script = ExtResource("1_7pvfx")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.25, 0.25)
-texture = ExtResource("2_w247l")
+texture = ExtResource("2_cwfl6")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, 4)
 shape = SubResource("CircleShape2D_j5veu")
