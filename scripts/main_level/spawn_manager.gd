@@ -25,10 +25,14 @@ var zone_multipliers = {
 
 # Scene paths for different object types
 var scene_paths = {
-	"cloud": "res://scenes/obstacles/cloud_obstacle_1.tscn",
+	"cloud1": "res://scenes/obstacles/cloud_obstacle_1.tscn",
+	"cloud2": "res://scenes/obstacles/cloud_obstacle_2.tscn",
+	"cloud3": "res://scenes/obstacles/cloud_obstacle_3.tscn",
+	"cloud4": "res://scenes/obstacles/cloud_obstacle_4.tscn",
 	"bird": "res://scenes/obstacles/bird_obstacle_1.tscn",
-	"plane": "res://scenes/obstacles/plane_obstacle_1.tscn",
-	"jet": "res://scenes/obstacles/jet_obstacle_1.tscn",
+	"plane1": "res://scenes/obstacles/plane_obstacle_1.tscn",
+	"jet1": "res://scenes/obstacles/jet_obstacle_1.tscn",
+	"jet2": "res://scenes/obstacles/jet_obstacle_2.tscn",
 	"satellite": "res://scenes/obstacles/satellite_obstacle_1.tscn",
 	"meteor": "res://scenes/obstacles/meteor_obstacle_1.tscn",
 	"energy": "res://scenes/collectibles/energy_collectible_1.tscn"
@@ -36,9 +40,9 @@ var scene_paths = {
 
 # Available objects per zone
 var zone_objects = {
-	SpawnZone.GROUND: ["bird", "cloud", "energy"],
-	SpawnZone.ATMOSPHERE: ["bird", "cloud", "energy", "jet", "plane"],
-	SpawnZone.UPPER_ATMOSPHERE: ["cloud", "energy", "jet", "satellite"],
+	SpawnZone.GROUND: ["bird", "cloud1","cloud2", "energy"],
+	SpawnZone.ATMOSPHERE: ["bird", "cloud2", "cloud3", "cloud4", "energy", "jet1", "plane"],
+	SpawnZone.UPPER_ATMOSPHERE: ["cloud3", "cloud4", "energy", "jet1","jet2", "satellite"],
 	SpawnZone.SPACE: ["energy", "meteor", "satellite"]
 }
 

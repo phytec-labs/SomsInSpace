@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://bg2b5qeqf850i"]
 
-[ext_resource type="Script" path="res://scripts/main_level/bird_obstacle.gd" id="1_5ihqq"]
-[ext_resource type="Texture2D" uid="uid://bcbfjnlrqje21" path="res://sprites/plane1.png" id="2_q6kld"]
+[ext_resource type="Script" path="res://scripts/main_level/plane_obstacle.gd" id="1_1sqvm"]
+[ext_resource type="Texture2D" uid="uid://c16d67sw4yman" path="res://sprites/plane_1.png" id="2_q6kld"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dspdq"]
 radius = 11.0
@@ -9,7 +9,7 @@ height = 82.6569
 
 [node name="Plane" type="Area2D"]
 collision_layer = 2
-script = ExtResource("1_5ihqq")
+script = ExtResource("1_1sqvm")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(0.15, 0.15)

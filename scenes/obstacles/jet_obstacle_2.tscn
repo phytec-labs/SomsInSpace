@@ -1,19 +1,19 @@
-[gd_scene load_steps=4 format=3 uid="uid://cpj00tkmmx1w7"]
+[gd_scene load_steps=4 format=3 uid="uid://bsvj5o72no2yi"]
 
-[ext_resource type="Texture2D" uid="uid://cmkjdsidrojoi" path="res://sprites/jet_1.png" id="2_5ic34"]
-[ext_resource type="Script" path="res://scripts/main_level/jet_obstacle.gd" id="3_7xab5"]
+[ext_resource type="Script" path="res://scripts/main_level/jet_obstacle.gd" id="1_8h3yj"]
+[ext_resource type="Texture2D" uid="uid://4uc41phpiyj5" path="res://sprites/jet_2.png" id="2_a1reg"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dspdq"]
-radius = 6.0
-height = 82.0
+radius = 8.0
+height = 104.0
 
 [node name="Jet" type="Area2D"]
 collision_layer = 2
-script = ExtResource("3_7xab5")
+script = ExtResource("1_8h3yj")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(0.15, 0.15)
-texture = ExtResource("2_5ic34")
+texture = ExtResource("2_a1reg")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, 3)

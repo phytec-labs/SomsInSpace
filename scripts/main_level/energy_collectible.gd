@@ -3,7 +3,7 @@ extends GameObject
 class_name EnergyCollectible
 
 @export var energy_value: float = 10.0
-@export var rotation_speed: float = 2.0
+@export var rotation_speed: float = 20.0
 
 func _ready() -> void:
 	super._ready()

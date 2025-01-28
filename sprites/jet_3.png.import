@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dgc2v3uojxkqp"
-path="res://.godot/imported/plane2.png-ba60d5f3dc8a7b3751bda82edcbbba36.ctex"
+uid="uid://bmkwny5wpdo52"
+path="res://.godot/imported/jet_3.png-89eda56912e6ae4ff270acba12326998.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/plane2.png"
-dest_files=["res://.godot/imported/plane2.png-ba60d5f3dc8a7b3751bda82edcbbba36.ctex"]
+source_file="res://sprites/jet_3.png"
+dest_files=["res://.godot/imported/jet_3.png-89eda56912e6ae4ff270acba12326998.ctex"]
 
 [params]
 

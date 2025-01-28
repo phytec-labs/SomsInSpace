@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://clpm42ulcm1vn"
-path="res://.godot/imported/plane3.png-b59809e2f5da6e7024a7babd47238484.ctex"
+uid="uid://erpaiasx4arc"
+path="res://.godot/imported/plane_2.png-1a453a661827814872e8f1b2fa5f572a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/plane3.png"
-dest_files=["res://.godot/imported/plane3.png-b59809e2f5da6e7024a7babd47238484.ctex"]
+source_file="res://sprites/plane_2.png"
+dest_files=["res://.godot/imported/plane_2.png-1a453a661827814872e8f1b2fa5f572a.ctex"]
 
 [params]
 
