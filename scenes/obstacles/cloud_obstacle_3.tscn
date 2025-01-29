@@ -7,6 +7,7 @@
 radius = 8.24621
 
 [node name="Cloud" type="Area2D"]
+z_index = 1
 collision_layer = 2
 script = ExtResource("1_p02jv")
 

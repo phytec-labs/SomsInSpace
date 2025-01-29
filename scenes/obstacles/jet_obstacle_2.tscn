@@ -4,18 +4,18 @@
 [ext_resource type="Texture2D" uid="uid://4uc41phpiyj5" path="res://sprites/jet_2.png" id="2_a1reg"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dspdq"]
-radius = 8.0
-height = 104.0
+radius = 16.0
+height = 178.0
 
 [node name="Jet" type="Area2D"]
 collision_layer = 2
 script = ExtResource("1_8h3yj")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.15, 0.15)
+scale = Vector2(0.25, 0.25)
 texture = ExtResource("2_a1reg")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, 3)
+position = Vector2(0, 7)
 rotation = -1.5708
 shape = SubResource("CapsuleShape2D_dspdq")

@@ -13,12 +13,15 @@ config_version=5
 config/name="Soms-In-Space-GoDot-4-mobile"
 run/main_scene="res://main_menu.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
+boot_splash/bg_color=Color(0.104245, 0.181417, 0.293333, 1)
+boot_splash/image="res://splash.png"
 config/icon="res://icon.svg"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/size/mode=3
 window/size/resizable=false
 window/stretch/mode="viewport"
 

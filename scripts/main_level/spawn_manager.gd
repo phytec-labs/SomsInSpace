@@ -13,7 +13,7 @@ enum SpawnZone {GROUND, ATMOSPHERE, UPPER_ATMOSPHERE, SPACE}
 
 @export_group("Spawn Chances")
 @export_range(0.0, 1.0) var energy_spawn_chance: float = 0.3
-@export_range(0.0, 1.0) var cloud_spawn_chance: float = 0.4
+@export_range(0.0, 1.0) var obstacle_spawn_chance: float = 0.7
 
 # Zone multipliers for spawn rates
 var zone_multipliers = {
@@ -24,26 +24,58 @@ var zone_multipliers = {
 }
 
 # Scene paths for different object types
-var scene_paths = {
-	"cloud1": "res://scenes/obstacles/cloud_obstacle_1.tscn",
-	"cloud2": "res://scenes/obstacles/cloud_obstacle_2.tscn",
-	"cloud3": "res://scenes/obstacles/cloud_obstacle_3.tscn",
-	"cloud4": "res://scenes/obstacles/cloud_obstacle_4.tscn",
-	"bird": "res://scenes/obstacles/bird_obstacle_1.tscn",
-	"plane1": "res://scenes/obstacles/plane_obstacle_1.tscn",
-	"jet1": "res://scenes/obstacles/jet_obstacle_1.tscn",
-	"jet2": "res://scenes/obstacles/jet_obstacle_2.tscn",
-	"satellite": "res://scenes/obstacles/satellite_obstacle_1.tscn",
-	"meteor": "res://scenes/obstacles/meteor_obstacle_1.tscn",
-	"energy": "res://scenes/collectibles/energy_collectible_1.tscn"
+const SCENE_PATHS = {
+	"energy_1": "res://scenes/collectibles/energy_collectible_1.tscn",
+	"bird_1": "res://scenes/obstacles/bird_obstacle_1.tscn",
+	"cloud_1": "res://scenes/obstacles/cloud_obstacle_1.tscn",
+	"cloud_2": "res://scenes/obstacles/cloud_obstacle_2.tscn",
+	"cloud_3": "res://scenes/obstacles/cloud_obstacle_3.tscn",
+	"cloud_4": "res://scenes/obstacles/cloud_obstacle_4.tscn",
+	"jet_1": "res://scenes/obstacles/jet_obstacle_1.tscn",
+	"jet_2": "res://scenes/obstacles/jet_obstacle_2.tscn",
+	"plane_1": "res://scenes/obstacles/plane_obstacle_1.tscn",
+	"satellite_1": "res://scenes/obstacles/satellite_obstacle_1.tscn",
+	"meteor_1": "res://scenes/obstacles/meteor_obstacle_1.tscn"
 }
 
-# Available objects per zone
+# Available objects per zone with weights
 var zone_objects = {
-	SpawnZone.GROUND: ["bird", "cloud1","cloud2", "energy"],
-	SpawnZone.ATMOSPHERE: ["bird", "cloud2", "cloud3", "cloud4", "energy", "jet1", "plane"],
-	SpawnZone.UPPER_ATMOSPHERE: ["cloud3", "cloud4", "energy", "jet1","jet2", "satellite"],
-	SpawnZone.SPACE: ["energy", "meteor", "satellite"]
+	SpawnZone.GROUND: {
+		"collectibles": {"energy_1": 1.0},
+		"obstacles": {
+			"bird_1": 1.0,
+			"cloud_1": 1.0,
+			"cloud_2": 1.0
+		}
+	},
+	SpawnZone.ATMOSPHERE: {
+		"collectibles": {"energy_1": 1.0},
+		"obstacles": {
+			"bird_1": 0.5,
+			"cloud_2": 1.0,
+			"cloud_3": 1.0,
+			"cloud_4": 1.0,
+			"jet_1": 1.0,
+			"plane_1": 1.0
+		}
+	},
+	SpawnZone.UPPER_ATMOSPHERE: {
+		"collectibles": {"energy_1": 1.0},
+		"obstacles": {
+			"cloud_3": 0.5,
+			"cloud_4": 0.5,
+			"jet_1": 1.0,
+			"jet_2": 1.0,
+			"satellite_1": 1.0
+		}
+	},
+	SpawnZone.SPACE: {
+		"collectibles": {"energy_1": 1.0},
+		"obstacles": {
+			"meteor_1": 1.0,
+			"satellite_1": 1.0
+		}
+	}
 }
 
 var object_pools = {}
@@ -63,15 +95,11 @@ func _on_viewport_size_changed() -> void:
 
 func initialize_pools() -> void:
 	# Pre-load scenes
-	var scenes = {}
-	for type in scene_paths:
-		scenes[type] = load(scene_paths[type])
-
-	# Initialize pools
-	for type in scenes:
+	for type in SCENE_PATHS:
+		var scene = load(SCENE_PATHS[type])
 		object_pools[type] = []
 		for _i in range(pool_size):
-			var object = scenes[type].instantiate()
+			var object = scene.instantiate()
 			object.deactivate()
 			add_child(object)
 			object_pools[type].append(object)
@@ -88,28 +116,39 @@ func _process(delta: float) -> void:
 	update_active_objects(delta)
 
 func spawn_object() -> void:
-	var available_objects = zone_objects[current_zone]
+	var zone_data = zone_objects[current_zone]
+
+	# Determine if we're spawning a collectible or obstacle
+	var spawn_category = "obstacles" if randf() > energy_spawn_chance else "collectibles"
+	var available_objects = zone_data[spawn_category]
+
 	if available_objects.is_empty():
 		return
 
-	var spawn_type = determine_spawn_type(available_objects)
-	if spawn_type.is_empty():
+	# Calculate total weight for available objects
+	var total_weight = 0.0
+	for obj in available_objects:
+		total_weight += available_objects[obj]
+
+	# Select object based on weights
+	var random_value = randf() * total_weight
+	var cumulative_weight = 0.0
+	var selected_type = ""
+
+	for obj in available_objects:
+		cumulative_weight += available_objects[obj]
+		if random_value <= cumulative_weight:
+			selected_type = obj
+			break
+
+	if selected_type.is_empty():
 		return
 
-	var object = get_inactive_object(spawn_type)
+	var object = get_inactive_object(selected_type)
 	if not object:
 		return
 
 	setup_object(object)
-
-func determine_spawn_type(available: Array) -> String:
-	if randf() < energy_spawn_chance and "energy" in available:
-		return "energy"
-	elif randf() < cloud_spawn_chance and "cloud" in available:
-		return "cloud"
-
-	var obstacles = available.filter(func(obj): return obj != "energy" and obj != "cloud")
-	return obstacles[0] if not obstacles.is_empty() else ""
 
 func get_inactive_object(type: String) -> Node2D:
 	if not object_pools.has(type):
@@ -159,7 +198,6 @@ func stop_spawning() -> void:
 		retire_object(i)
 
 func set_spawn_zone(zone_name: String) -> void:
-	# Convert zone name to enum and update spawn configuration
 	var new_zone: SpawnZone
 	match zone_name:
 		"ground":

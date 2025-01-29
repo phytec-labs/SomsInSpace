@@ -5,16 +5,17 @@
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dspdq"]
 radius = 11.0
-height = 82.6569
+height = 135.191
 
 [node name="Plane" type="Area2D"]
 collision_layer = 2
 script = ExtResource("1_1sqvm")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.15, 0.15)
+scale = Vector2(-0.25, 0.272)
 texture = ExtResource("2_q6kld")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-rotation = -2.10825
+position = Vector2(6, 0)
+rotation = -1.0472
 shape = SubResource("CapsuleShape2D_dspdq")

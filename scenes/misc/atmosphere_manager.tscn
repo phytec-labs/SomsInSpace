@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3 uid="uid://41k1mrkdmkop"]
+
+[ext_resource type="Script" path="res://scripts/main_level/atmosphere_manager.gd" id="1_o4kio"]
+[ext_resource type="Material" uid="uid://b8gmx0hwp5te7" path="res://materials/atmosphere_shader.tres" id="2_v078y"]
+
+[node name="AtmosphereManager" type="Node2D"]
+script = ExtResource("1_o4kio")
+
+[node name="Background" type="ColorRect" parent="."]
+z_index = -20
+material = ExtResource("2_v078y")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

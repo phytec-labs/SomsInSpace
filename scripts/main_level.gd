@@ -5,7 +5,7 @@ extends Node2D
 @onready var player: CharacterBody2D = $Player
 @onready var spawn_manager: Node2D = $SpawnManager
 @onready var background_music = $BackgroundMusic
-#@onready var atmosphere_manager = $AtmosphereManager
+@onready var atmosphere_manager = $AtmosphereManager
 @onready var countdown_label: Label = $UI/CountdownLabel
 @onready var height_label: Label = $UI/HeightDisplay/HeightLabel
 @onready var health_label: Label = $UI/StatsDisplay/StatsContainer/HealthLabel
@@ -190,7 +190,7 @@ func update_spawn_difficulty(height: int) -> void:
 		new_zone = "space"
 
 	spawn_manager.set_spawn_zone(new_zone)
-	#atmosphere_manager.set_zone(new_zone)
+	atmosphere_manager.set_zone(new_zone)
 
 func _on_game_over_retry() -> void:
 	# Reload the current scene
