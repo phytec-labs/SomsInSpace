@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://drddnlaqg13vc" path="res://scenes/launch_pad.tscn" id="4_cui3l"]
 [ext_resource type="Material" uid="uid://b8gmx0hwp5te7" path="res://materials/atmosphere_shader.tres" id="4_t57q0"]
 [ext_resource type="Script" path="res://scripts/main_level/atmosphere_manager.gd" id="5_bbf81"]
-[ext_resource type="PackedScene" uid="uid://ch54sqe6coblr" path="res://scenes/game_over_screen.tscn" id="7_jqd7p"]
+[ext_resource type="PackedScene" uid="uid://ch54sqe6coblr" path="res://scenes/game_over_ui.tscn" id="7_jqd7p"]
 
 [sub_resource type="Gradient" id="Gradient_rvbf5"]
 offsets = PackedFloat32Array(0, 0.1, 0.9, 1)

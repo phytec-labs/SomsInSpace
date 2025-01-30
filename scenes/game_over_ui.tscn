@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://ch54sqe6coblr"]
 
-[ext_resource type="Script" path="res://scripts/main_level/game_over_screen.gd" id="1_vitpl"]
+[ext_resource type="Script" path="res://scripts/main_level/game_over_ui.gd" id="1_vitpl"]
 
 [node name="GameOverScreen" type="Control"]
 layout_mode = 3

@@ -1,0 +1,84 @@
+[gd_scene load_steps=9 format=3 uid="uid://ddfgqgiq2jc3g"]
+
+[ext_resource type="Script" path="res://scripts/main_level/player.gd" id="1_o144o"]
+[ext_resource type="Texture2D" uid="uid://bnq6x0t2gtqsb" path="res://sprites/AM62A7.png" id="2_ltj26"]
+[ext_resource type="Material" uid="uid://dg13c7xdh3xh7" path="res://particles/main_thruster_process_material.tres" id="3_3ydi0"]
+[ext_resource type="Texture2D" uid="uid://bbf8kqq1rn2vq" path="res://sprites/Explosion1.png" id="4_5almk"]
+[ext_resource type="Material" uid="uid://dp4r2pt0hai06" path="res://particles/secondary_thruster_process_material.tres" id="5_rcqpb"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7cpi1"]
+size = Vector2(96, 96)
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_17f3c"]
+particles_animation = true
+particles_anim_h_frames = 12
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tkmdc"]
+size = Vector2(95, 95)
+
+[node name="Player" type="CharacterBody2D"]
+z_index = 1
+collision_mask = 2
+script = ExtResource("1_o144o")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+z_index = 1
+scale = Vector2(3, 3)
+texture = ExtResource("2_ltj26")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+z_index = 1
+shape = SubResource("RectangleShape2D_7cpi1")
+
+[node name="MainThruster" type="GPUParticles2D" parent="."]
+z_index = -1
+material = SubResource("CanvasItemMaterial_17f3c")
+position = Vector2(0, 32)
+amount = 32
+process_material = ExtResource("3_3ydi0")
+texture = ExtResource("4_5almk")
+
+[node name="RightThruster" type="GPUParticles2D" parent="."]
+z_index = -1
+material = SubResource("CanvasItemMaterial_17f3c")
+position = Vector2(32, 0)
+rotation = -1.57079
+amount = 32
+process_material = ExtResource("5_rcqpb")
+texture = ExtResource("4_5almk")
+
+[node name="LeftThruster" type="GPUParticles2D" parent="."]
+z_index = -1
+material = SubResource("CanvasItemMaterial_17f3c")
+position = Vector2(-32, 0)
+rotation = -4.71238
+amount = 32
+process_material = ExtResource("5_rcqpb")
+texture = ExtResource("4_5almk")
+
+[node name="UpThruster" type="GPUParticles2D" parent="."]
+z_index = -1
+material = SubResource("CanvasItemMaterial_17f3c")
+position = Vector2(0, -32)
+rotation = -3.14159
+amount = 32
+process_material = ExtResource("5_rcqpb")
+texture = ExtResource("4_5almk")
+
+[node name="DownThruster" type="GPUParticles2D" parent="."]
+z_index = -1
+material = SubResource("CanvasItemMaterial_17f3c")
+position = Vector2(0, 32)
+amount = 32
+process_material = ExtResource("5_rcqpb")
+texture = ExtResource("4_5almk")
+
+[node name="CollisionArea" type="Area2D" parent="."]
+z_index = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionArea"]
+z_index = 1
+position = Vector2(-0.5, -0.5)
+shape = SubResource("RectangleShape2D_tkmdc")

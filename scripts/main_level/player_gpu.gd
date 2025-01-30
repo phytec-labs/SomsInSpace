@@ -10,11 +10,11 @@ extends CharacterBody2D
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var area: Area2D = $CollisionArea
-@onready var main_thruster: CPUParticles2D = $MainThruster
-@onready var left_thruster: CPUParticles2D = $LeftThruster
-@onready var right_thruster: CPUParticles2D = $RightThruster
-@onready var up_thruster: CPUParticles2D = $UpThruster
-@onready var down_thruster: CPUParticles2D = $DownThruster
+@onready var main_thruster: GPUParticles2D = $MainThruster
+@onready var left_thruster: GPUParticles2D = $LeftThruster
+@onready var right_thruster: GPUParticles2D = $RightThruster
+@onready var up_thruster: GPUParticles2D = $UpThruster
+@onready var down_thruster: GPUParticles2D = $DownThruster
 
 # State variables
 var can_move: bool = false

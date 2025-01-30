@@ -28,10 +28,12 @@ func initialize(spawn_position: Vector2) -> void:
 	
 	if from_left:
 		position.x = -spawn_offset
+		position.y = -spawn_offset
 		move_direction = Vector2.RIGHT
 		scale.x = 1
 	else:
 		position.x = viewport_size.x + spawn_offset
+		position.y = -spawn_offset
 		move_direction = Vector2.LEFT
 		scale.x = -1
 		
