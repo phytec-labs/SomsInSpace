@@ -198,4 +198,4 @@ func _on_game_over_retry() -> void:
 
 func _on_game_over_main_menu() -> void:
 	# Transition to main menu scene
-	get_tree().change_scene_to_file("res://main_menu.tscn")
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")

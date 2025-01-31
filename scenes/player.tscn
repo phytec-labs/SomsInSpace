@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://fgrg1yvq87i7"]
+[gd_scene load_steps=8 format=3 uid="uid://fgrg1yvq87i7"]
 
 [ext_resource type="Script" path="res://scripts/main_level/player.gd" id="1_vp455"]
 [ext_resource type="Texture2D" uid="uid://bnq6x0t2gtqsb" path="res://sprites/AM62A7.png" id="2_5i6wo"]
@@ -12,6 +12,10 @@ particles_animation = true
 particles_anim_h_frames = 12
 particles_anim_v_frames = 1
 particles_anim_loop = false
+
+[sub_resource type="Gradient" id="Gradient_rkppw"]
+offsets = PackedFloat32Array(0, 0.262443, 0.997738)
+colors = PackedColorArray(0.424785, 0.172459, 0.664428, 1, 0.270588, 0.270588, 1, 0.717647, 1, 1, 1, 0)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_tkmdc"]
 size = Vector2(95, 95)
@@ -42,9 +46,10 @@ spread = 10.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 100.0
 initial_velocity_max = 200.0
-scale_amount_min = 0.5
+scale_amount_min = 0.25
+scale_amount_max = 0.5
 anim_speed_min = 1.0
-anim_speed_max = 2.0
+anim_speed_max = 1.0
 
 [node name="RightThruster" type="CPUParticles2D" parent="."]
 z_index = -1
@@ -58,7 +63,9 @@ spread = 10.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 100.0
 initial_velocity_max = 200.0
-scale_amount_min = 0.5
+scale_amount_min = 0.15
+scale_amount_max = 0.25
+color_ramp = SubResource("Gradient_rkppw")
 anim_speed_min = 1.0
 anim_speed_max = 2.0
 
@@ -74,7 +81,9 @@ spread = 10.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 100.0
 initial_velocity_max = 200.0
-scale_amount_min = 0.5
+scale_amount_min = 0.15
+scale_amount_max = 0.25
+color_ramp = SubResource("Gradient_rkppw")
 anim_speed_min = 1.0
 anim_speed_max = 2.0
 
@@ -90,7 +99,9 @@ spread = 10.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 100.0
 initial_velocity_max = 200.0
-scale_amount_min = 0.5
+scale_amount_min = 0.15
+scale_amount_max = 0.25
+color_ramp = SubResource("Gradient_rkppw")
 anim_speed_min = 1.0
 anim_speed_max = 2.0
 
@@ -105,7 +116,9 @@ spread = 10.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 100.0
 initial_velocity_max = 200.0
-scale_amount_min = 0.5
+scale_amount_min = 0.15
+scale_amount_max = 0.25
+color_ramp = SubResource("Gradient_rkppw")
 anim_speed_min = 1.0
 anim_speed_max = 2.0
 

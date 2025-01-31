@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://41k1mrkdmkop"]
+[gd_scene load_steps=4 format=3 uid="uid://41k1mrkdmkop"]
 
 [ext_resource type="Script" path="res://scripts/main_level/atmosphere_manager.gd" id="1_o4kio"]
 [ext_resource type="Material" uid="uid://b8gmx0hwp5te7" path="res://materials/atmosphere_shader.tres" id="2_v078y"]
+[ext_resource type="Script" path="res://scripts/main_level/atmosphere_starfield.gd" id="3_4ydwp"]
 
 [node name="AtmosphereManager" type="Node2D"]
 script = ExtResource("1_o4kio")
@@ -14,3 +15,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="Starfield" type="Node2D" parent="."]
+z_index = -19
+script = ExtResource("3_4ydwp")
