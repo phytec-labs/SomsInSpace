@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://b4rhfggb5gt1r"]
+[gd_scene load_steps=11 format=3 uid="uid://b4rhfggb5gt1r"]
 
 [ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_4by2u"]
 [ext_resource type="Script" path="res://scripts/main_menu/main_menu_starfield.gd" id="2_jum82"]
@@ -7,6 +7,7 @@
 [ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="5_7uyi4"]
 [ext_resource type="Texture2D" uid="uid://bbf8kqq1rn2vq" path="res://sprites/Explosion1.png" id="5_njiw0"]
 [ext_resource type="PackedScene" uid="uid://kxuok2ixyno7" path="res://scenes/main_menu_ui.tscn" id="6_n1nda"]
+[ext_resource type="PackedScene" uid="uid://dwxk4euegfsik" path="res://scenes/main_menu_credits.tscn" id="8_y1lt2"]
 
 [sub_resource type="Curve2D" id="Curve2D_r03yt"]
 _data = {
@@ -96,3 +97,7 @@ stream = ExtResource("5_7uyi4")
 
 [node name="MainMenuUi" parent="." instance=ExtResource("6_n1nda")]
 layout_mode = 1
+
+[node name="MainMenuCredits" parent="." instance=ExtResource("8_y1lt2")]
+layout_mode = 2
+anchors_preset = 0

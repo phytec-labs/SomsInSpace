@@ -1,6 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://kxuok2ixyno7"]
+[gd_scene load_steps=5 format=3 uid="uid://dwxk4euegfsik"]
 
-[ext_resource type="Script" path="res://scripts/main_menu/main_menu_ui.gd" id="1_73no5"]
+[ext_resource type="Script" path="res://scripts/main_menu/credits_ui.gd" id="1_credits"]
 [ext_resource type="FontVariation" uid="uid://dgr2tavmqudm8" path="res://fonts/pixel_font.tres" id="2_pixel"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
@@ -32,13 +32,14 @@ border_width_bottom = 2
 border_color = Color(1, 1, 0, 1)  # Yellow border
 anti_aliasing = false
 
-[node name="MainMenuUi" type="CenterContainer"]
+[node name="MainMenuCredits" type="CenterContainer"]
+visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_73no5")
+script = ExtResource("1_credits")
 
 [node name="PanelContainer" type="PanelContainer" parent="."]
 layout_mode = 2
@@ -51,44 +52,45 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="MenuContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="StartGameButton" type="Button" parent="PanelContainer/MarginContainer/MenuContainer"]
-custom_minimum_size = Vector2(200, 0)
+[node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-size_flags_horizontal = 4
 theme_override_fonts/font = ExtResource("2_pixel")
-theme_override_font_sizes/font_size = 32
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
-text = "Start Game"
-
-[node name="OptionsButton" type="Button" parent="PanelContainer/MarginContainer/MenuContainer"]
-custom_minimum_size = Vector2(200, 0)
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_fonts/font = ExtResource("2_pixel")
-theme_override_font_sizes/font_size = 32
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
-text = "Options"
-
-[node name="CreditsButton" type="Button" parent="PanelContainer/MarginContainer/MenuContainer"]
-custom_minimum_size = Vector2(200, 0)
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_fonts/font = ExtResource("2_pixel")
-theme_override_font_sizes/font_size = 32
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
+theme_override_font_sizes/font_size = 40
 text = "Credits"
+horizontal_alignment = 1
 
-[node name="QuitButton" type="Button" parent="PanelContainer/MarginContainer/MenuContainer"]
+[node name="CreditsText" type="RichTextLabel" parent="PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(300, 200)
+layout_mode = 2
+theme_override_fonts/normal_font = ExtResource("2_pixel")
+theme_override_font_sizes/normal_font_size = 24
+bbcode_enabled = true
+text = "[center]
+Game Design & Programming
+PHYTEC America
+claude.ai
+
+Art Assets
+PHYTEC America
+Midjourney
+
+Font
+m5x7 by Daniel Linssen
+
+Music & Sound
+Brian Brennor - T.I.
+
+Special Thanks
+The Godot Community
+
+[/center]"
+fit_content = true
+
+[node name="BackButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -97,4 +99,4 @@ theme_override_font_sizes/font_size = 32
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
-text = "Quit"
+text = "Back to Menu"

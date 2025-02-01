@@ -1,9 +1,10 @@
-# main_menu.gd (updated version)
+# main_menu.gd
 extends Control
 
 # Node references
 @onready var background_music = $BackgroundMusic
 @onready var menu_ui = $MainMenuUi
+@onready var credits_panel = $MainMenuCredits
 
 func _ready() -> void:
 	if background_music:
@@ -13,6 +14,10 @@ func _ready() -> void:
 
 	# Connect to menu UI signals
 	menu_ui.menu_item_selected.connect(_on_menu_item_selected)
+
+	# Connect credits back button
+	if credits_panel:
+		credits_panel.back_pressed.connect(_on_credits_back_pressed)
 
 func _on_menu_item_selected(item: String) -> void:
 	match item:
@@ -33,5 +38,9 @@ func open_options() -> void:
 	# Implement options menu
 
 func show_credits() -> void:
-	print("Showing credits...")
-	# Implement credits screen
+	menu_ui.hide()
+	credits_panel.show()
+
+func _on_credits_back_pressed() -> void:
+	credits_panel.hide()
+	menu_ui.show()

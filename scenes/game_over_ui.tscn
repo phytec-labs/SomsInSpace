@@ -1,6 +1,35 @@
-[gd_scene load_steps=2 format=3 uid="uid://ch54sqe6coblr"]
+[gd_scene load_steps=6 format=3 uid="uid://ch54sqe6coblr"]
 
 [ext_resource type="Script" path="res://scripts/main_level/game_over_ui.gd" id="1_vitpl"]
+[ext_resource type="FontVariation" uid="uid://dgr2tavmqudm8" path="res://fonts/pixel_font.tres" id="2_j75ae"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.17, 0.24, 0.25, 1)
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 8
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_highlighted"]
+bg_color = Color(0, 0, 0, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+bg_color = Color(0, 0, 0, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.17, 0.24, 0.25, 1)
+anti_aliasing = false
 
 [node name="GameOverScreen" type="Control"]
 layout_mode = 3
@@ -31,6 +60,7 @@ grow_vertical = 2
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
 custom_minimum_size = Vector2(400, 300)
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer"]
 layout_mode = 2
@@ -45,7 +75,8 @@ theme_override_constants/separation = 20
 
 [node name="GameOverLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_fonts/font = ExtResource("2_j75ae")
+theme_override_font_sizes/font_size = 64
 text = "Game Over"
 horizontal_alignment = 1
 
@@ -54,12 +85,15 @@ layout_mode = 2
 
 [node name="ScoreLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreContainer"]
 layout_mode = 2
+theme_override_fonts/font = ExtResource("2_j75ae")
+theme_override_font_sizes/font_size = 40
 text = "Final Height"
 horizontal_alignment = 1
 
 [node name="HeightLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_fonts/font = ExtResource("2_j75ae")
+theme_override_font_sizes/font_size = 46
 text = "0 m"
 horizontal_alignment = 1
 
@@ -68,9 +102,23 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="RetryButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("2_j75ae")
+theme_override_font_sizes/font_size = 32
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 text = "Try Again"
 
 [node name="MainMenuButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("2_j75ae")
+theme_override_font_sizes/font_size = 32
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 text = "Main Menu"
