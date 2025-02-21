@@ -4,11 +4,15 @@ extends CharacterBody2D
 # Export variables
 @export var speed: float = 300.0
 @export var touch_offset: float = 100.0
+@export var stopping_distance: float = 10
 @export var smoothing_speed: float = 5.0
+@export var blink_duration: float = 2.0  # Duration of invulnerability
+@export var blink_frequency: float = 0.1  # How fast to toggle visibility
 
 # Node references
-@onready var sprite: Sprite2D = $Sprite2D
-@onready var collision_shape: CollisionShape2D = $CollisionShape2D
+@onready var ship_sprite: Sprite2D = $Ship
+@onready var som_sprite: Sprite2D = $SoM
+@onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
 @onready var area: Area2D = $CollisionArea
 @onready var main_thruster: CPUParticles2D = $MainThruster
 @onready var left_thruster: CPUParticles2D = $LeftThruster
@@ -25,18 +29,58 @@ var last_input_time: float = 0.0
 var input_throttle: float = 1.0/60.0
 var previous_velocity: Vector2 = Vector2.ZERO
 
+# Damage blink variables
+var is_blinking: bool = false
+var blink_timer: float = 0.0
+var blink_toggle_timer: float = 0.0
+var is_sprite_visible: bool = true
+
 func _ready() -> void:
 	initial_position = position
 	target_position = position
 	
-	assert(sprite != null, "Sprite node not found")
-	assert(collision_shape != null, "CollisionShape node not found")
+	assert(collision_polygon != null, "CollisionPolygon2D node not found")
 	assert(area != null, "CollisionArea node not found")
 
 	area.collision_layer = 1
 	area.collision_mask = 2
 
 	disable_movement()
+
+func _process(delta: float) -> void:
+	if is_blinking:
+		process_blink(delta)
+
+func process_blink(delta: float) -> void:
+	blink_timer += delta
+	blink_toggle_timer += delta
+	
+	# Toggle visibility based on frequency
+	if blink_toggle_timer >= blink_frequency:
+		blink_toggle_timer = 0.0
+		is_sprite_visible = !is_sprite_visible
+		update_sprite_visibility(is_sprite_visible)
+	
+	# End blinking after duration
+	if blink_timer >= blink_duration:
+		end_blink()
+
+func start_blink() -> void:
+	is_blinking = true
+	blink_timer = 0.0
+	blink_toggle_timer = 0.0
+	area.collision_mask = 0  # Disable collisions with obstacles
+	
+func end_blink() -> void:
+	is_blinking = false
+	area.collision_mask = 2  # Re-enable collisions with obstacles
+	update_sprite_visibility(true)  # Ensure sprite is visible
+
+func update_sprite_visibility(visible: bool) -> void:
+	if ship_sprite:
+		ship_sprite.visible = visible
+	if som_sprite:
+		som_sprite.visible = visible
 
 func _input(event: InputEvent) -> void:
 	if not can_move:
@@ -75,7 +119,7 @@ func _physics_process(delta: float) -> void:
 	
 	if is_touch_active:
 		var distance = position.distance_to(target_position)
-		if distance > 1.0:
+		if distance > stopping_distance:
 			var direction = (target_position - position).normalized()
 			movement = direction * speed
 			velocity = velocity.lerp(movement, smoothing_speed * delta)
@@ -139,3 +183,4 @@ func reset_position() -> void:
 	target_position = initial_position
 	velocity = Vector2.ZERO
 	is_touch_active = false
+	end_blink()  # Ensure blink effect is reset

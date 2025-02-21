@@ -6,11 +6,12 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_j2jtg"]
 
 [node name="Cloud" type="Area2D"]
+z_index = -2
 collision_layer = 2
 script = ExtResource("1_t254w")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(6, 6)
+scale = Vector2(0.75, 0.75)
 texture = ExtResource("2_fnsn0")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

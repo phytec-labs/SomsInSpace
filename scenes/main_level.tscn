@@ -1,9 +1,8 @@
-[gd_scene load_steps=8 format=3 uid="uid://csn78ghmwjqev"]
+[gd_scene load_steps=7 format=3 uid="uid://csn78ghmwjqev"]
 
 [ext_resource type="Script" path="res://scripts/main_level.gd" id="1_dythh"]
 [ext_resource type="PackedScene" uid="uid://fgrg1yvq87i7" path="res://scenes/player.tscn" id="2_k0f0i"]
 [ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="3_k31y7"]
-[ext_resource type="Script" path="res://scripts/main_level/spawn_manager.gd" id="4_5rh77"]
 [ext_resource type="PackedScene" uid="uid://ch54sqe6coblr" path="res://scenes/game_over_ui.tscn" id="5_fhkkc"]
 [ext_resource type="PackedScene" uid="uid://drddnlaqg13vc" path="res://scenes/launch_pad.tscn" id="6_nwq2p"]
 [ext_resource type="PackedScene" uid="uid://41k1mrkdmkop" path="res://scenes/misc/atmosphere_manager.tscn" id="7_8rbm4"]
@@ -12,16 +11,15 @@
 script = ExtResource("1_dythh")
 
 [node name="Player" parent="." instance=ExtResource("2_k0f0i")]
-position = Vector2(360, 987)
+position = Vector2(360, 1002)
+scale = Vector2(0.59, 0.59)
 speed = 500.0
+stopping_distance = 25.0
 
 [node name="BackgroundMusic" type="AudioStreamPlayer2D" parent="."]
+visible = false
 stream = ExtResource("3_k31y7")
-
-[node name="SpawnManager" type="Node2D" parent="."]
-script = ExtResource("4_5rh77")
-base_spawn_rate = 0.75
-pool_size = 50
+volume_db = -80.0
 
 [node name="UI" type="CanvasLayer" parent="."]
 

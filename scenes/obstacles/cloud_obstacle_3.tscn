@@ -7,12 +7,12 @@
 radius = 8.24621
 
 [node name="Cloud" type="Area2D"]
-z_index = 1
+z_index = -2
 collision_layer = 2
 script = ExtResource("1_p02jv")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(6, 6)
+scale = Vector2(0.75, 0.75)
 texture = ExtResource("2_4t4es")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

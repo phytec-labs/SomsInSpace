@@ -1,0 +1,84 @@
+[gd_scene load_steps=8 format=3 uid="uid://bmsnhlgbxmv2j"]
+
+[ext_resource type="Script" path="res://scripts/main_level.gd" id="1_a151g"]
+[ext_resource type="PackedScene" uid="uid://fgrg1yvq87i7" path="res://scenes/player.tscn" id="2_n7m8i"]
+[ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="3_rfcf0"]
+[ext_resource type="Script" path="res://scripts/main_level/spawn_manager.gd" id="4_hasev"]
+[ext_resource type="PackedScene" uid="uid://ch54sqe6coblr" path="res://scenes/game_over_ui.tscn" id="5_skeou"]
+[ext_resource type="PackedScene" uid="uid://drddnlaqg13vc" path="res://scenes/launch_pad.tscn" id="6_lrecw"]
+[ext_resource type="PackedScene" uid="uid://41k1mrkdmkop" path="res://scenes/misc/atmosphere_manager.tscn" id="7_ahjxt"]
+
+[node name="MainLevel" type="Node2D"]
+script = ExtResource("1_a151g")
+
+[node name="Player" parent="." instance=ExtResource("2_n7m8i")]
+position = Vector2(360, 1002)
+scale = Vector2(0.59, 0.59)
+speed = 500.0
+stopping_distance = 25.0
+
+[node name="BackgroundMusic" type="AudioStreamPlayer2D" parent="."]
+visible = false
+stream = ExtResource("3_rfcf0")
+volume_db = -80.0
+
+[node name="SpawnManager" type="Node2D" parent="."]
+script = ExtResource("4_hasev")
+base_spawn_rate = 0.75
+spawn_height_offset = -150.0
+pool_size = 50
+formation_spacing = 40.0
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="CountdownLabel" type="Label" parent="UI"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+text = "Countdown"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HeightDisplay" type="PanelContainer" parent="UI"]
+offset_right = 89.0
+offset_bottom = 23.0
+
+[node name="HeightLabel" type="Label" parent="UI/HeightDisplay"]
+layout_mode = 2
+text = "Height: 0 m"
+
+[node name="StatsDisplay" type="PanelContainer" parent="UI"]
+offset_top = 28.0
+offset_right = 103.0
+offset_bottom = 78.0
+
+[node name="StatsContainer" type="VBoxContainer" parent="UI/StatsDisplay"]
+layout_mode = 2
+
+[node name="HealthLabel" type="Label" parent="UI/StatsDisplay/StatsContainer"]
+layout_mode = 2
+text = "Health: 100%"
+
+[node name="EnergyLabel" type="Label" parent="UI/StatsDisplay/StatsContainer"]
+layout_mode = 2
+text = "Energy: 100%"
+
+[node name="GameOverScreen" parent="UI" instance=ExtResource("5_skeou")]
+
+[node name="LaunchPad" parent="." instance=ExtResource("6_lrecw")]
+z_index = -1
+position = Vector2(369, 887)
+scale = Vector2(0.621341, 0.621341)
+
+[node name="AtmosphereManager" parent="." instance=ExtResource("7_ahjxt")]
+ground_color = Color(0.453042, 0.626337, 0.596385, 1)
+atmosphere_color = Color(0.276795, 0.387153, 0.388013, 1)
+upper_atmosphere_color = Color(0.118526, 0.152406, 0.147788, 1)

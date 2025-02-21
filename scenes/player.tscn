@@ -1,11 +1,9 @@
-[gd_scene load_steps=8 format=3 uid="uid://fgrg1yvq87i7"]
+[gd_scene load_steps=7 format=3 uid="uid://fgrg1yvq87i7"]
 
 [ext_resource type="Script" path="res://scripts/main_level/player.gd" id="1_vp455"]
-[ext_resource type="Texture2D" uid="uid://bnq6x0t2gtqsb" path="res://sprites/AM62A7.png" id="2_5i6wo"]
+[ext_resource type="Texture2D" uid="uid://douycueqct0mh" path="res://sprites/AM62A7_midjourney.png" id="2_ax0x5"]
+[ext_resource type="Texture2D" uid="uid://dhfyxwm2kciwn" path="res://sprites/player_ship_body1.png" id="3_f3p6y"]
 [ext_resource type="Texture2D" uid="uid://bbf8kqq1rn2vq" path="res://sprites/Explosion1.png" id="4_6ief2"]
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_7cpi1"]
-size = Vector2(96, 96)
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_17f3c"]
 particles_animation = true
@@ -17,27 +15,28 @@ particles_anim_loop = false
 offsets = PackedFloat32Array(0, 0.262443, 0.997738)
 colors = PackedColorArray(0.424785, 0.172459, 0.664428, 1, 0.270588, 0.270588, 1, 0.717647, 1, 1, 1, 0)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_tkmdc"]
-size = Vector2(95, 95)
-
 [node name="Player" type="CharacterBody2D"]
 z_index = 1
 collision_mask = 2
 script = ExtResource("1_vp455")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-z_index = 1
-scale = Vector2(3, 3)
-texture = ExtResource("2_5i6wo")
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(-112, 44, -7, -84, 6, -84, 123, 47, 124, 78, 30, 112, -32, 114, -120, 84)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="SoM" type="Sprite2D" parent="."]
 z_index = 1
-shape = SubResource("RectangleShape2D_7cpi1")
+position = Vector2(0, 20)
+scale = Vector2(0.035, 0.035)
+texture = ExtResource("2_ax0x5")
+
+[node name="Ship" type="Sprite2D" parent="."]
+scale = Vector2(0.14, 0.14)
+texture = ExtResource("3_f3p6y")
 
 [node name="MainThruster" type="CPUParticles2D" parent="."]
 z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
-position = Vector2(0, 32)
+position = Vector2(0, 67)
 amount = 32
 lifetime = 0.5
 texture = ExtResource("4_6ief2")
@@ -90,7 +89,7 @@ anim_speed_max = 2.0
 [node name="UpThruster" type="CPUParticles2D" parent="."]
 z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
-position = Vector2(0, -32)
+position = Vector2(0, -60)
 rotation = -3.14159
 amount = 32
 texture = ExtResource("4_6ief2")
@@ -124,8 +123,7 @@ anim_speed_max = 2.0
 
 [node name="CollisionArea" type="Area2D" parent="."]
 z_index = 1
+collision_mask = 2
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionArea"]
-z_index = 1
-position = Vector2(-0.5, -0.5)
-shape = SubResource("RectangleShape2D_tkmdc")
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="CollisionArea"]
+polygon = PackedVector2Array(-112, 44, -7, -84, 6, -84, 123, 47, 124, 78, 30, 112, -32, 114, -120, 84)

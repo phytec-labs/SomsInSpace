@@ -139,7 +139,9 @@ func _on_object_collected(object: Node2D) -> void:
 
 func _on_object_hit(object: Node2D) -> void:
 	if object is Obstacle:
-		update_health(-object.damage)
+		if not player.is_blinking:
+			update_health(-object.damage)
+			player.start_blink()  # Start the blink effect)
 
 func update_countdown_display() -> void:
 	var countdown_text: String = ""
