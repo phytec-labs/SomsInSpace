@@ -29,10 +29,6 @@ var zone_multipliers = {
 const SCENE_PATHS = {
 	"energy_1": "res://scenes/collectibles/energy_collectible_1.tscn",
 	"bird_1": "res://scenes/obstacles/bird_obstacle_1.tscn",
-	"cloud_1": "res://scenes/obstacles/cloud_obstacle_1.tscn",
-	"cloud_2": "res://scenes/obstacles/cloud_obstacle_2.tscn",
-	"cloud_3": "res://scenes/obstacles/cloud_obstacle_3.tscn",
-	"cloud_4": "res://scenes/obstacles/cloud_obstacle_4.tscn",
 	"jet_1": "res://scenes/obstacles/jet_obstacle_1.tscn",
 	"jet_2": "res://scenes/obstacles/jet_obstacle_2.tscn",
 	"plane_1": "res://scenes/obstacles/plane_obstacle_1.tscn",
@@ -56,17 +52,12 @@ var zone_objects = {
 		"collectibles": {"energy_1": 1.0},
 		"obstacles": {
 			"bird_1": 1.0,
-			"cloud_1": 1.0,
-			"cloud_2": 1.0
 		}
 	},
 	SpawnZone.ATMOSPHERE: {
 		"collectibles": {"energy_1": 1.0},
 		"obstacles": {
 			"bird_1": 0.5,
-			"cloud_2": 1.0,
-			"cloud_3": 1.0,
-			"cloud_4": 1.0,
 			"jet_1": 1.0,
 			"plane_1": 1.0
 		}
@@ -74,8 +65,6 @@ var zone_objects = {
 	SpawnZone.UPPER_ATMOSPHERE: {
 		"collectibles": {"energy_1": 1.0},
 		"obstacles": {
-			"cloud_3": 0.5,
-			"cloud_4": 0.5,
 			"jet_1": 1.0,
 			"jet_2": 1.0,
 			"satellite_1": 1.0
@@ -232,7 +221,7 @@ func retire_object(index: int) -> void:
 	active_objects.remove_at(index)
 
 func start_spawning() -> void:
-	is_spawning = true
+	#is_spawning = true
 	spawn_timer = 0.0
 
 func stop_spawning() -> void:

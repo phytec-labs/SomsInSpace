@@ -6,6 +6,7 @@ extends Node2D
 @onready var spawn_manager: Node2D = $SpawnManager
 @onready var background_music = $BackgroundMusic
 @onready var atmosphere_manager = $AtmosphereManager
+@onready var cloud_manager: Node2D = $CloudManager
 @onready var countdown_label: Label = $UI/CountdownLabel
 @onready var height_label: Label = $UI/HeightDisplay/HeightLabel
 @onready var health_label: Label = $UI/StatsDisplay/StatsContainer/HealthLabel
@@ -90,6 +91,8 @@ func process_game(delta: float) -> void:
 	# Update energy (decrease over time)
 	#update_energy(-energy_decay_rate * delta)
 
+	cloud_manager.update_height(height_score)
+
 	# Check if out of energy or health
 	if current_energy <= 0 or current_health <= 0:
 		game_over()
@@ -98,7 +101,7 @@ func process_game(delta: float) -> void:
 	update_all_displays()
 
 	# Increase scroll speed gradually based on height
-	scroll_speed = base_player_speed + (height_score * 0.01)
+	# scroll_speed = base_player_speed + (height_score * 0.01)
 
 	# Update spawn difficulty based on height
 	var current_height: int = int(height_score)
@@ -162,8 +165,9 @@ func update_countdown_display() -> void:
 func start_game() -> void:
 	countdown_label.visible = false
 	current_state = GameState.PLAYING
-	player.enable_movement()  # Enable player movement
-	spawn_manager.start_spawning()  # Start spawning objects
+	player.enable_movement()
+	spawn_manager.start_spawning()
+	cloud_manager.start_spawning()
 
 	# Start launch pad animation
 	if $LaunchPad:
@@ -173,7 +177,8 @@ func game_over() -> void:
 	current_state = GameState.GAME_OVER
 	player.disable_movement()
 	spawn_manager.stop_spawning()
-	
+	cloud_manager.stop_spawning()
+
 	# Show game over screen with final height score
 	if game_over_screen:
 		game_over_screen.show()
@@ -193,6 +198,7 @@ func update_spawn_difficulty(height: int) -> void:
 
 	spawn_manager.set_spawn_zone(new_zone)
 	atmosphere_manager.set_zone(new_zone)
+	cloud_manager.set_zone(new_zone)
 
 func _on_game_over_retry() -> void:
 	# Reload the current scene
