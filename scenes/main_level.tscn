@@ -81,11 +81,6 @@ upper_atmosphere_color = Color(0.118526, 0.152406, 0.147788, 1)
 min_cloud_speed = 50.0
 max_cloud_speed = 70.0
 spawn_interval = 4.0
-max_clouds = 5
 
 [node name="SpawnManager" type="Node2D" parent="."]
 script = ExtResource("4_5rh77")
-base_spawn_rate = 0.75
-spawn_height_offset = -150.0
-pool_size = 30
-formation_spacing = 40.0
