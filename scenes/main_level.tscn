@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://csn78ghmwjqev"]
+[gd_scene load_steps=12 format=3 uid="uid://bkco6j5gra7aw"]
 
 [ext_resource type="Script" path="res://scripts/main_level.gd" id="1_dythh"]
 [ext_resource type="PackedScene" uid="uid://fgrg1yvq87i7" path="res://scenes/player.tscn" id="2_k0f0i"]
@@ -8,6 +8,9 @@
 [ext_resource type="PackedScene" uid="uid://drddnlaqg13vc" path="res://scenes/launch_pad.tscn" id="6_nwq2p"]
 [ext_resource type="PackedScene" uid="uid://41k1mrkdmkop" path="res://scenes/misc/atmosphere_manager.tscn" id="7_8rbm4"]
 [ext_resource type="PackedScene" uid="uid://c12tn2cqydmqf" path="res://scenes/misc/cloud_manager.tscn" id="7_je1qi"]
+[ext_resource type="PackedScene" uid="uid://5tcbqrpdutal" path="res://scenes/collectibles/energy_collectible_1.tscn" id="9_6i8ks"]
+[ext_resource type="PackedScene" uid="uid://dasb4akorj1ja" path="res://scenes/obstacles/balloon_obstacle_1.tscn" id="10_76tdh"]
+[ext_resource type="Script" path="res://scripts/main_level/formation_manager.gd" id="11_133uv"]
 
 [node name="MainLevel" type="Node2D"]
 script = ExtResource("1_dythh")
@@ -80,7 +83,13 @@ upper_atmosphere_color = Color(0.118526, 0.152406, 0.147788, 1)
 [node name="CloudManager" parent="." instance=ExtResource("7_je1qi")]
 min_cloud_speed = 50.0
 max_cloud_speed = 70.0
-spawn_interval = 4.0
 
 [node name="SpawnManager" type="Node2D" parent="."]
 script = ExtResource("4_5rh77")
+energy_collectible_scene = ExtResource("9_6i8ks")
+obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh")])
+
+[node name="FormationManager" type="Node" parent="SpawnManager"]
+script = ExtResource("11_133uv")
+
+[node name="SpawnTimer" type="Timer" parent="SpawnManager"]

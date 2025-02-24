@@ -4,3 +4,7 @@
 
 [node name="CloudManager" type="Node2D"]
 script = ExtResource("1_snu1k")
+
+[node name="UpdateTimer" type="Timer" parent="."]
+
+[node name="SpawnTimer" type="Timer" parent="."]

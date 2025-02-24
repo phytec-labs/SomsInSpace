@@ -9,6 +9,7 @@ class_name GameObject
 # Signals
 signal object_collected
 signal object_hit
+signal screen_exited
 
 # Node references
 @onready var sprite: Sprite2D = $Sprite2D
@@ -25,6 +26,15 @@ func _ready() -> void:
 
 	# We only need area_entered since we're using Area2D for the player too
 	area_entered.connect(_on_area_entered)
+
+func _process(delta: float) -> void:
+	if is_active:
+		# Your existing movement code...
+		
+		# Check if off-screen
+		var viewport_rect = get_viewport_rect()
+		if position.y > viewport_rect.size.y + 100:
+			emit_signal("screen_exited")
 
 func initialize(spawn_position: Vector2) -> void:
 	position = spawn_position

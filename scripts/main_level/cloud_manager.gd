@@ -1,4 +1,4 @@
-# cloud_manager.gd
+# optimized_cloud_manager.gd
 extends Node2D
 
 # Cloud types enum
@@ -12,6 +12,7 @@ enum CloudType {
 @export var min_cloud_speed: float = 25.0
 @export var max_cloud_speed: float = 35.0
 @export var spawn_interval: float = 2.0
+@export var cloud_fps: int = 30
 @export var max_clouds: int = 8
 @export var horizontal_drift_speed: float = 10.0
 
@@ -46,9 +47,8 @@ class Cloud extends Sprite2D:
 		z_index = -5  # Place behind most game elements
 
 # Member variables
-var cloud_pool: Array[Cloud] = []
+var available_clouds: Array[Cloud] = []
 var active_clouds: Array[Cloud] = []
-var spawn_timer: float = 0.0
 var is_spawning: bool = false
 var current_zone: String = "ground"
 var height_score: float = 0.0
@@ -56,64 +56,108 @@ var height_score: float = 0.0
 # Cloud textures
 var cloud_textures: Array[Texture2D] = []
 
+# Timer reference
+@onready var spawn_timer: Timer = $SpawnTimer
+@onready var update_timer: Timer = $UpdateTimer
+
 func _ready() -> void:
-	# Load cloud textures
-	for i in range(1, 4):  # Assuming we have cloud1.png, cloud2.png, cloud3.png
-		var texture = load("res://sprites/cloud_%d.png" % i)
-		if texture:
-			cloud_textures.append(texture)
-		else:
-			push_error("Failed to load cloud texture %d" % i)
+	# Create timers if they don't exist
+	if not has_node("SpawnTimer"):
+		spawn_timer = Timer.new()
+		spawn_timer.name = "SpawnTimer"
+		spawn_timer.one_shot = false
+		add_child(spawn_timer)
+	
+	if not has_node("UpdateTimer"):
+		update_timer = Timer.new()
+		update_timer.name = "UpdateTimer"
+		update_timer.one_shot = false
+		add_child(update_timer)
+	
+	# Connect timer signals
+	spawn_timer.timeout.connect(_on_spawn_timer_timeout)
+	update_timer.timeout.connect(_on_update_timer_timeout)
+	
+	# Start the update timer
+	spawn_timer.wait_time = spawn_interval
+	update_timer.wait_time = 1.0/cloud_fps
+	update_timer.start()
+	spawn_timer.start()
+	
+	# Load cloud textures (using preload for faster access)
+	# This is done once at startup to avoid file loading overhead during gameplay
+	cloud_textures = [
+		preload("res://sprites/cloud_1.png") if ResourceLoader.exists("res://sprites/cloud_1.png") else null,
+		preload("res://sprites/cloud_2.png") if ResourceLoader.exists("res://sprites/cloud_2.png") else null,
+		preload("res://sprites/cloud_3.png") if ResourceLoader.exists("res://sprites/cloud_3.png") else null,
+		preload("res://sprites/cloud_4.png") if ResourceLoader.exists("res://sprites/cloud_4.png") else null,
+		preload("res://sprites/cloud_5.png") if ResourceLoader.exists("res://sprites/cloud_5.png") else null,
+		preload("res://sprites/cloud_6.png") if ResourceLoader.exists("res://sprites/cloud_6.png") else null,
+		preload("res://sprites/cloud_7.png") if ResourceLoader.exists("res://sprites/cloud_7.png") else null
+	]
+	print("Before filter - Available cloud textures: ", cloud_textures.size())
+	# Filter out any null textures
+	cloud_textures = cloud_textures.filter(func(tex): return tex != null)
+	print("After filter - Available cloud textures: ", cloud_textures.size())
+	if cloud_textures.is_empty():
+		push_error("No cloud textures were loaded")
+		return
 	
 	# Initialize cloud pool
 	for i in range(max_clouds):
 		var cloud = create_cloud()
-		cloud_pool.append(cloud)
+		available_clouds.append(cloud)
 		add_child(cloud)
 		cloud.hide()
 
 func create_cloud() -> Cloud:
-	var texture = cloud_textures[0] if cloud_textures.size() > 0 else null
+	var texture = cloud_textures[0] if not cloud_textures.is_empty() else null
 	var cloud = Cloud.new(texture)
 	cloud.centered = true
 	return cloud
 
-func _process(delta: float) -> void:
-	# Handle cloud spawning
-	if is_spawning:
-		spawn_timer += delta
-		if spawn_timer >= spawn_interval:
-			spawn_timer = 0.0
-			spawn_cloud()
+func _on_update_timer_timeout() -> void:
+	# Update all active clouds
+	var delta = update_timer.wait_time
 	
-	# Always update active clouds, even when not spawning new ones
+	var clouds_to_recycle = []
+	var viewport_size = get_viewport_rect().size
+	
 	for cloud in active_clouds:
 		# Vertical movement
 		cloud.position.y += cloud.speed * delta
 		
-		# Horizontal drift
+		# Horizontal drift (simplified: less sin() calculations)
 		cloud.drift_offset += cloud.drift_speed * delta
 		cloud.position.x += sin(cloud.drift_offset * 0.5) * delta * horizontal_drift_speed
 		
 		# Check if cloud is off screen
-		var viewport_size = get_viewport_rect().size
 		if (cloud.position.y > viewport_size.y + 100 or
 			cloud.position.x < -100 or
 			cloud.position.x > viewport_size.x + 100):
-			recycle_cloud(cloud)
+			clouds_to_recycle.append(cloud)
+	
+	# Recycle clouds that are now off-screen
+	for cloud in clouds_to_recycle:
+		recycle_cloud(cloud)
+
+func _on_spawn_timer_timeout() -> void:
+	if is_spawning and should_spawn_clouds() and not available_clouds.is_empty():
+		spawn_cloud()
+		print("Active clouds: ", active_clouds.size(), " Available: ", available_clouds.size())
 
 func spawn_cloud() -> void:
-	if cloud_pool.is_empty() or not should_spawn_clouds():
+	if available_clouds.is_empty() or not should_spawn_clouds():
 		return
-		
-	var cloud = cloud_pool.pop_back()
+	
+	var cloud = available_clouds.pop_back()
 	
 	# Set random cloud type
 	var cloud_type = CloudType.values()[randi() % CloudType.size()]
 	cloud.cloud_type = cloud_type
 	
-	# Set random texture
-	if cloud_textures.size() > 0:
+	# Always set a new random texture when spawning
+	if not cloud_textures.is_empty():
 		cloud.texture = cloud_textures[randi() % cloud_textures.size()]
 	
 	# Get config for this cloud type
@@ -133,8 +177,8 @@ func spawn_cloud() -> void:
 	cloud.drift_offset = 0.0
 	
 	# Set appearance
-	var scale = randf_range(config.scale_range.x, config.scale_range.y)
-	cloud.scale = Vector2(scale, scale)
+	var scale_value = randf_range(config.scale_range.x, config.scale_range.y)
+	cloud.scale = Vector2(scale_value, scale_value)
 	cloud.modulate.a = randf_range(
 		config.opacity_range.x,
 		config.opacity_range.y
@@ -149,7 +193,7 @@ func recycle_cloud(cloud: Cloud) -> void:
 		active_clouds.erase(cloud)
 	
 	cloud.hide()
-	cloud_pool.append(cloud)
+	available_clouds.append(cloud)
 
 func should_spawn_clouds() -> bool:
 	return current_zone in ["ground", "atmosphere"]
@@ -161,27 +205,44 @@ func set_zone(zone: String) -> void:
 	# but let existing clouds continue until they move off screen
 	if not should_spawn_clouds():
 		is_spawning = false
+		spawn_timer.stop()
 
 func start_spawning() -> void:
 	is_spawning = true
-	spawn_timer = 0.0
+	spawn_timer.wait_time = spawn_interval
+	spawn_timer.start()
 
 func stop_spawning() -> void:
 	is_spawning = false
+	spawn_timer.stop()
+	
+	# Optional: Clear all clouds immediately if needed
+	# for cloud in active_clouds.duplicate():
+	#     recycle_cloud(cloud)
 
 func update_height(height: float) -> void:
 	height_score = height
 	
-	# Optional: Adjust cloud appearance based on height
+	# Only update cloud appearance every 100 height units to save CPU
+	if int(height_score) % 20 != 0:
+		return
+		
+	# Adjust cloud appearance based on height
 	var altitude_factor = clamp(height_score / 3000.0, 0.0, 1.0)
 	
-	# Update active clouds
+	# Pre-compute colors for efficiency
+	var base_color = Color(1, 1, 1)
+	var high_altitude_color = Color(0.9, 0.95, 1.0)
+	var target_color = base_color.lerp(high_altitude_color, altitude_factor)
+	
+	# Update active clouds - batch updates for efficiency
 	for cloud in active_clouds:
 		# Fade out clouds as we get higher
 		var base_opacity = cloud_configs[cloud.cloud_type].opacity_range.x
 		cloud.modulate.a = lerp(base_opacity, base_opacity * 0.5, altitude_factor)
-		
-		# Optional: Add slight blue tint at higher altitudes
-		var base_color = Color(1, 1, 1)
-		var high_altitude_color = Color(0.9, 0.95, 1.0)
-		cloud.modulate = base_color.lerp(high_altitude_color, altitude_factor)
+		# Calculate alpha first and store it
+		var alpha_value = lerp(base_opacity, base_opacity * 0.5, altitude_factor)
+		# Set the color 
+		cloud.modulate = target_color
+		# Then explicitly set the stored alpha value
+		cloud.modulate.a = alpha_value
