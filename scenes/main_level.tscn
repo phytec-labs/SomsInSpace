@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://bkco6j5gra7aw"]
+[gd_scene load_steps=16 format=3 uid="uid://bkco6j5gra7aw"]
 
 [ext_resource type="Script" path="res://scripts/main_level.gd" id="1_dythh"]
 [ext_resource type="PackedScene" uid="uid://fgrg1yvq87i7" path="res://scenes/player.tscn" id="2_k0f0i"]
@@ -10,7 +10,11 @@
 [ext_resource type="PackedScene" uid="uid://c12tn2cqydmqf" path="res://scenes/misc/cloud_manager.tscn" id="7_je1qi"]
 [ext_resource type="PackedScene" uid="uid://5tcbqrpdutal" path="res://scenes/collectibles/energy_collectible_1.tscn" id="9_6i8ks"]
 [ext_resource type="PackedScene" uid="uid://dasb4akorj1ja" path="res://scenes/obstacles/balloon_obstacle_1.tscn" id="10_76tdh"]
+[ext_resource type="PackedScene" uid="uid://cx8j6r8jv1uwr" path="res://scenes/obstacles/jet_obstacle_1.tscn" id="11_7shu0"]
 [ext_resource type="Script" path="res://scripts/main_level/formation_manager.gd" id="11_133uv"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/meteor_obstacle_1.tscn" id="12_bugkk"]
+[ext_resource type="PackedScene" uid="uid://bg2b5qeqf850i" path="res://scenes/obstacles/plane_obstacle_1.tscn" id="13_xjqvk"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/satellite_obstacle_1.tscn" id="14_1flmh"]
 
 [node name="MainLevel" type="Node2D"]
 script = ExtResource("1_dythh")
@@ -87,9 +91,15 @@ max_cloud_speed = 70.0
 [node name="SpawnManager" type="Node2D" parent="."]
 script = ExtResource("4_5rh77")
 energy_collectible_scene = ExtResource("9_6i8ks")
-obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh")])
+obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh"), ExtResource("11_7shu0"), ExtResource("12_bugkk"), ExtResource("13_xjqvk"), ExtResource("14_1flmh")])
+ground_obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh"), ExtResource("13_xjqvk")])
+atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh"), ExtResource("11_7shu0"), ExtResource("13_xjqvk")])
+upper_atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("11_7shu0"), ExtResource("13_xjqvk"), ExtResource("14_1flmh")])
+space_obstacle_scenes = Array[PackedScene]([ExtResource("11_7shu0"), ExtResource("12_bugkk"), ExtResource("14_1flmh")])
 
 [node name="FormationManager" type="Node" parent="SpawnManager"]
 script = ExtResource("11_133uv")
 
 [node name="SpawnTimer" type="Timer" parent="SpawnManager"]
+
+[node name="ExplosionManager" type="Node2D" parent="." groups=["explosion_manager"]]

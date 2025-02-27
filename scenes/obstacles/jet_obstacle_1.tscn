@@ -1,21 +1,39 @@
-[gd_scene load_steps=4 format=3 uid="uid://cpj00tkmmx1w7"]
+[gd_scene load_steps=5 format=3 uid="uid://cx8j6r8jv1uwr"]
 
-[ext_resource type="Texture2D" uid="uid://cmkjdsidrojoi" path="res://sprites/jet_1.png" id="2_5ic34"]
-[ext_resource type="Script" path="res://scripts/main_level/jet_obstacle.gd" id="3_7xab5"]
+[ext_resource type="Script" path="res://scripts/obstacles/jet_obstacle.gd" id="1_jet"]
+[ext_resource type="Texture2D" uid="uid://cmkjdsidrojoi" path="res://sprites/jet_1.png" id="2_jet_texture"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dspdq"]
-radius = 12.0
-height = 174.0
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_jet"]
+radius = 20.0
+height = 134.0
 
-[node name="Jet" type="Area2D"]
+[sub_resource type="Gradient" id="Gradient_jet_trail"]
+offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
+colors = PackedColorArray(0.8, 0.8, 1, 0.8, 0.4, 0.4, 1, 0.6, 0.2, 0.2, 0.8, 0.4, 0, 0, 0, 0)
+
+[node name="JetFighter" type="Area2D"]
 collision_layer = 2
-script = ExtResource("3_7xab5")
+script = ExtResource("1_jet")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.3, 0.3)
-texture = ExtResource("2_5ic34")
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_jet_texture")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, 6)
-rotation = -1.5708
-shape = SubResource("CapsuleShape2D_dspdq")
+rotation = -3.14159
+shape = SubResource("CapsuleShape2D_jet")
+
+[node name="ThrusterParticles" type="CPUParticles2D" parent="."]
+position = Vector2(0, 60)
+emitting = false
+amount = 20
+lifetime = 0.5
+local_coords = true
+direction = Vector2(0, 1)
+spread = 10.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 50.0
+initial_velocity_max = 100.0
+scale_amount_min = 5.0
+scale_amount_max = 8.0
+color_ramp = SubResource("Gradient_jet_trail")
