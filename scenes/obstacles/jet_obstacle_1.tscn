@@ -1,11 +1,7 @@
-[gd_scene load_steps=5 format=3 uid="uid://cx8j6r8jv1uwr"]
+[gd_scene load_steps=4 format=3 uid="uid://cx8j6r8jv1uwr"]
 
 [ext_resource type="Script" path="res://scripts/obstacles/jet_obstacle.gd" id="1_jet"]
 [ext_resource type="Texture2D" uid="uid://cmkjdsidrojoi" path="res://sprites/jet_1.png" id="2_jet_texture"]
-
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_jet"]
-radius = 20.0
-height = 134.0
 
 [sub_resource type="Gradient" id="Gradient_jet_trail"]
 offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
@@ -16,15 +12,11 @@ collision_layer = 2
 script = ExtResource("1_jet")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.25, 0.25)
+scale = Vector2(0.15, 0.15)
 texture = ExtResource("2_jet_texture")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-rotation = -3.14159
-shape = SubResource("CapsuleShape2D_jet")
-
 [node name="ThrusterParticles" type="CPUParticles2D" parent="."]
-position = Vector2(0, 60)
+position = Vector2(0, 29)
 emitting = false
 amount = 20
 lifetime = 0.5
@@ -37,3 +29,6 @@ initial_velocity_max = 100.0
 scale_amount_min = 5.0
 scale_amount_max = 8.0
 color_ramp = SubResource("Gradient_jet_trail")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(0, -42, 13, -7, 37, 5, 0, 38, -36, 7, -13, -7)

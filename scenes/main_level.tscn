@@ -12,9 +12,9 @@
 [ext_resource type="PackedScene" uid="uid://dasb4akorj1ja" path="res://scenes/obstacles/balloon_obstacle_1.tscn" id="10_76tdh"]
 [ext_resource type="PackedScene" uid="uid://cx8j6r8jv1uwr" path="res://scenes/obstacles/jet_obstacle_1.tscn" id="11_7shu0"]
 [ext_resource type="Script" path="res://scripts/main_level/formation_manager.gd" id="11_133uv"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/meteor_obstacle_1.tscn" id="12_bugkk"]
+[ext_resource type="PackedScene" uid="uid://ccofur7yq33i7" path="res://scenes/obstacles/meteor_obstacle_1.tscn" id="12_bugkk"]
 [ext_resource type="PackedScene" uid="uid://bg2b5qeqf850i" path="res://scenes/obstacles/plane_obstacle_1.tscn" id="13_xjqvk"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/satellite_obstacle_1.tscn" id="14_1flmh"]
+[ext_resource type="PackedScene" uid="uid://dan3irwnoxqa7" path="res://scenes/obstacles/satellite_obstacle_1.tscn" id="14_1flmh"]
 
 [node name="MainLevel" type="Node2D"]
 script = ExtResource("1_dythh")
@@ -96,6 +96,7 @@ ground_obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh"), ExtResourc
 atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh"), ExtResource("11_7shu0"), ExtResource("13_xjqvk")])
 upper_atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("11_7shu0"), ExtResource("13_xjqvk"), ExtResource("14_1flmh")])
 space_obstacle_scenes = Array[PackedScene]([ExtResource("11_7shu0"), ExtResource("12_bugkk"), ExtResource("14_1flmh")])
+formation_chance = 0.5
 
 [node name="FormationManager" type="Node" parent="SpawnManager"]
 script = ExtResource("11_133uv")

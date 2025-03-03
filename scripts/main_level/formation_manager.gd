@@ -72,6 +72,8 @@ var zone_formation_settings = {
 }
 
 var current_zone = "ground"
+var current_formation_id: int = 0  # Used to generate unique IDs for formations
+var active_formations: Dictionary = {}  # Track active formations by ID
 var rng = RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -92,10 +94,48 @@ func create_random_formation(base_position: Vector2, spawn_func: Callable) -> Ar
 
 	return create_formation(formation_type, base_position, spawn_func)
 
+# Add a new method to update all formations
+func _process(delta: float) -> void:
+	# Update active formations with additional movement patterns if desired
+	for formation_id in active_formations.keys():
+		var formation = active_formations[formation_id]
+
+		# Check if formation is still active (has objects)
+		if formation.objects.is_empty():
+			active_formations.erase(formation_id)
+			continue
+
+		# Remove any objects that are no longer in the scene
+		for i in range(formation.objects.size() - 1, -1, -1):
+			if not is_instance_valid(formation.objects[i]) or not formation.objects[i].is_active:
+				formation.objects.remove_at(i)
+
+		# If no objects left, remove the formation
+		if formation.objects.is_empty():
+			active_formations.erase(formation_id)
+			continue
+
+		# Update formation pattern if needed
+		# This could be used to make entire formations move in patterns
+		# For now, we're just letting individual objects maintain their positions
+		formation.pattern_time += delta
+
+		# Example: You could add formation-wide movement like this:
+		# var pattern_offset = Vector2.ZERO
+		# if formation.pattern == "sine":
+		#    pattern_offset.x = sin(formation.pattern_time * formation.frequency) * formation.amplitude
+		#
+		# for obj in formation.objects:
+		#    obj.position = formation.base_position + obj.formation_offset + pattern_offset
+
 # Creates a specific formation type at the given position
 func create_formation(formation_type: FormationType, base_position: Vector2, spawn_func: Callable) -> Array:
 	var formation_def = formation_definitions[formation_type]
 	var zone_settings = zone_formation_settings[current_zone]
+
+	# Generate a unique formation ID
+	current_formation_id += 1
+	var formation_id = current_formation_id
 
 	# Determine number of objects in this formation instance
 	var object_count = rng.randi_range(
@@ -117,10 +157,25 @@ func create_formation(formation_type: FormationType, base_position: Vector2, spa
 		# Spawn the actual object
 		var object = spawn_func.call(spawn_position)
 		if object:
+			# Set formation data if the object supports it
+			if object.has_method("set_formation_data"):
+				object.set_formation_data(formation_id, offset)
 			formation_objects.append(object)
 
-	# Emit signal with created formation
+	# Store information about this formation
 	if not formation_objects.is_empty():
+		active_formations[formation_id] = {
+			"type": formation_type,
+			"base_position": base_position,
+			"objects": formation_objects,
+			"speed": formation_objects[0].base_speed * formation_objects[0].speed_multiplier if formation_objects[0].has_method("get_speed") else 100.0,
+			"pattern": "linear",  # Default pattern for the whole formation
+			"pattern_time": 0.0,
+			"amplitude": 0.0,
+			"frequency": 0.0
+		}
+
+		# Emit signal with created formation
 		emit_signal("formation_created", formation_objects)
 
 	return formation_objects
