@@ -1,22 +1,23 @@
-[gd_scene load_steps=4 format=3 uid="uid://cx8j6r8jv1uwr"]
+[gd_scene load_steps=4 format=3 uid="uid://dagaluwq68hy7"]
 
-[ext_resource type="Script" path="res://scripts/obstacles/jet_obstacle.gd" id="1_jet"]
-[ext_resource type="Texture2D" uid="uid://cmkjdsidrojoi" path="res://sprites/jet_1.png" id="2_jet_texture"]
+[ext_resource type="Script" path="res://scripts/obstacles/jet_obstacle.gd" id="1_7awkg"]
+[ext_resource type="Texture2D" uid="uid://4uc41phpiyj5" path="res://sprites/jet_2.png" id="2_f2fjh"]
 
 [sub_resource type="Gradient" id="Gradient_jet_trail"]
 offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
 colors = PackedColorArray(0.8, 0.8, 1, 0.8, 0.4, 0.4, 1, 0.6, 0.2, 0.2, 0.8, 0.4, 0, 0, 0, 0)
 
 [node name="JetFighter" type="Area2D"]
+scale = Vector2(1.5, 1.5)
 collision_layer = 2
-script = ExtResource("1_jet")
+script = ExtResource("1_7awkg")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(0.1, 0.1)
-texture = ExtResource("2_jet_texture")
+texture = ExtResource("2_f2fjh")
 
 [node name="ThrusterParticles" type="CPUParticles2D" parent="."]
-position = Vector2(0, 21)
+position = Vector2(0, 19)
 emitting = false
 amount = 20
 lifetime = 0.5
@@ -31,4 +32,4 @@ scale_amount_max = 8.0
 color_ramp = SubResource("Gradient_jet_trail")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-polygon = PackedVector2Array(0, -30, 8, -4, 25, 5, 8, 6, 15, 14, 6, 15, 0, 28, -5, 15, -16, 14, -8, 6, -25, 6, -9, -4)
+polygon = PackedVector2Array(0, -25, 6, -15, 28, -8, 26, 3, 8, 2, 12, 16, 3, 15, 0, 28, -3, 15, -14, 16, -8, 3, -25, 2, -29, -9, -7, -15)

@@ -21,7 +21,7 @@ collision_mask = 2
 script = ExtResource("1_vp455")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-polygon = PackedVector2Array(-88, 33, -53, 18, -18, -16, -16, -41, -6, -59, 5, -59, 15, -41, 18, -16, 53, 18, 88, 33, 88, 53, 26, 45, 27, 81, -26, 81, -27, 45, -88, 52)
+polygon = PackedVector2Array(-78, 30, -49, 18, -15, -12, -14, -36, -5, -53, 4, -53, 13, -36, 17, -10, 48, 18, 80, 31, 79, 53, 22, 42, 23, 69, -22, 70, -23, 42, -77, 52)
 
 [node name="SoM" type="Sprite2D" parent="."]
 z_index = 1
@@ -30,13 +30,13 @@ scale = Vector2(0.035, 0.035)
 texture = ExtResource("2_ax0x5")
 
 [node name="Ship" type="Sprite2D" parent="."]
-scale = Vector2(0.1, 0.1)
+scale = Vector2(0.09, 0.09)
 texture = ExtResource("3_f3p6y")
 
 [node name="MainThruster" type="CPUParticles2D" parent="."]
 z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
-position = Vector2(0, 67)
+position = Vector2(0, 32)
 amount = 32
 lifetime = 0.5
 texture = ExtResource("4_6ief2")
@@ -45,16 +45,16 @@ spread = 10.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 100.0
 initial_velocity_max = 200.0
-scale_amount_min = 0.25
-scale_amount_max = 0.5
+scale_amount_min = 0.08
+scale_amount_max = 0.2
 anim_speed_min = 1.0
 anim_speed_max = 1.0
 
 [node name="RightThruster" type="CPUParticles2D" parent="."]
 z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
-position = Vector2(32, 0)
-rotation = -1.57079
+position = Vector2(26, 22)
+rotation = -1.0472
 amount = 32
 texture = ExtResource("4_6ief2")
 direction = Vector2(0, 1)
@@ -62,8 +62,8 @@ spread = 10.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 100.0
 initial_velocity_max = 200.0
-scale_amount_min = 0.15
-scale_amount_max = 0.25
+scale_amount_min = 0.1
+scale_amount_max = 0.2
 color_ramp = SubResource("Gradient_rkppw")
 anim_speed_min = 1.0
 anim_speed_max = 2.0
@@ -71,8 +71,8 @@ anim_speed_max = 2.0
 [node name="LeftThruster" type="CPUParticles2D" parent="."]
 z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
-position = Vector2(-32, 0)
-rotation = -4.71238
+position = Vector2(-26, 22)
+rotation = 1.0472
 amount = 32
 texture = ExtResource("4_6ief2")
 direction = Vector2(0, 1)
@@ -80,8 +80,8 @@ spread = 10.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 100.0
 initial_velocity_max = 200.0
-scale_amount_min = 0.15
-scale_amount_max = 0.25
+scale_amount_min = 0.1
+scale_amount_max = 0.2
 color_ramp = SubResource("Gradient_rkppw")
 anim_speed_min = 1.0
 anim_speed_max = 2.0
@@ -89,7 +89,7 @@ anim_speed_max = 2.0
 [node name="UpThruster" type="CPUParticles2D" parent="."]
 z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
-position = Vector2(0, -60)
+position = Vector2(0, -36)
 rotation = -3.14159
 amount = 32
 texture = ExtResource("4_6ief2")
@@ -98,8 +98,8 @@ spread = 10.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 100.0
 initial_velocity_max = 200.0
-scale_amount_min = 0.15
-scale_amount_max = 0.25
+scale_amount_min = 0.1
+scale_amount_max = 0.2
 color_ramp = SubResource("Gradient_rkppw")
 anim_speed_min = 1.0
 anim_speed_max = 2.0
@@ -108,7 +108,7 @@ anim_speed_max = 2.0
 z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
 position = Vector2(0, 32)
-amount = 32
+amount = 10
 texture = ExtResource("4_6ief2")
 direction = Vector2(0, 1)
 spread = 10.0
@@ -126,4 +126,4 @@ z_index = 1
 collision_mask = 2
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="CollisionArea"]
-polygon = PackedVector2Array(-88, 33, -53, 18, -18, -16, -16, -41, -6, -59, 5, -59, 15, -41, 18, -16, 53, 18, 88, 33, 88, 53, 26, 45, 27, 81, -26, 81, -27, 45, -88, 52)
+polygon = PackedVector2Array(-78, 30, -49, 18, -15, -12, -14, -36, -5, -53, 4, -53, 13, -36, 17, -10, 48, 18, 80, 31, 79, 53, 22, 42, 23, 69, -22, 70, -23, 42, -77, 52)

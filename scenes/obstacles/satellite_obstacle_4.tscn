@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3 uid="uid://b4glwvolc38lf"]
+
+[ext_resource type="Script" path="res://scripts/obstacles/satellite_obstacle.gd" id="1_m3th8"]
+[ext_resource type="Texture2D" uid="uid://c0mu4lkgax7de" path="res://sprites/satelite_4.png" id="2_0516c"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_satellite"]
+radius = 11.3137
+height = 67.8823
+
+[node name="Satellite" type="Area2D"]
+collision_layer = 2
+script = ExtResource("1_m3th8")
+rotation_variation = 40.0
+min_rotation_speed = 10.0
+max_rotation_speed = 40.0
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_0516c")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = -2.31728
+shape = SubResource("CapsuleShape2D_satellite")

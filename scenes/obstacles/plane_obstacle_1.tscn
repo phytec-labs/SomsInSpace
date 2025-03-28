@@ -5,6 +5,7 @@
 
 [node name="Plane" type="Area2D"]
 rotation = 3.14159
+scale = Vector2(1.2, 1.2)
 collision_layer = 2
 script = ExtResource("1_1sqvm")
 

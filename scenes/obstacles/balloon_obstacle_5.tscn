@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3 uid="uid://d2t24ncmceeqe"]
+
+[ext_resource type="Script" path="res://scripts/obstacles/obstacle.gd" id="1_8bffk"]
+[ext_resource type="Texture2D" uid="uid://bvpj0pvgpk50q" path="res://sprites/balloon_5.png" id="2_clxvn"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dspdq"]
+radius = 29.0
+height = 68.0
+
+[node name="Balloon" type="Area2D"]
+collision_layer = 2
+script = ExtResource("1_8bffk")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, 13)
+scale = Vector2(0.15, 0.15)
+texture = ExtResource("2_clxvn")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_dspdq")

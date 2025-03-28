@@ -1,11 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://ccofur7yq33i7"]
+[gd_scene load_steps=5 format=3 uid="uid://s4nml6qlsigi"]
 
-[ext_resource type="Script" path="res://scripts/obstacles/meteor_obstacle.gd" id="1_meteor"]
-[ext_resource type="Texture2D" uid="uid://bd5hnsp1dulpm" path="res://sprites/meteor_1.png" id="2_meteor_texture"]
+[ext_resource type="Script" path="res://scripts/obstacles/meteor_obstacle.gd" id="1_0iym5"]
+[ext_resource type="Texture2D" uid="uid://y72wt4vlavu1" path="res://sprites/meteor_2.png" id="2_dbk87"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_41adi"]
-radius = 15.3923
-height = 58.0333
+[sub_resource type="CircleShape2D" id="CircleShape2D_5tt17"]
+radius = 15.6205
 
 [sub_resource type="Gradient" id="Gradient_meteor_flame"]
 offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
@@ -13,15 +12,15 @@ colors = PackedColorArray(1, 0.7, 0.2, 0.9, 1, 0.4, 0.1, 0.7, 0.7, 0.1, 0.05, 0.
 
 [node name="Meteor" type="Area2D"]
 collision_layer = 2
-script = ExtResource("1_meteor")
+script = ExtResource("1_0iym5")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(0.25, 0.25)
-texture = ExtResource("2_meteor_texture")
+texture = ExtResource("2_dbk87")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 rotation = 1.0472
-shape = SubResource("CapsuleShape2D_41adi")
+shape = SubResource("CircleShape2D_5tt17")
 
 [node name="FlameParticles" type="CPUParticles2D" parent="."]
 emitting = false

@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3 uid="uid://ba8reufw3w68b"]
+
+[ext_resource type="Script" path="res://scripts/obstacles/satellite_obstacle.gd" id="1_o5uq2"]
+[ext_resource type="Texture2D" uid="uid://buyg5ydwwrxd5" path="res://sprites/satelite_3.png" id="2_v7y8f"]
+
+[node name="Satellite" type="Area2D"]
+collision_layer = 2
+script = ExtResource("1_o5uq2")
+rotation_variation = 40.0
+min_rotation_speed = 10.0
+max_rotation_speed = 40.0
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_v7y8f")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+rotation = -0.681595
+polygon = PackedVector2Array(-18.4033, -26.5201, 18.7544, -24.7037, 28.7769, 16.9082, -6.82771, 16.3518, -11.1016, 0.522934, -28.2198, 15.7367, -32.1026, 12.5865, -13.3921, -5.71418)
