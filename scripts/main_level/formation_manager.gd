@@ -39,6 +39,14 @@ var formation_definitions = {
 	}
 }
 
+var formation_patterns = ["linear", "sine", "zigzag", "spiral"]
+var default_formation_speeds = {
+	"linear": 1.0,
+	"sine": 0.8,
+	"zigzag": 0.9,
+	"spiral": 0.7
+}
+
 # Zone-specific formation settings
 var zone_formation_settings = {
 	"ground": {
@@ -96,7 +104,7 @@ func create_random_formation(base_position: Vector2, spawn_func: Callable) -> Ar
 
 # Add a new method to update all formations
 func _process(delta: float) -> void:
-	# Update active formations with additional movement patterns if desired
+	# Update active formations with additional movement patterns
 	for formation_id in active_formations.keys():
 		var formation = active_formations[formation_id]
 
@@ -115,18 +123,45 @@ func _process(delta: float) -> void:
 			active_formations.erase(formation_id)
 			continue
 
-		# Update formation pattern if needed
-		# This could be used to make entire formations move in patterns
-		# For now, we're just letting individual objects maintain their positions
+		# Update formation pattern time
 		formation.pattern_time += delta
 
-		# Example: You could add formation-wide movement like this:
-		# var pattern_offset = Vector2.ZERO
-		# if formation.pattern == "sine":
-		#    pattern_offset.x = sin(formation.pattern_time * formation.frequency) * formation.amplitude
-		#
-		# for obj in formation.objects:
-		#    obj.position = formation.base_position + obj.formation_offset + pattern_offset
+		# Calculate pattern offsets based on formation's pattern
+		var pattern_offset = Vector2.ZERO
+		var viewport_center_x = _get_viewport_rect().size.x / 2.0
+
+		# Add center-pulling for side-spawned formations
+		if formation.is_side_spawn:
+			var direction_to_center = sign(viewport_center_x - formation.base_position.x)
+			formation.base_position.x += formation.speed * delta * formation.center_pull_strength * direction_to_center
+
+		# Calculate vertical movement (always moves down)
+		formation.base_position.y += formation.speed * delta
+
+		# Calculate horizontal movement based on pattern
+		match formation.pattern:
+			"linear":
+				# Just move downward, no horizontal pattern
+				pass
+
+			"sine":
+				# Sinusoidal side to side movement
+				pattern_offset.x = sin(formation.pattern_time * formation.frequency) * formation.amplitude
+
+			"zigzag":
+				# Sharp zigzag movement
+				pattern_offset.x = sign(sin(formation.pattern_time * formation.frequency * PI)) * formation.amplitude
+
+			"spiral":
+				# Spiral movement
+				formation.rotation += delta * formation.frequency
+				pattern_offset.x = cos(formation.rotation) * formation.amplitude
+				pattern_offset.y = sin(formation.rotation) * formation.amplitude * 0.5
+
+		# Update all objects in this formation with the new positions
+		for obj in formation.objects:
+			if is_instance_valid(obj) and obj.is_active:
+				obj.global_position = formation.base_position + obj.formation_offset + pattern_offset
 
 # Creates a specific formation type at the given position
 func create_formation(formation_type: FormationType, base_position: Vector2, spawn_func: Callable) -> Array:
@@ -164,16 +199,41 @@ func create_formation(formation_type: FormationType, base_position: Vector2, spa
 
 	# Store information about this formation
 	if not formation_objects.is_empty():
+		# Select a pattern for the formation
+		var pattern = formation_patterns[rng.randi() % formation_patterns.size()]
+		var speed_multiplier = default_formation_speeds[pattern]
+
+		# Assign appropriate pattern attributes based on pattern type
+		var amplitude = 70.0
+		var frequency = 0.5
+		if pattern == "zigzag":
+			frequency = 0.3
+		elif pattern == "spiral":
+			frequency = 0.2
+
+		# Different patterns for different zones
+		if current_zone == "upper_atmosphere" or current_zone == "space":
+			amplitude *= 1.5
+			frequency *= 1.2
+
 		active_formations[formation_id] = {
 			"type": formation_type,
 			"base_position": base_position,
 			"objects": formation_objects,
-			"speed": formation_objects[0].base_speed * formation_objects[0].speed_multiplier if formation_objects[0].has_method("get_speed") else 100.0,
-			"pattern": "linear",  # Default pattern for the whole formation
+			"speed": formation_objects[0].base_speed * formation_objects[0].speed_multiplier * speed_multiplier,
+			"pattern": pattern,  # Formation movement pattern
 			"pattern_time": 0.0,
-			"amplitude": 0.0,
-			"frequency": 0.0
+			"amplitude": amplitude,
+			"frequency": frequency,
+			"rotation": 0.0,  # For spiral patterns
+			"is_side_spawn": _is_side_spawn(base_position),
+			"center_pull_strength": 0.5 if _is_side_spawn(base_position) else 0.0
 		}
+
+		# Set all objects to use the formation's movement rather than their own
+		for obj in formation_objects:
+			if obj.has_method("set_use_formation_movement"):
+				obj.set_use_formation_movement(true)
 
 		# Emit signal with created formation
 		emit_signal("formation_created", formation_objects)
@@ -236,6 +296,10 @@ func generate_spawn_position(viewport_size: Vector2) -> Vector2:
 	var zone_settings = zone_formation_settings[current_zone]
 	var max_spread = zone_settings.max_spread
 
+	# If viewport_size was passed as zero, get it from the viewport
+	if viewport_size.x <= 0 or viewport_size.y <= 0:
+		viewport_size = _get_viewport_rect().size
+
 	# Default to spawning at top
 	var x_pos = rng.randf_range(max_spread, viewport_size.x - max_spread)
 	var y_pos = -100.0 # Just above the screen
@@ -250,13 +314,28 @@ func generate_spawn_position(viewport_size: Vector2) -> Vector2:
 				y_pos = -100.0
 			1: # Right
 				x_pos = viewport_size.x + 100.0
-				y_pos = rng.randf_range(max_spread, viewport_size.y / 2)
+				# Ensure enemies spawn near or above the top of the screen
+				y_pos = rng.randf_range(-50.0, 150.0)
 			2: # Bottom (only in space zone)
 				if current_zone == "space":
 					x_pos = rng.randf_range(max_spread, viewport_size.x - max_spread)
 					y_pos = viewport_size.y + 100.0
 			3: # Left
 				x_pos = -100.0
-				y_pos = rng.randf_range(max_spread, viewport_size.y / 2)
+				# Ensure enemies spawn near or above the top of the screen
+				y_pos = rng.randf_range(-50.0, 150.0)
 
 	return Vector2(x_pos, y_pos)
+
+func _is_side_spawn(position: Vector2) -> bool:
+	var viewport_rect = _get_viewport_rect()
+	var screen_edge_margin = 50.0
+	return (position.x < -screen_edge_margin or position.x > viewport_rect.size.x + screen_edge_margin)
+
+func _get_viewport_rect() -> Rect2:
+	# Get the viewport from the scene tree
+	var viewport = get_viewport()
+	if viewport:
+		return viewport.get_visible_rect()
+	# Fallback with default size if viewport isn't available
+	return Rect2(0, 0, 720, 1280)
