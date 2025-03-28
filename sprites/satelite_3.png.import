@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cyawu84hhotmo"
-path="res://.godot/imported/energy_spritesheet.png-46379d2c5dd127e9b18d816a0d87090a.ctex"
+uid="uid://buyg5ydwwrxd5"
+path="res://.godot/imported/satelite_3.png-705fca56a4481602ee1e784db45cfd1e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/energy_spritesheet.png"
-dest_files=["res://.godot/imported/energy_spritesheet.png-46379d2c5dd127e9b18d816a0d87090a.ctex"]
+source_file="res://sprites/satelite_3.png"
+dest_files=["res://.godot/imported/satelite_3.png-705fca56a4481602ee1e784db45cfd1e.ctex"]
 
 [params]
 

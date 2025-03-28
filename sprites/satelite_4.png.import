@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5se0qg4sadtx"
-path="res://.godot/imported/bird1.png-9dbe80a782e7a703dd9c73bce1e8f949.ctex"
+uid="uid://c0mu4lkgax7de"
+path="res://.godot/imported/satelite_4.png-16cf4190f25b408580e0e2576231edc7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/bird1.png"
-dest_files=["res://.godot/imported/bird1.png-9dbe80a782e7a703dd9c73bce1e8f949.ctex"]
+source_file="res://sprites/satelite_4.png"
+dest_files=["res://.godot/imported/satelite_4.png-16cf4190f25b408580e0e2576231edc7.ctex"]
 
 [params]
 

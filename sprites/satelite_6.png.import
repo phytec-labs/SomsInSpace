@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3o6ut3raqq0y"
-path="res://.godot/imported/energy2.png-1d49bd0275f34bde31128f5f70949cb1.ctex"
+uid="uid://cb75fqb3o7yqr"
+path="res://.godot/imported/satelite_6.png-af82564ac5f056f17ac1758653d509ad.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/energy2.png"
-dest_files=["res://.godot/imported/energy2.png-1d49bd0275f34bde31128f5f70949cb1.ctex"]
+source_file="res://sprites/satelite_6.png"
+dest_files=["res://.godot/imported/satelite_6.png-af82564ac5f056f17ac1758653d509ad.ctex"]
 
 [params]
 

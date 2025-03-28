@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dl8cpuviqego0"
-path="res://.godot/imported/bird_sheet.png-51053a181dde2e4d9aa71195cd7ebf7d.ctex"
+uid="uid://cssktqjq7amgn"
+path="res://.godot/imported/jet_12.png-c606805df43553c32530da29bb362b88.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/bird_sheet.png"
-dest_files=["res://.godot/imported/bird_sheet.png-51053a181dde2e4d9aa71195cd7ebf7d.ctex"]
+source_file="res://sprites/jet_12.png"
+dest_files=["res://.godot/imported/jet_12.png-c606805df43553c32530da29bb362b88.ctex"]
 
 [params]
 
