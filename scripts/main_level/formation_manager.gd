@@ -132,8 +132,23 @@ func _process(delta: float) -> void:
 
 		# Add center-pulling for side-spawned formations
 		if formation.is_side_spawn:
-			var direction_to_center = sign(viewport_center_x - formation.base_position.x)
-			formation.base_position.x += formation.speed * delta * formation.center_pull_strength * direction_to_center
+			var distance_to_center = viewport_center_x - formation.base_position.x
+			var pull_threshold = 20.0
+			
+			# Only apply pulling force when outside threshold
+			if abs(distance_to_center) > pull_threshold:
+				# Use a fixed direction value (+1 or -1) instead of recalculating sign
+				if not formation.has("center_pull_direction"):
+					formation.center_pull_direction = 1.0 if distance_to_center > 0 else -1.0
+				
+				# Apply movement with fixed direction
+				var pull_amount = formation.speed * delta * formation.center_pull_strength
+				formation.base_position.x += pull_amount * formation.center_pull_direction
+				
+				# Check if we've crossed center and need to stop pulling
+				var new_distance = viewport_center_x - formation.base_position.x
+				if distance_to_center * new_distance <= 0:  # Sign changed = we crossed center
+					formation.is_side_spawn = false  # Stop center pulling completely
 
 		# Calculate vertical movement (always moves down)
 		formation.base_position.y += formation.speed * delta
@@ -149,8 +164,27 @@ func _process(delta: float) -> void:
 				pattern_offset.x = sin(formation.pattern_time * formation.frequency) * formation.amplitude
 
 			"zigzag":
-				# Sharp zigzag movement
-				pattern_offset.x = sign(sin(formation.pattern_time * formation.frequency * PI)) * formation.amplitude
+				# Performance-optimized zigzag movement
+				# We'll use a simpler linear interpolation approach
+				
+				# We store our current movement direction in the formation data
+				if not formation.has("zigzag_direction"):
+					formation.zigzag_direction = 1.0
+					formation.zigzag_position = 0.0
+					
+				# Update position along the zigzag path
+				formation.zigzag_position += formation.zigzag_direction * formation.frequency * delta
+				
+				# Check for direction change when we reach amplitude boundaries
+				if formation.zigzag_position >= 1.0:
+					formation.zigzag_position = 1.0
+					formation.zigzag_direction = -1.0
+				elif formation.zigzag_position <= -1.0:
+					formation.zigzag_position = -1.0
+					formation.zigzag_direction = 1.0
+					
+				# Map the position to actual offset
+				pattern_offset.x = formation.zigzag_position * formation.amplitude
 
 			"spiral":
 				# Spiral movement

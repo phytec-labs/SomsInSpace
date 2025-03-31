@@ -8,6 +8,7 @@ offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
 colors = PackedColorArray(0.8, 0.8, 1, 0.8, 0.4, 0.4, 1, 0.6, 0.2, 0.2, 0.8, 0.4, 0, 0, 0, 0)
 
 [node name="JetFighter" type="Area2D"]
+scale = Vector2(1.5, 1.5)
 collision_layer = 2
 script = ExtResource("1_jet")
 

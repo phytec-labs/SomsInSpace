@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://dxkq5s3j6xsfg"]
+
+[ext_resource type="Script" path="res://scripts/obstacles/alien_obstacle.gd" id="1_78uis"]
+[ext_resource type="SpriteFrames" uid="uid://jguv2molmqfr" path="res://sprites/alien_1.tres" id="2_jj68d"]
+
+[node name="Alien" type="Area2D"]
+rotation = 3.14159
+scale = Vector2(1.2, 1.2)
+collision_layer = 2
+script = ExtResource("1_78uis")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+scale = Vector2(0.25, -0.272)
+sprite_frames = ExtResource("2_jj68d")
+animation = &"idle"
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(5.00003, -9.99999, 8.33338, -19.1666, 20, -12.4999, 21.6667, -0.833278, 14.1666, 10, -5.07036e-05, 20, -14, 10, -20, -1, -19.1666, -10.8334, -8.33328, -19.1667, -5.83331, -9.16668)
