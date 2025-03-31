@@ -5,6 +5,8 @@ class_name Obstacle
 # Base obstacle properties
 @export var damage: float = 10.0
 @export var base_speed: float = 100.0
+@export var health: float = 10.0  # Default health value
+@export var explosion_scene: PackedScene = preload("res://scenes/effects/obstacle_explosion.tscn") if ResourceLoader.exists("res://scenes/effects/obstacle_explosion.tscn") else null
 
 # Movement pattern variables
 var movement_pattern: String = "linear"  # linear, sine, zigzag
@@ -160,3 +162,70 @@ func check_if_offscreen() -> void:
 		position.x > viewport_rect.size.x + margin or
 		position.x < -margin):
 		emit_signal("screen_exited")
+
+func take_damage(damage: float) -> void:
+	# Print debug info
+	print(name + " took " + str(damage) + " damage. Health: " + str(health) + "/" + str(health-damage))
+	
+	health -= damage
+	
+	if health <= 0:
+		# Award points to the player before destroying
+		var level = get_tree().get_first_node_in_group("level")
+		if level and level.has_method("update_points"):
+			# Convert negative points to positive for destroying
+			var destroy_points = abs(points)
+			level.update_points(destroy_points)
+		
+		# Create explosion effect
+		create_explosion()
+		
+		# Deactivate the obstacle
+		deactivate()
+
+# Handle explosion effect
+func create_explosion() -> void:
+	# Hide the sprite immediately
+	if sprite:
+		sprite.visible = false
+	if animated_sprite:
+		animated_sprite.visible = false
+	
+	# Instantiate explosion if we have a scene
+	if explosion_scene:
+		var explosion = explosion_scene.instantiate()
+		# Add to the parent so it persists after obstacle is gone
+		get_parent().add_child(explosion)
+		explosion.global_position = global_position
+		
+		# Auto-free the explosion after animation
+		var timer = Timer.new()
+		explosion.add_child(timer)
+		timer.wait_time = 0.5  # Typical explosion duration
+		timer.one_shot = true
+		timer.connect("timeout", func(): explosion.queue_free())
+		timer.start()
+	else:
+		# Fallback if no explosion scene - create a simple particle effect
+		var particles = CPUParticles2D.new()
+		get_parent().add_child(particles)
+		particles.global_position = global_position
+		particles.amount = 20
+		particles.lifetime = 0.5
+		particles.explosiveness = 0.9
+		particles.direction = Vector2(0, 0)
+		particles.spread = 180
+		particles.gravity = Vector2(0, 98)
+		particles.initial_velocity_min = 50
+		particles.initial_velocity_max = 100
+		particles.scale_amount_min = 2
+		particles.scale_amount_max = 4
+		particles.emitting = true
+		
+		# Auto-free particles after emission
+		var timer = Timer.new()
+		particles.add_child(timer)
+		timer.wait_time = 1.0
+		timer.one_shot = true
+		timer.connect("timeout", func(): particles.queue_free())
+		timer.start()

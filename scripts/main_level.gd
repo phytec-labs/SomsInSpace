@@ -35,6 +35,7 @@ var current_countdown: float = 0.0
 var current_zone: String = "ground"
 
 func _ready() -> void:
+	add_to_group("level")
 	#Start background music
 	if background_music:
 		background_music.play()

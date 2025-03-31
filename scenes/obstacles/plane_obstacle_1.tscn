@@ -1,13 +1,15 @@
-[gd_scene load_steps=3 format=3 uid="uid://bg2b5qeqf850i"]
+[gd_scene load_steps=4 format=3 uid="uid://bg2b5qeqf850i"]
 
 [ext_resource type="Script" path="res://scripts/obstacles/plane_obstacle.gd" id="1_1sqvm"]
 [ext_resource type="SpriteFrames" uid="uid://btnv1rdv33rdq" path="res://sprites/plane_3.tres" id="2_ilvf4"]
+[ext_resource type="PackedScene" uid="uid://cw3f33cxklwfi" path="res://scenes/effects/obstacle_explosion.tscn" id="2_k7bwb"]
 
 [node name="Plane" type="Area2D"]
 rotation = 3.14159
 scale = Vector2(1.2, 1.2)
 collision_layer = 2
 script = ExtResource("1_1sqvm")
+explosion_scene = ExtResource("2_k7bwb")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 rotation = 3.14159
