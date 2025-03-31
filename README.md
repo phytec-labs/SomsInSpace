@@ -18,9 +18,21 @@ On the phyBOARD LYRA AM62x, weston.ini can be found at:
 ```
 
 Add the following configuration to the bottom of the file:
+
+#### HDMI
+
 ```ini
 [output]
 name=HDMI-A-1
+mode=1920x1080@60.0
+transform=rotate-90
+```
+
+#### LVDS
+
+```ini
+[output]
+name=LVDS-1
 mode=1920x1080@60.0
 transform=rotate-90
 ```
