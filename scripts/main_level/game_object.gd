@@ -44,12 +44,22 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if is_active:
-		# Your existing movement code...
-		
 		# Check if off-screen
-		var viewport_rect = get_viewport_rect()
-		if position.y > viewport_rect.size.y + 100:
-			emit_signal("screen_exited")
+		check_if_offscreen()
+
+func check_if_offscreen() -> void:
+	# Get viewport rect and add margins
+	var viewport_rect = get_viewport_rect()
+	var margin = 100.0
+	
+	# Check if object has moved completely off screen
+	if (position.y > viewport_rect.size.y + margin or  # Below screen
+		position.y < -margin * 2 or                   # Far above screen
+		position.x > viewport_rect.size.x + margin or  # Right of screen
+		position.x < -margin):                        # Left of screen
+			
+		print(name + " exited screen at " + str(position))
+		emit_signal("screen_exited")
 
 func initialize(spawn_position: Vector2) -> void:
 	position = spawn_position
@@ -117,8 +127,10 @@ func handle_player_collision() -> void:
 
 	# Emit appropriate signal based on points value
 	if points >= 0:
+		print("Object collected: " + name + " - Points: " + str(points))
 		emit_signal("object_collected")
 	else:
+		print("Object hit: " + name)
 		emit_signal("object_hit")
 
 	# Finally deactivate the object
