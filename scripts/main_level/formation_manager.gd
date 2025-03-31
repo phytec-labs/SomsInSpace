@@ -303,7 +303,7 @@ func get_formation_position(formation_type: FormationType, index: int, count: in
 
 		FormationType.WAVE:
 			var progress = index / float(count - 1) if count > 1 else 0.5
-			var x_pos = (progress * 2 - 1) * spread
+			var x_pos = (progress * 2 - 1) * spread * 1.5
 			var y_pos = sin(progress * PI * 2) * spread * 0.3
 			return Vector2(x_pos, y_pos)
 

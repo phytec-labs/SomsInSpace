@@ -11,7 +11,7 @@ signal object_spawned(game_object)
 @export var base_spawn_time: float = 3.0
 @export var min_spawn_time: float = 0.5
 @export var spawn_time_decrease_rate: float = 0.05
-@export var y_pos_above_screen_offsety: float = 200
+@export var y_pos_above_screen_offset: float = 250
 
 @export var energy_collectible_scene: PackedScene
 # Keep this for backward compatibility
@@ -140,7 +140,7 @@ func get_random_spawn_position() -> Vector2:
 
 	# Default implementation if formation manager isn't available
 	var x_pos = rng.randf_range(50, viewport_rect.size.x - 50)
-	var y_pos = y_pos_above_screen_offsety # Just above the screen
+	var y_pos = y_pos_above_screen_offset # Just above the screen
 
 	# In upper zones, enemies can come from sides too
 	if current_zone == "upper_atmosphere" or current_zone == "space":
