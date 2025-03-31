@@ -172,14 +172,37 @@ func start_game() -> void:
 
 func game_over() -> void:
 	current_state = GameState.GAME_OVER
-	player.disable_movement()
+	
+	# Create player explosion before hiding the player
+	create_player_explosion()
+	
+	# Call the player's die function
+	player.die()
+	
+	# Stop game systems
 	spawn_manager.stop_spawning()
 	cloud_manager.stop_spawning()
-
-	# Show game over screen with final height score
+	
+	# Show game over screen after a short delay to see explosion
+	await get_tree().create_timer(1.0).timeout
+	
 	if game_over_screen:
 		game_over_screen.show()
 		game_over_screen.set_final_height(height_score)
+
+func create_player_explosion() -> void:
+	# Define the explosion scene - same as enemies use
+	var explosion_scene = preload("res://scenes/effects/explosion.tscn")
+	
+	# Create the explosion
+	if explosion_scene:
+		var explosion = explosion_scene.instantiate()
+		add_child(explosion)
+		explosion.global_position = player.global_position
+		
+		# Make explosion bigger for player (type 2 = LARGE)
+		explosion.set_explosion_type(2)
+		explosion.start()
 
 func update_spawn_difficulty(height: int) -> void:
 	# Determine what zone we should be in based on height

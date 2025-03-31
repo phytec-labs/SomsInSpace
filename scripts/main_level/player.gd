@@ -33,6 +33,7 @@ var input_throttle: float = 1.0/60.0
 var previous_velocity: Vector2 = Vector2.ZERO
 var can_fire: bool = true
 var cooldown_timer: Timer
+var is_dead: bool = false
 
 # Damage blink variables
 var is_blinking: bool = false
@@ -89,6 +90,15 @@ func end_blink() -> void:
 	update_sprite_visibility(true)  # Ensure sprite is visible
 
 func update_sprite_visibility(visible: bool) -> void:
+	# If player is dead, sprites should remain hidden
+	if is_dead:
+		if ship_sprite:
+			ship_sprite.visible = false
+		if som_sprite:
+			som_sprite.visible = false
+		return
+	
+	# Normal visibility toggling for blinking when not dead
 	if ship_sprite:
 		ship_sprite.visible = visible
 	if som_sprite:
@@ -209,6 +219,7 @@ func reset_position() -> void:
 	target_position = initial_position
 	velocity = Vector2.ZERO
 	is_touch_active = false
+	is_dead = false  # Reset the dead flag
 	end_blink()  # Ensure blink effect is reset
 
 func fire_projectile() -> void:
@@ -235,3 +246,27 @@ func fire_projectile() -> void:
 
 func _on_fire_cooldown_timeout() -> void:
 	can_fire = true
+
+func die() -> void:
+	# Set the dead flag to prevent blinking from showing the sprite
+	is_dead = true
+	
+	# Hide all parts of the ship
+	if ship_sprite:
+		ship_sprite.visible = false
+	if som_sprite:
+		som_sprite.visible = false
+	
+	# Disable all thrusters
+	main_thruster.emitting = false
+	left_thruster.emitting = false
+	right_thruster.emitting = false
+	up_thruster.emitting = false
+	down_thruster.emitting = false
+	
+	# Disable collisions
+	area.collision_mask = 0
+	
+	# Stop movement
+	can_move = false
+	velocity = Vector2.ZERO

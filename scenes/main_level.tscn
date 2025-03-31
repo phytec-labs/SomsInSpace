@@ -48,7 +48,6 @@ speed = 500.0
 stopping_distance = 25.0
 
 [node name="BackgroundMusic" type="AudioStreamPlayer2D" parent="."]
-visible = false
 stream = ExtResource("3_k31y7")
 volume_db = -80.0
 
@@ -125,7 +124,5 @@ script = ExtResource("11_133uv")
 
 [node name="SpawnTimer" type="Timer" parent="SpawnManager"]
 
-[node name="ExplosionManager" type="Node2D" parent="." groups=["explosion_manager"]]
-
 [node name="EnergyCollectible" parent="." instance=ExtResource("9_6i8ks")]
-position = Vector2(73.724, -50)
+position = Vector2(231, -30)

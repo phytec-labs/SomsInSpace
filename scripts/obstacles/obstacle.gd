@@ -198,13 +198,12 @@ func create_explosion() -> void:
 		get_parent().add_child(explosion)
 		explosion.global_position = global_position
 		
-		# Auto-free the explosion after animation
-		var timer = Timer.new()
-		explosion.add_child(timer)
-		timer.wait_time = 0.5  # Typical explosion duration
-		timer.one_shot = true
-		timer.connect("timeout", func(): explosion.queue_free())
-		timer.start()
+		# ADD THESE TWO LINES:
+		explosion.set_explosion_type(1)  # Medium explosion
+		explosion.start()
+		
+		# Remove the extra timer - let explosion handle its own lifetime
+		# The existing timer is unnecessary and may conflict
 	else:
 		# Fallback if no explosion scene - create a simple particle effect
 		var particles = CPUParticles2D.new()
@@ -229,3 +228,22 @@ func create_explosion() -> void:
 		timer.one_shot = true
 		timer.connect("timeout", func(): particles.queue_free())
 		timer.start()
+
+func handle_player_collision() -> void:
+	if is_being_collected:
+		return
+
+	is_being_collected = true
+
+	# Create explosion before hiding the sprite
+	create_explosion()
+
+	# No need to manually hide sprite or disable collisions
+	# since create_explosion() already does that
+	
+	# Emit signal for damage to player
+	print("Object hit: " + name)
+	emit_signal("object_hit")
+
+	# Finally deactivate the object
+	deactivate()

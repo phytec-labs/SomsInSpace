@@ -99,10 +99,5 @@ func reset() -> void:
 
 # Timer finished - explosion is complete
 func _on_lifetime_timer_timeout() -> void:
-	# Return to explosion manager pool
-	var explosion_manager = get_tree().get_nodes_in_group("explosion_manager")
-	if explosion_manager.size() > 0:
-		explosion_manager[0].return_to_pool(self, current_type)
-	else:
-		# If no manager, just queue free
-		queue_free()
+	# Instead of trying to return to a pool, just queue_free()
+	queue_free()
