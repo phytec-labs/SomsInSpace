@@ -167,7 +167,7 @@ func get_random_spawn_position() -> Vector2:
 
 	return Vector2(x_pos, y_pos)
 
-# NEW FUNCTION: Get a random spawn position specifically for collectibles
+# Get a random spawn position specifically for collectibles
 func get_collectible_spawn_position() -> Vector2:
 	var viewport_rect = get_viewport_rect()
 	
@@ -175,8 +175,8 @@ func get_collectible_spawn_position() -> Vector2:
 	var margin = 50.0
 	var x_pos = rng.randf_range(margin, viewport_rect.size.x - margin)
 	
-	# Always spawn just above the screen
-	var y_pos = -50
+	# Spawn just above the visible screen, but close enough to quickly enter view
+	var y_pos = -30  # Reduced from -50 to -30 to enter screen faster
 	
 	print("Generated collectible spawn position: (", x_pos, ", ", y_pos, ")")
 	return Vector2(x_pos, y_pos)

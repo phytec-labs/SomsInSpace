@@ -126,3 +126,6 @@ script = ExtResource("11_133uv")
 [node name="SpawnTimer" type="Timer" parent="SpawnManager"]
 
 [node name="ExplosionManager" type="Node2D" parent="." groups=["explosion_manager"]]
+
+[node name="EnergyCollectible" parent="." instance=ExtResource("9_6i8ks")]
+position = Vector2(73.724, -50)
