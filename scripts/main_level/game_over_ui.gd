@@ -4,6 +4,7 @@ signal retry_pressed
 signal main_menu_pressed
 
 @onready var height_label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreContainer/HeightLabel
+@onready var score_label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreContainer/ScoreLabel
 @onready var retry_button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/RetryButton
 @onready var main_menu_button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/MainMenuButton
 
@@ -88,6 +89,10 @@ func select_current_item() -> void:
 func set_final_height(height: float) -> void:
 	if height_label:
 		height_label.text = "%d m" % floor(height)
+
+func set_final_score(score: int) -> void:
+	if score_label:
+		score_label.text = "%d points" % score
 
 func _on_button_pressed(button: Button) -> void:
 	match button:

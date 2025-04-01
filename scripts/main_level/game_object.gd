@@ -22,6 +22,7 @@ signal screen_exited
 var is_active: bool = false
 var is_being_collected: bool = false  # Prevent multiple collisions during collection
 var has_exited_screen: bool = false
+var destroy_points = abs(points)
 
 func _ready() -> void:
 	# Set up collision properties

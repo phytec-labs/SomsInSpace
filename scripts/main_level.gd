@@ -35,9 +35,6 @@ var current_countdown: float = 0.0
 var current_zone: String = "ground"
 
 func _ready() -> void:
-	print("Mouse Mode: ", Input.get_mouse_mode())
-	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)  # Ensures it's in pointer mode
-
 	print("Main Level Connected joypads: ", Input.get_connected_joypads())
 	add_to_group("level")
 	#Start background music
@@ -193,6 +190,7 @@ func game_over() -> void:
 	if game_over_screen:
 		game_over_screen.show()
 		game_over_screen.set_final_height(height_score)
+		game_over_screen.set_final_score(points) 
 
 func create_player_explosion() -> void:
 	# Define the explosion scene - same as enemies use
@@ -209,23 +207,25 @@ func create_player_explosion() -> void:
 		explosion.start()
 
 func update_spawn_difficulty(height: int) -> void:
-	# Determine what zone we should be in based on height
-	var new_zone: String
-	if height < 3000:  # Ground level
-		new_zone = "ground"
-	elif height < 10000:  # Atmosphere
-		new_zone = "atmosphere"
-	elif height < 30000:  # Upper atmosphere
-		new_zone = "upper_atmosphere"
-	else:  # Space
-		new_zone = "space"
+	# Use a dictionary for zone thresholds
+	var zone_thresholds = {
+		"ground": 0,
+		"atmosphere": 3000,
+		"upper_atmosphere": 10000,
+		"space": 30000
+	}
+	
+	# Determine new zone
+	var new_zone = "ground"
+	for zone in zone_thresholds:
+		if height >= zone_thresholds[zone]:
+			new_zone = zone
 	
 	# Only update if the zone has changed
 	if new_zone != current_zone:
-		print("Zone changed from ", current_zone, " to ", new_zone)
 		current_zone = new_zone
 		
-		# Update managers only when the zone changes
+		# Update all managers at once
 		spawn_manager.set_spawn_zone(new_zone)
 		atmosphere_manager.set_zone(new_zone)
 		cloud_manager.set_zone(new_zone)

@@ -53,6 +53,14 @@ var initial_x: float = 0.0
 func _ready() -> void:
 	super._ready()
 
+	# Set default points based on damage if points aren't already set
+	# Points for obstacles should be negative (player earns positive points when destroying them)
+	if points == 0:  # Only set if not already configured in editor
+		points = -int(damage)  # Convert damage to points with negative value
+		# Ensure minimum point value of -1
+		if points == 0:
+			points = -1
+
 	# Initialize audio players
 	# Shooting sound player
 	shoot_audio_player = AudioStreamPlayer2D.new()
