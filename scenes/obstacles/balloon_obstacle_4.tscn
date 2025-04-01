@@ -1,8 +1,8 @@
 [gd_scene load_steps=5 format=3 uid="uid://dqbhroc77uwm8"]
 
 [ext_resource type="Script" uid="uid://uhq4xka5ie3e" path="res://scripts/obstacles/obstacle.gd" id="1_6ic4l"]
+[ext_resource type="PackedScene" uid="uid://8pgn5ymkynsq" path="res://scenes/effects/enemy_projectile_3.tscn" id="2_7fg13"]
 [ext_resource type="Texture2D" uid="uid://d30pjlam3g8dx" path="res://sprites/balloon_7.png" id="2_ewhol"]
-[ext_resource type="PackedScene" uid="uid://cw3f33cxklwfi" path="res://scenes/effects/obstacle_explosion.tscn" id="2_wedf8"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dspdq"]
 radius = 29.0
@@ -11,7 +11,9 @@ height = 68.0
 [node name="Balloon" type="Area2D"]
 collision_layer = 2
 script = ExtResource("1_6ic4l")
-explosion_scene = ExtResource("2_wedf8")
+can_shoot = true
+projectile_scene = ExtResource("2_7fg13")
+shoot_chance = 0.5
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 position = Vector2(0, 13)
@@ -20,3 +22,9 @@ texture = ExtResource("2_ewhol")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CapsuleShape2D_dspdq")
+
+[node name="GunPoint1" type="Marker2D" parent="."]
+position = Vector2(-15, -15)
+
+[node name="GunPoint2" type="Marker2D" parent="."]
+position = Vector2(15, -15)

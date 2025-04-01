@@ -1,35 +1,50 @@
-[gd_scene load_steps=4 format=3 uid="uid://wfuu71tid6aw"]
+[gd_scene load_steps=6 format=3 uid="uid://wfuu71tid6aw"]
 
 [ext_resource type="Script" uid="uid://cg3o7lqkn67x8" path="res://scripts/obstacles/jet_obstacle.gd" id="1_ex5xu"]
 [ext_resource type="Texture2D" uid="uid://8v2yjm13gng" path="res://sprites/jet_9.png" id="2_6brd2"]
+[ext_resource type="Texture2D" uid="uid://bbf8kqq1rn2vq" path="res://sprites/Explosion1.png" id="3_wsy63"]
 
-[sub_resource type="Gradient" id="Gradient_jet_trail"]
-offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
-colors = PackedColorArray(0.8, 0.8, 1, 0.8, 0.4, 0.4, 1, 0.6, 0.2, 0.2, 0.8, 0.4, 0, 0, 0, 0)
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_02pcu"]
+particles_animation = true
+particles_anim_h_frames = 12
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="Gradient" id="Gradient_2ogp5"]
+offsets = PackedFloat32Array(0, 0.262443, 0.997738)
+colors = PackedColorArray(0.619, 0.092, 0.161, 0.398, 0.448495, 0.397407, 0.483271, 0.717647, 1, 1, 1, 0)
 
 [node name="JetFighter" type="Area2D"]
 scale = Vector2(1.25, 1.25)
 collision_layer = 2
 script = ExtResource("1_ex5xu")
+can_shoot = true
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(0.1, 0.1)
 texture = ExtResource("2_6brd2")
 
-[node name="ThrusterParticles" type="CPUParticles2D" parent="."]
-position = Vector2(0, 23)
-emitting = false
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(0, -31, 8, -19, 9, -6, 27, 3, 20, 4, 20, 17, 5, 12, 4, 24, 0, 31, -4, 24, -5, 12, -20, 17, -20, 4, -28, 4, -9, -6, -8, -19)
+
+[node name="ThrusterThruster" type="CPUParticles2D" parent="."]
+z_index = -1
+material = SubResource("CanvasItemMaterial_02pcu")
+position = Vector2(0, 20)
 amount = 20
+texture = ExtResource("3_wsy63")
 lifetime = 0.5
 local_coords = true
 direction = Vector2(0, 1)
 spread = 10.0
 gravity = Vector2(0, 0)
-initial_velocity_min = 50.0
-initial_velocity_max = 100.0
-scale_amount_min = 5.0
-scale_amount_max = 8.0
-color_ramp = SubResource("Gradient_jet_trail")
+initial_velocity_min = 100.0
+initial_velocity_max = 200.0
+scale_amount_min = 0.08
+scale_amount_max = 0.15
+color_ramp = SubResource("Gradient_2ogp5")
+anim_speed_min = 1.0
+anim_speed_max = 1.5
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-polygon = PackedVector2Array(0, -31, 8, -19, 9, -6, 27, 3, 20, 4, 20, 17, 5, 12, 4, 24, 0, 31, -4, 24, -5, 12, -20, 17, -20, 4, -28, 4, -9, -6, -8, -19)
+[node name="GunPoint1" type="Marker2D" parent="."]
+position = Vector2(-9.53674e-07, -17.6)

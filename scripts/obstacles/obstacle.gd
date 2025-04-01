@@ -6,7 +6,17 @@ class_name Obstacle
 @export var damage: float = 10.0
 @export var base_speed: float = 100.0
 @export var health: float = 10.0  # Default health value
-@export var explosion_scene: PackedScene = preload("res://scenes/effects/obstacle_explosion.tscn") if ResourceLoader.exists("res://scenes/effects/obstacle_explosion.tscn") else null
+@export var explosion_scene: PackedScene = preload("res://scenes/effects/obstacle_explosion.tscn")
+# Shooting properties
+@export var can_shoot: bool = false
+@export var projectile_scene: PackedScene= preload("res://scenes/effects/enemy_projectile_1.tscn")
+@export var shoot_cooldown: float = 2.0  # Time between shots
+@export var projectile_speed: float = 200.0
+@export var shoot_chance: float = 0.01  # Chance to shoot per frame
+# Audio properties
+@export var shoot_sound: AudioStream = preload("res://audio/retro-laser-1.mp3")
+@export var explosion_sound: AudioStream = preload("res://audio/small-explosion-1.mp3")
+@export var sound_pitch_variation: float = 0.2 
 
 # Movement pattern variables
 var movement_pattern: String = "linear"  # linear, sine, zigzag
@@ -26,6 +36,14 @@ var center_pull_strength: float = 0.5  # How strongly to pull toward the center 
 
 var use_formation_movement: bool = false  # Flag to indicate if object uses formation-based movement
 
+# Shooting variables
+var time_since_last_shot: float = 0.0
+var rng = RandomNumberGenerator.new()
+var gun_points = []
+
+var shoot_audio_player: AudioStreamPlayer2D
+var explosion_audio_player: AudioStreamPlayer2D
+
 # Optional rotation
 @export var rotation_speed: float = 0.0  # Degrees per second
 
@@ -34,9 +52,35 @@ var initial_x: float = 0.0
 
 func _ready() -> void:
 	super._ready()
-
-	# Default points value for obstacles is negative (damages player)
-	points = -10
+	
+	# Initialize audio players
+	# Shooting sound player
+	shoot_audio_player = AudioStreamPlayer2D.new()
+	shoot_audio_player.name = "ShootAudioPlayer"
+	add_child(shoot_audio_player)
+	if shoot_sound:
+		shoot_audio_player.stream = shoot_sound
+	
+	# Explosion sound player
+	explosion_audio_player = AudioStreamPlayer2D.new()
+	explosion_audio_player.name = "ExplosionAudioPlayer"
+	add_child(explosion_audio_player)
+	if explosion_sound:
+		explosion_audio_player.stream = explosion_sound
+	
+	# Find all gun point nodes
+	for child in get_children():
+		if child is Node2D and "GunPoint" in child.name:
+			gun_points.append(child)
+	
+	# If no gun points found, use the obstacle's position as default
+	if gun_points.is_empty():
+		# Create a virtual gun point at the center
+		var default_point = Node2D.new()
+		default_point.name = "DefaultGunPoint"
+		default_point.position = Vector2.ZERO
+		add_child(default_point)
+		gun_points.append(default_point)
 
 func _process(delta: float) -> void:
 	if not is_active:
@@ -110,9 +154,17 @@ func _process(delta: float) -> void:
 	# Check if off-screen
 	check_if_offscreen()
 
+	# Handle shooting if enabled
+	if can_shoot and projectile_scene:
+		time_since_last_shot += delta
+		if time_since_last_shot >= shoot_cooldown:
+			# Random chance to shoot
+			if rng.randf() < shoot_chance:
+				shoot()
+				time_since_last_shot = 0.0
+
 func set_use_formation_movement(value: bool) -> void:
 	use_formation_movement = value
-
 
 func initialize(spawn_position: Vector2) -> void:
 	super.initialize(spawn_position)
@@ -183,13 +235,28 @@ func take_damage(damage: float) -> void:
 		# Deactivate the obstacle
 		deactivate()
 
-# Handle explosion effect
 func create_explosion() -> void:
 	# Hide the sprite immediately
 	if sprite:
 		sprite.visible = false
 	if animated_sprite:
 		animated_sprite.visible = false
+	
+	# Play explosion sound if available
+	if explosion_audio_player and explosion_audio_player.stream:
+		# Detach the audio player so it continues playing after the obstacle is gone
+		remove_child(explosion_audio_player)
+		get_parent().add_child(explosion_audio_player)
+		
+		# Position at the obstacle's last position
+		explosion_audio_player.global_position = global_position
+		
+		# Add pitch variation for more natural sound
+		explosion_audio_player.pitch_scale = 1.0 + randf_range(-sound_pitch_variation, sound_pitch_variation)
+		explosion_audio_player.play()
+		
+		# Set up auto-deletion after playing
+		explosion_audio_player.finished.connect(explosion_audio_player.queue_free)
 	
 	# Instantiate explosion if we have a scene
 	if explosion_scene:
@@ -198,12 +265,9 @@ func create_explosion() -> void:
 		get_parent().add_child(explosion)
 		explosion.global_position = global_position
 		
-		# ADD THESE TWO LINES:
+		# Set explosion type and start it
 		explosion.set_explosion_type(1)  # Medium explosion
 		explosion.start()
-		
-		# Remove the extra timer - let explosion handle its own lifetime
-		# The existing timer is unnecessary and may conflict
 	else:
 		# Fallback if no explosion scene - create a simple particle effect
 		var particles = CPUParticles2D.new()
@@ -226,7 +290,7 @@ func create_explosion() -> void:
 		particles.add_child(timer)
 		timer.wait_time = 1.0
 		timer.one_shot = true
-		timer.connect("timeout", func(): particles.queue_free())
+		timer.timeout.connect(func(): particles.queue_free())
 		timer.start()
 
 func handle_player_collision() -> void:
@@ -247,3 +311,34 @@ func handle_player_collision() -> void:
 
 	# Finally deactivate the object
 	deactivate()
+
+func shoot() -> void:
+	if not projectile_scene or not is_active:
+		return
+	
+	# Choose which gun point to use (if there are multiple)
+	var gun_point = gun_points[rng.randi() % gun_points.size()]
+	
+	# Create projectile
+	var projectile = projectile_scene.instantiate()
+	get_tree().current_scene.add_child(projectile)
+	
+	# Calculate global spawn position
+	var spawn_position = gun_point.global_position
+	
+	# Find the player
+	var player = get_tree().get_first_node_in_group("player")
+	var direction = Vector2.DOWN  # Default direction if player not found
+	
+	if player:
+		direction = (player.global_position - spawn_position).normalized()
+	
+	# Initialize the projectile
+	if projectile.has_method("initialize"):
+		projectile.initialize(spawn_position, direction)
+	
+	# Play shoot sound if available
+	if shoot_audio_player and shoot_audio_player.stream:
+		# Add pitch variation for more natural sound
+		shoot_audio_player.pitch_scale = 1.0 + randf_range(-sound_pitch_variation, sound_pitch_variation)
+		shoot_audio_player.play()

@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3 uid="uid://s0g3ppigvp73"]
+
+[ext_resource type="Script" uid="uid://c840wremislh0" path="res://scripts/effects/enemy_projectile.gd" id="1_wim0b"]
+[ext_resource type="Texture2D" uid="uid://bwqh5dmyxu6eg" path="res://sprites/Laser Sprites/02.png" id="2_wim0b"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_kcais"]
+radius = 2.0
+height = 6.0
+
+[node name="EnemyProjectile" type="Area2D"]
+collision_layer = 8
+script = ExtResource("1_wim0b")
+speed = 500.0
+lifetime = 2.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_kcais")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+rotation = 1.5708
+scale = Vector2(0.26, 0.25)
+texture = ExtResource("2_wim0b")

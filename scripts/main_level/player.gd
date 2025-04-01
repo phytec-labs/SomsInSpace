@@ -50,9 +50,6 @@ func _ready() -> void:
 	assert(collision_polygon != null, "CollisionPolygon2D node not found")
 	assert(area != null, "CollisionArea node not found")
 
-	area.collision_layer = 1
-	area.collision_mask = 2
-
 	# Set up cooldown timer for firing
 	cooldown_timer = Timer.new()
 	cooldown_timer.one_shot = true
@@ -63,6 +60,8 @@ func _ready() -> void:
 	# Make sure fire_audio_player has the sound assigned if available
 	if fire_audio_player and fire_sound:
 		fire_audio_player.stream = fire_sound
+
+	add_to_group("player")
 
 	disable_movement()
 

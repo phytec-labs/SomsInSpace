@@ -14,7 +14,17 @@ func _ready() -> void:
 	movement_pattern = "sine"
 	pattern_amplitude = 80.0
 	pattern_frequency = 0.8
-	
+
+	# Set shooting capabilities for jets
+	can_shoot = true
+	shoot_cooldown = 1.5  # Jets shoot every 1.5 seconds when ready
+	shoot_chance = 0.3    # 30% chance to shoot when cooldown expired
+	projectile_speed = 250.0
+
+	# Load the projectile scene if it's not already set
+	if not projectile_scene:
+		projectile_scene = load("res://scenes/effects/enemy_projectile_1.tscn")
+		
 	# Setup thruster particles if they exist
 	if thruster_particles:
 		thruster_particles.emitting = true
@@ -40,3 +50,40 @@ func handle_player_collision() -> void:
 	# Could add explosion effect specific to jets here
 	if thruster_particles:
 		thruster_particles.emitting = false
+
+# Override shoot function for more specialized behavior
+func shoot() -> void:
+	if not projectile_scene or not is_active:
+		return
+	
+	# Decide how many gun points to use (1-2 randomly)
+	var num_guns = rng.randi_range(1, min(2, gun_points.size()))
+	
+	# Randomly select which gun points to use
+	var selected_guns = []
+	var available_guns = gun_points.duplicate()
+	for i in range(num_guns):
+		if available_guns.is_empty():
+			break
+			
+		var index = rng.randi() % available_guns.size()
+		selected_guns.append(available_guns[index])
+		available_guns.remove_at(index)
+	
+	# Create projectiles from selected gun points
+	for gun_point in selected_guns:
+		var projectile = projectile_scene.instantiate()
+		get_tree().current_scene.add_child(projectile)
+		
+		var spawn_position = gun_point.global_position
+		
+		# Find player direction
+		var player = get_tree().get_first_node_in_group("player")
+		var direction = Vector2.DOWN
+		
+		if player:
+			direction = (player.global_position - spawn_position).normalized()
+		
+		# Initialize projectile
+		if projectile.has_method("initialize"):
+			projectile.initialize(spawn_position, direction)

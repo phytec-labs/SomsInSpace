@@ -51,21 +51,21 @@ var default_formation_speeds = {
 var zone_formation_settings = {
 	"ground": {
 		"allowed_formations": [FormationType.LINE, FormationType.V_SHAPE, FormationType.DIAGONAL],
-		"min_spread": 60.0,
+		"min_spread": 80.0,
 		"max_spread": 120.0,
 		"min_objects": 3,
 		"max_objects": 5
 	},
 	"atmosphere": {
 		"allowed_formations": [FormationType.LINE, FormationType.V_SHAPE, FormationType.SQUARE, FormationType.WAVE],
-		"min_spread": 70.0,
+		"min_spread": 90.0,
 		"max_spread": 150.0,
 		"min_objects": 4,
 		"max_objects": 7
 	},
 	"upper_atmosphere": {
 		"allowed_formations": [FormationType.V_SHAPE, FormationType.SQUARE, FormationType.CIRCLE, FormationType.WAVE],
-		"min_spread": 80.0,
+		"min_spread": 100.0,
 		"max_spread": 180.0,
 		"min_objects": 5,
 		"max_objects": 9

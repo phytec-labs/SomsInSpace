@@ -21,6 +21,7 @@ signal screen_exited
 # Object state
 var is_active: bool = false
 var is_being_collected: bool = false  # Prevent multiple collisions during collection
+var has_exited_screen: bool = false
 
 func _ready() -> void:
 	# Set up collision properties
@@ -44,10 +45,13 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if is_active:
-		# Check if off-screen
 		check_if_offscreen()
 
 func check_if_offscreen() -> void:
+	# Skip check if we already reported exiting
+	if has_exited_screen:
+		return
+		
 	# Get viewport rect and add margins
 	var viewport_rect = get_viewport_rect()
 	var margin = 100.0
@@ -59,12 +63,14 @@ func check_if_offscreen() -> void:
 		position.x < -margin):                        # Left of screen
 			
 		print(name + " exited screen at " + str(position))
+		has_exited_screen = true  # Set flag to prevent repeated signals
 		emit_signal("screen_exited")
 
 func initialize(spawn_position: Vector2) -> void:
 	position = spawn_position
 	is_active = true
 	is_being_collected = false
+	has_exited_screen = false  # Reset the flag when reusing objects
 	show()
 	
 	# Handle visuals
