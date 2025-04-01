@@ -26,6 +26,9 @@ func _ready() -> void:
 		if thruster_particles.has_method("set_color"):
 			thruster_particles.set_color(thruster_particle_color)
 
+	print("JetObstacle after setup: can_shoot=" + str(can_shoot) + 
+		  ", cooldown=" + str(shoot_cooldown) + 
+		  ", chance=" + str(shoot_chance))
 # Override initialize to set up jet-specific behavior
 func initialize(spawn_position: Vector2) -> void:
 	super.initialize(spawn_position)

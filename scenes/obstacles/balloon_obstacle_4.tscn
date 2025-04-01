@@ -13,7 +13,7 @@ collision_layer = 2
 script = ExtResource("1_6ic4l")
 can_shoot = true
 projectile_scene = ExtResource("2_7fg13")
-shoot_chance = 0.5
+shoot_chance = 0.1
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 position = Vector2(0, 13)

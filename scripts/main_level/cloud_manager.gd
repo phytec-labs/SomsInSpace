@@ -144,7 +144,6 @@ func _on_update_timer_timeout() -> void:
 func _on_spawn_timer_timeout() -> void:
 	if is_spawning and should_spawn_clouds() and not available_clouds.is_empty():
 		spawn_cloud()
-		print("Active clouds: ", active_clouds.size(), " Available: ", available_clouds.size())
 
 func spawn_cloud() -> void:
 	if available_clouds.is_empty() or not should_spawn_clouds():

@@ -5,7 +5,7 @@
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_kcais"]
 radius = 2.0
-height = 6.0
+height = 8.0
 
 [node name="EnemyProjectile" type="Area2D"]
 collision_layer = 8
@@ -13,10 +13,10 @@ script = ExtResource("1_wim0b")
 speed = 500.0
 lifetime = 2.0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("CapsuleShape2D_kcais")
-
 [node name="Sprite2D" type="Sprite2D" parent="."]
 rotation = 1.5708
-scale = Vector2(0.26, 0.25)
+scale = Vector2(0.4, 0.385)
 texture = ExtResource("2_wim0b")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_kcais")

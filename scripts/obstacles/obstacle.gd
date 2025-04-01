@@ -92,6 +92,16 @@ func _process(delta: float) -> void:
 		# Still update rotation if set
 		if rotation_speed != 0:
 			rotation_degrees += rotation_speed * delta
+			
+		 # Handle shooting if enabled
+		if can_shoot and projectile_scene:
+			time_since_last_shot += delta
+			if time_since_last_shot >= shoot_cooldown:
+				# Random chance to shoot
+				if rng.randf() < shoot_chance:
+					shoot()
+					time_since_last_shot = 0.0
+
 		return
 
 	# Rest of the original movement code for non-formation objects
@@ -147,23 +157,21 @@ func _process(delta: float) -> void:
 		if movement_pattern != "sine" or move_toward_center:
 			position.x += velocity.x * delta
 
+	 # Handle shooting if enabled
+	if can_shoot and projectile_scene:
+		time_since_last_shot += delta
+		if time_since_last_shot >= shoot_cooldown:
+			# Random chance to shoot
+			if rng.randf() < shoot_chance:
+				shoot()
+				time_since_last_shot = 0.0
+
 	# Apply rotation if set
 	if rotation_speed != 0:
 		rotation_degrees += rotation_speed * delta
 
 	# Check if off-screen
 	check_if_offscreen()
-
-	# Handle shooting if enabled
-	if can_shoot and projectile_scene:
-		time_since_last_shot += delta
-		if time_since_last_shot >= shoot_cooldown:
-			# Debug output
-			print(name + " ready to shoot. Chance check: " + str(rng.randf()) + " < " + str(shoot_chance))
-			if rng.randf() < shoot_chance:
-				print(name + " shooting!")
-				shoot()
-				time_since_last_shot = 0.0
 
 func set_use_formation_movement(value: bool) -> void:
 	use_formation_movement = value
