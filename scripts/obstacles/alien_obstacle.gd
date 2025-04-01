@@ -20,9 +20,9 @@ func shoot() -> void:
 	if animated_sprite and animated_sprite.sprite_frames.has_animation("attack"):
 		animated_sprite.play("attack")
 		
-		# Connect to animation finished signal if not already connected
-		if not animated_sprite.is_connected("animation_finished", _on_attack_animation_finished):
-			animated_sprite.animation_finished.connect(_on_attack_animation_finished)
+	# Connect to animation finished signal if not already connected
+	if not animated_sprite.is_connected("animation_finished", _on_attack_animation_finished):
+		animated_sprite.animation_finished.connect(_on_attack_animation_finished)
 	
 	# Continue with normal shooting logic
 	for gun_point in gun_points:
