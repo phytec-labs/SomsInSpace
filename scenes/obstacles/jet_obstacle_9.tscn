@@ -19,6 +19,7 @@ scale = Vector2(1.25, 1.25)
 collision_layer = 2
 script = ExtResource("1_ex5xu")
 can_shoot = true
+shoot_chance = 0.8
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(0.1, 0.1)

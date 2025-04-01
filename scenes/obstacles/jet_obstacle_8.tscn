@@ -19,6 +19,7 @@ scale = Vector2(1.6, 1.6)
 collision_layer = 2
 script = ExtResource("1_fbh60")
 can_shoot = true
+shoot_chance = 0.8
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(0.1, 0.1)
@@ -32,7 +33,6 @@ position = Vector2(-14.375, 2.5)
 
 [node name="GunPoint2" type="Marker2D" parent="."]
 position = Vector2(13.125, 2.5)
-scale = Vector2(1, 1)
 
 [node name="ThrusterThruster" type="CPUParticles2D" parent="."]
 z_index = -1

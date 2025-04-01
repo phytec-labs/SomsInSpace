@@ -30,15 +30,15 @@ func _ready() -> void:
 
 	# We only need area_entered since we're using Area2D for the player too
 	area_entered.connect(_on_area_entered)
-	
+
 	# Verify we have at least one collision node
 	if not collision_shape and not collision_polygon:
 		push_error("GameObject " + name + " requires either a CollisionShape2D or CollisionPolygon2D child node!")
-	
+
 	# Verify we have at least one visual node
 	if not sprite and not animated_sprite:
 		push_warning("GameObject " + name + " has no Sprite2D or AnimatedSprite2D child node!")
-	
+
 	# Configure animated sprite if it exists
 	if animated_sprite:
 		animated_sprite.speed_scale = animation_speed
@@ -51,18 +51,17 @@ func check_if_offscreen() -> void:
 	# Skip check if we already reported exiting
 	if has_exited_screen:
 		return
-		
+
 	# Get viewport rect and add margins
 	var viewport_rect = get_viewport_rect()
 	var margin = 100.0
-	
+
 	# Check if object has moved completely off screen
 	if (position.y > viewport_rect.size.y + margin or  # Below screen
 		position.y < -margin * 2 or                   # Far above screen
 		position.x > viewport_rect.size.x + margin or  # Right of screen
 		position.x < -margin):                        # Left of screen
-			
-		print(name + " exited screen at " + str(position))
+
 		has_exited_screen = true  # Set flag to prevent repeated signals
 		emit_signal("screen_exited")
 
@@ -72,14 +71,14 @@ func initialize(spawn_position: Vector2) -> void:
 	is_being_collected = false
 	has_exited_screen = false  # Reset the flag when reusing objects
 	show()
-	
+
 	# Handle visuals
 	if sprite:
 		sprite.show()
 	if animated_sprite:
 		animated_sprite.show()
 		animated_sprite.play()
-		
+
 	# Enable collisions
 	if collision_shape:
 		collision_shape.set_deferred("disabled", false)
@@ -88,20 +87,20 @@ func initialize(spawn_position: Vector2) -> void:
 
 func deactivate() -> void:
 	is_active = false
-	
+
 	# Handle visuals
 	if sprite:
 		sprite.hide()
 	if animated_sprite:
 		animated_sprite.stop()
 		animated_sprite.hide()
-		
+
 	# Disable collisions
 	if collision_shape:
 		collision_shape.set_deferred("disabled", true)
 	if collision_polygon:
 		collision_polygon.set_deferred("disabled", true)
-		
+
 	hide()
 
 func _on_area_entered(_area: Area2D) -> void:
@@ -124,7 +123,7 @@ func handle_player_collision() -> void:
 	if animated_sprite:
 		animated_sprite.stop()
 		animated_sprite.hide()
-		
+
 	# Disable collisions
 	if collision_shape:
 		collision_shape.set_deferred("disabled", true)

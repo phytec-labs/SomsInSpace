@@ -16,7 +16,7 @@ class_name Obstacle
 # Audio properties
 @export var shoot_sound: AudioStream = preload("res://audio/retro-laser-1.mp3")
 @export var explosion_sound: AudioStream = preload("res://audio/small-explosion-1.mp3")
-@export var sound_pitch_variation: float = 0.2 
+@export var sound_pitch_variation: float = 0.2
 
 # Movement pattern variables
 var movement_pattern: String = "linear"  # linear, sine, zigzag
@@ -52,7 +52,7 @@ var initial_x: float = 0.0
 
 func _ready() -> void:
 	super._ready()
-	
+
 	# Initialize audio players
 	# Shooting sound player
 	shoot_audio_player = AudioStreamPlayer2D.new()
@@ -60,19 +60,19 @@ func _ready() -> void:
 	add_child(shoot_audio_player)
 	if shoot_sound:
 		shoot_audio_player.stream = shoot_sound
-	
+
 	# Explosion sound player
 	explosion_audio_player = AudioStreamPlayer2D.new()
 	explosion_audio_player.name = "ExplosionAudioPlayer"
 	add_child(explosion_audio_player)
 	if explosion_sound:
 		explosion_audio_player.stream = explosion_sound
-	
+
 	# Find all gun point nodes
 	for child in get_children():
 		if child is Node2D and "GunPoint" in child.name:
 			gun_points.append(child)
-	
+
 	# If no gun points found, use the obstacle's position as default
 	if gun_points.is_empty():
 		# Create a virtual gun point at the center
@@ -158,8 +158,10 @@ func _process(delta: float) -> void:
 	if can_shoot and projectile_scene:
 		time_since_last_shot += delta
 		if time_since_last_shot >= shoot_cooldown:
-			# Random chance to shoot
+			# Debug output
+			print(name + " ready to shoot. Chance check: " + str(rng.randf()) + " < " + str(shoot_chance))
 			if rng.randf() < shoot_chance:
+				print(name + " shooting!")
 				shoot()
 				time_since_last_shot = 0.0
 
@@ -216,11 +218,8 @@ func check_if_offscreen() -> void:
 		emit_signal("screen_exited")
 
 func take_damage(damage: float) -> void:
-	# Print debug info
-	print(name + " took " + str(damage) + " damage. Health: " + str(health) + "/" + str(health-damage))
-	
 	health -= damage
-	
+
 	if health <= 0:
 		# Award points to the player before destroying
 		var level = get_tree().get_first_node_in_group("level")
@@ -228,10 +227,10 @@ func take_damage(damage: float) -> void:
 			# Convert negative points to positive for destroying
 			var destroy_points = abs(points)
 			level.update_points(destroy_points)
-		
+
 		# Create explosion effect
 		create_explosion()
-		
+
 		# Deactivate the obstacle
 		deactivate()
 
@@ -241,30 +240,30 @@ func create_explosion() -> void:
 		sprite.visible = false
 	if animated_sprite:
 		animated_sprite.visible = false
-	
+
 	# Play explosion sound if available
 	if explosion_audio_player and explosion_audio_player.stream:
 		# Detach the audio player so it continues playing after the obstacle is gone
 		remove_child(explosion_audio_player)
 		get_parent().add_child(explosion_audio_player)
-		
+
 		# Position at the obstacle's last position
 		explosion_audio_player.global_position = global_position
-		
+
 		# Add pitch variation for more natural sound
 		explosion_audio_player.pitch_scale = 1.0 + randf_range(-sound_pitch_variation, sound_pitch_variation)
 		explosion_audio_player.play()
-		
+
 		# Set up auto-deletion after playing
 		explosion_audio_player.finished.connect(explosion_audio_player.queue_free)
-	
+
 	# Instantiate explosion if we have a scene
 	if explosion_scene:
 		var explosion = explosion_scene.instantiate()
 		# Add to the parent so it persists after obstacle is gone
 		get_parent().add_child(explosion)
 		explosion.global_position = global_position
-		
+
 		# Set explosion type and start it
 		explosion.set_explosion_type(1)  # Medium explosion
 		explosion.start()
@@ -284,7 +283,7 @@ func create_explosion() -> void:
 		particles.scale_amount_min = 2
 		particles.scale_amount_max = 4
 		particles.emitting = true
-		
+
 		# Auto-free particles after emission
 		var timer = Timer.new()
 		particles.add_child(timer)
@@ -304,9 +303,8 @@ func handle_player_collision() -> void:
 
 	# No need to manually hide sprite or disable collisions
 	# since create_explosion() already does that
-	
+
 	# Emit signal for damage to player
-	print("Object hit: " + name)
 	emit_signal("object_hit")
 
 	# Finally deactivate the object
@@ -315,28 +313,28 @@ func handle_player_collision() -> void:
 func shoot() -> void:
 	if not projectile_scene or not is_active:
 		return
-	
+
 	# Choose which gun point to use (if there are multiple)
 	var gun_point = gun_points[rng.randi() % gun_points.size()]
-	
+
 	# Create projectile
 	var projectile = projectile_scene.instantiate()
 	get_tree().current_scene.add_child(projectile)
-	
+
 	# Calculate global spawn position
 	var spawn_position = gun_point.global_position
-	
+
 	# Find the player
 	var player = get_tree().get_first_node_in_group("player")
 	var direction = Vector2.DOWN  # Default direction if player not found
-	
+
 	if player:
 		direction = (player.global_position - spawn_position).normalized()
-	
+
 	# Initialize the projectile
 	if projectile.has_method("initialize"):
 		projectile.initialize(spawn_position, direction)
-	
+
 	# Play shoot sound if available
 	if shoot_audio_player and shoot_audio_player.stream:
 		# Add pitch variation for more natural sound

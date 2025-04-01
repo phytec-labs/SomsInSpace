@@ -263,10 +263,6 @@ func fire_projectile() -> void:
 	can_fire = false
 	cooldown_time_remaining = fire_cooldown
 
-	# Debug output
-	print("Fired projectile. Cooldown started: ", cooldown_time_remaining)
-
-
 func _on_fire_cooldown_timeout() -> void:
 	can_fire = true
 

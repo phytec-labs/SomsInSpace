@@ -57,7 +57,7 @@ func _ready() -> void:
 
 	# Initialize object pools
 	initialize_obstacle_pools()
-	
+
 	# Verify energy collectible scene is set
 	if energy_collectible_scene:
 		print("Energy collectible scene loaded: ", energy_collectible_scene.resource_path)
@@ -129,16 +129,12 @@ func _on_spawn_timer_timeout() -> void:
 		print("SpawnManager not spawning on timer timeout")
 		return
 
-	print("Spawn timer timeout triggered")
-
 	# Determine if we're spawning a formation or single object
 	var is_formation = randf() < formation_chance
 
 	if is_formation:
-		print("Spawning formation")
 		spawn_formation()
 	else:
-		print("Spawning single object")
 		spawn_single_object()
 
 	# Decrease spawn time gradually, but not below minimum
@@ -169,29 +165,26 @@ func get_random_spawn_position() -> Vector2:
 # Get a random spawn position specifically for collectibles
 func get_collectible_spawn_position() -> Vector2:
 	var viewport_rect = get_viewport_rect()
-	
+
 	# Ensure collectibles spawn within horizontal screen bounds
 	var margin = 50.0
 	var x_pos = rng.randf_range(margin, viewport_rect.size.x - margin)
-	
+
 	# Spawn just above the visible screen, but close enough to quickly enter view
 	var y_pos = -30  # Reduced from -50 to -30 to enter screen faster
-	
-	print("Generated collectible spawn position: (", x_pos, ", ", y_pos, ")")
+
 	return Vector2(x_pos, y_pos)
 
 # Spawn a single object (obstacle or collectible)
 func spawn_single_object() -> void:
 	var random_value = randf()
 	var is_collectible = random_value < collectible_chance # Default 30% chance to spawn collectible
-	
+
 	print("Random value for collectible spawn: ", random_value, " (threshold: ", collectible_chance, ")")
 
 	if is_collectible and energy_collectible_scene:
-		print("Attempting to spawn collectible")
 		spawn_collectible()
 	else:
-		print("Spawning obstacle instead of collectible")
 		spawn_obstacle()
 
 # Spawn a collectible
@@ -200,16 +193,13 @@ func spawn_collectible() -> Node2D:
 		print("ERROR: energy_collectible_scene is null")
 		return null
 
-	print("Instantiating energy collectible from scene")
 	var collectible = energy_collectible_scene.instantiate()
 	add_child(collectible)
 
 	# Use the collectible-specific spawn position
 	var spawn_position = get_collectible_spawn_position()
-	print("Initializing collectible at position: ", spawn_position)
 	collectible.initialize(spawn_position)
 
-	print("Collectible spawned successfully, emitting signal")
 	emit_signal("object_spawned", collectible)
 	return collectible
 

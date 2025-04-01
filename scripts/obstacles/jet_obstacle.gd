@@ -15,12 +15,6 @@ func _ready() -> void:
 	pattern_amplitude = 80.0
 	pattern_frequency = 0.8
 
-	# Set shooting capabilities for jets
-	can_shoot = true
-	shoot_cooldown = 1.5  # Jets shoot every 1.5 seconds when ready
-	shoot_chance = 0.3    # 30% chance to shoot when cooldown expired
-	projectile_speed = 250.0
-
 	# Load the projectile scene if it's not already set
 	if not projectile_scene:
 		projectile_scene = load("res://scenes/effects/enemy_projectile_1.tscn")

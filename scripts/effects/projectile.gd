@@ -12,7 +12,7 @@ var is_active: bool = false
 func _ready() -> void:
 	# Connect signals
 	area_entered.connect(_on_area_entered)
-	
+
 	# Start the lifetime timer
 	var timer = Timer.new()
 	timer.name = "LifetimeTimer"
@@ -21,7 +21,7 @@ func _ready() -> void:
 	timer.timeout.connect(_on_lifetime_timer_timeout)
 	add_child(timer)
 	timer.start()
-	
+
 	# Add a simple rotation animation
 	var tween = create_tween()
 	tween.tween_property(self, "rotation", PI * 4, lifetime)
@@ -30,7 +30,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	# Move the projectile
 	position += direction * speed * delta
-	
+
 	# Check if off-screen
 	var viewport_rect = get_viewport_rect()
 	var margin = 50.0
@@ -46,24 +46,20 @@ func initialize(spawn_position: Vector2, projectile_direction: Vector2 = Vector2
 	is_active = true
 
 func _on_area_entered(area: Area2D) -> void:
-	# Debug print to verify the collision is detected
-	print("Projectile hit: ", area.name)
-	
 	# Check if we hit an obstacle directly (Area2D) or need to get its parent
 	var obstacle = null
 	if area is Obstacle:
 		obstacle = area
 	elif area.get_parent() is Obstacle:
 		obstacle = area.get_parent()
-	
+
 	if obstacle:
-		print("Hit obstacle: ", obstacle.name)
 		# Deal damage to obstacle using the dedicated take_damage method
 		# This avoids the normal player collision handling
 		if obstacle.has_method("take_damage"):
 			obstacle.take_damage(damage)
 		# Intentionally NOT using handle_player_collision here
-		
+
 		# Destroy the projectile
 		queue_free()
 
