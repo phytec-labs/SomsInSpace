@@ -11,7 +11,6 @@ signal object_spawned(game_object)
 @export var base_spawn_time: float = 3.0
 @export var min_spawn_time: float = 0.5
 @export var spawn_time_decrease_rate: float = 0.05
-@export var y_pos_above_screen_offset: float = 250
 @export var collectible_chance: float = 0.3  # Chance to spawn a collectible
 
 @export var energy_collectible_scene: PackedScene

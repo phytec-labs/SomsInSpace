@@ -334,9 +334,11 @@ func generate_spawn_position(viewport_size: Vector2) -> Vector2:
 	if viewport_size.x <= 0 or viewport_size.y <= 0:
 		viewport_size = _get_viewport_rect().size
 
-	# Default to spawning at top
+	# Get formation size from zone settings
+	var formation_size = zone_settings.max_spread
+	# Default to spawning at top with enough distance based on formation size
 	var x_pos = rng.randf_range(max_spread, viewport_size.x - max_spread)
-	var y_pos = -100.0 # Just above the screen
+	var y_pos = -(formation_size + 100.0) # Adjust based on formation size
 
 	# In higher zones, enemies can come from sides or bottom too
 	if current_zone == "upper_atmosphere" or current_zone == "space":
@@ -345,17 +347,17 @@ func generate_spawn_position(viewport_size: Vector2) -> Vector2:
 		match spawn_side:
 			0: # Top
 				x_pos = rng.randf_range(max_spread, viewport_size.x - max_spread)
-				y_pos = -100.0
+				y_pos = -(formation_size + 100.0)
 			1: # Right
-				x_pos = viewport_size.x + 100.0
+				x_pos = viewport_size.x + (formation_size + 100.0)
 				# Ensure enemies spawn near or above the top of the screen
 				y_pos = rng.randf_range(-50.0, 150.0)
 			2: # Bottom (only in space zone)
 				if current_zone == "space":
 					x_pos = rng.randf_range(max_spread, viewport_size.x - max_spread)
-					y_pos = viewport_size.y + 100.0
+					y_pos = viewport_size.y + (formation_size + 100.0)
 			3: # Left
-				x_pos = -100.0
+				x_pos = -(formation_size + 100.0)
 				# Ensure enemies spawn near or above the top of the screen
 				y_pos = rng.randf_range(-50.0, 150.0)
 

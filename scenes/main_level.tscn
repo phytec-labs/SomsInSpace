@@ -112,18 +112,15 @@ max_cloud_speed = 70.0
 
 [node name="SpawnManager" type="Node2D" parent="."]
 script = ExtResource("4_5rh77")
-collectible_chance = 1.0
+collectible_chance = 0.5
 energy_collectible_scene = ExtResource("9_6i8ks")
 obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh")])
 ground_obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh"), ExtResource("13_xjqvk"), ExtResource("15_06to2"), ExtResource("18_p6chc")])
-atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh"), ExtResource("11_7shu0"), ExtResource("13_xjqvk"), ExtResource("15_06to2"), ExtResource("16_jdvxr"), ExtResource("17_8rgmx"), ExtResource("18_p6chc"), ExtResource("19_d6rj5"), ExtResource("20_mqvgc"), ExtResource("21_tth8c")])
-upper_atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("11_7shu0"), ExtResource("19_d6rj5"), ExtResource("20_mqvgc"), ExtResource("21_tth8c"), ExtResource("14_1flmh"), ExtResource("22_ixnvf"), ExtResource("23_g7w6n"), ExtResource("24_ng61r"), ExtResource("26_k07cd")])
-space_obstacle_scenes = Array[PackedScene]([ExtResource("12_bugkk"), ExtResource("14_1flmh"), ExtResource("25_e0ale"), ExtResource("26_vob2f"), ExtResource("27_l1mbx"), ExtResource("22_ixnvf"), ExtResource("23_g7w6n"), ExtResource("24_ng61r")])
+atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh"), ExtResource("13_xjqvk"), ExtResource("16_jdvxr"), ExtResource("17_8rgmx"), ExtResource("19_d6rj5"), ExtResource("20_mqvgc")])
+upper_atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("11_7shu0"), ExtResource("19_d6rj5"), ExtResource("20_mqvgc"), ExtResource("21_tth8c"), ExtResource("14_1flmh"), ExtResource("22_ixnvf"), ExtResource("23_g7w6n"), ExtResource("24_ng61r")])
+space_obstacle_scenes = Array[PackedScene]([ExtResource("12_bugkk"), ExtResource("14_1flmh"), ExtResource("25_e0ale"), ExtResource("26_vob2f"), ExtResource("27_l1mbx"), ExtResource("22_ixnvf"), ExtResource("23_g7w6n"), ExtResource("24_ng61r"), ExtResource("26_k07cd")])
 
 [node name="FormationManager" type="Node" parent="SpawnManager"]
 script = ExtResource("11_133uv")
 
 [node name="SpawnTimer" type="Timer" parent="SpawnManager"]
-
-[node name="EnergyCollectible" parent="." instance=ExtResource("9_6i8ks")]
-position = Vector2(380, 341)

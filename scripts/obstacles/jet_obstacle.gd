@@ -87,3 +87,7 @@ func shoot() -> void:
 		# Initialize projectile
 		if projectile.has_method("initialize"):
 			projectile.initialize(spawn_position, direction)
+			
+		if shoot_audio_player and shoot_audio_player.stream:
+			shoot_audio_player.pitch_scale = 1.0 + randf_range(-sound_pitch_variation, sound_pitch_variation)
+			shoot_audio_player.play()
