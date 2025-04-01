@@ -1,9 +1,10 @@
-[gd_scene load_steps=8 format=3 uid="uid://fgrg1yvq87i7"]
+[gd_scene load_steps=9 format=3 uid="uid://fgrg1yvq87i7"]
 
 [ext_resource type="Script" uid="uid://cofp5vjifwmcm" path="res://scripts/main_level/player.gd" id="1_vp455"]
 [ext_resource type="Texture2D" uid="uid://douycueqct0mh" path="res://sprites/AM62A7_midjourney.png" id="2_ax0x5"]
 [ext_resource type="PackedScene" uid="uid://dfjvynj27ebhu" path="res://scenes/effects/projectile_1.tscn" id="2_fcb3v"]
 [ext_resource type="Texture2D" uid="uid://dhfyxwm2kciwn" path="res://sprites/player_ship_body1.png" id="3_f3p6y"]
+[ext_resource type="AudioStream" uid="uid://dlxidj4l5uuvv" path="res://audio/laser-1.mp3" id="3_tuyoq"]
 [ext_resource type="Texture2D" uid="uid://bbf8kqq1rn2vq" path="res://sprites/Explosion1.png" id="4_6ief2"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_17f3c"]
@@ -21,6 +22,7 @@ z_index = 1
 collision_mask = 2
 script = ExtResource("1_vp455")
 projectile_scene = ExtResource("2_fcb3v")
+fire_sound = ExtResource("3_tuyoq")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
 polygon = PackedVector2Array(-78, 30, -49, 18, -15, -12, -14, -36, -5, -53, 4, -53, 13, -36, 17, -10, 48, 18, 80, 31, 79, 53, 22, 42, 23, 69, -22, 70, -23, 42, -77, 52)
@@ -129,3 +131,5 @@ collision_mask = 2
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="CollisionArea"]
 polygon = PackedVector2Array(-78, 30, -49, 18, -15, -12, -14, -36, -5, -53, 4, -53, 13, -36, 17, -10, 48, 18, 80, 31, 79, 53, 22, 42, 23, 69, -22, 70, -23, 42, -77, 52)
+
+[node name="ProjectileAudioPlayer" type="AudioStreamPlayer2D" parent="."]

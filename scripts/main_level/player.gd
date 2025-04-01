@@ -11,6 +11,7 @@ extends CharacterBody2D
 @export var projectile_scene: PackedScene
 @export var fire_cooldown: float = 0.2  # Time between shots
 @export var projectile_offset: float = -30.0  # Offset from player position (negative = in front)
+@export var fire_sound: AudioStream  # New export variable for the firing sound
 
 # Node references
 @onready var ship_sprite: Sprite2D = $Ship
@@ -22,6 +23,7 @@ extends CharacterBody2D
 @onready var right_thruster: CPUParticles2D = $RightThruster
 @onready var up_thruster: CPUParticles2D = $UpThruster
 @onready var down_thruster: CPUParticles2D = $DownThruster
+@onready var fire_audio_player: AudioStreamPlayer2D = $ProjectileAudioPlayer 
 
 # State variables
 var can_move: bool = false
@@ -57,6 +59,10 @@ func _ready() -> void:
 	cooldown_timer.wait_time = fire_cooldown
 	cooldown_timer.timeout.connect(_on_fire_cooldown_timeout)
 	add_child(cooldown_timer)
+
+	# Make sure fire_audio_player has the sound assigned if available
+	if fire_audio_player and fire_sound:
+		fire_audio_player.stream = fire_sound
 
 	disable_movement()
 
@@ -239,10 +245,16 @@ func fire_projectile() -> void:
 	var spawn_position = position + Vector2(0, projectile_offset)
 	projectile.initialize(spawn_position, Vector2.UP)
 	print("Fired projectile at position: ", spawn_position)
+	
+	# Play firing sound
+	if fire_audio_player and fire_audio_player.stream:
+		fire_audio_player.pitch_scale = randf_range(1.0, 1.4)  # Random pitch between 1.0 and 1.4
+		fire_audio_player.play()
 
 	# Start cooldown
 	can_fire = false
 	cooldown_timer.start()
+
 
 func _on_fire_cooldown_timeout() -> void:
 	can_fire = true
