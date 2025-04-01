@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://dan3irwnoxqa7"]
 
-[ext_resource type="Script" path="res://scripts/obstacles/satellite_obstacle.gd" id="1_satellite"]
+[ext_resource type="Script" uid="uid://drhs3qd6sl3lx" path="res://scripts/obstacles/satellite_obstacle.gd" id="1_satellite"]
 [ext_resource type="Texture2D" uid="uid://dkoiqhjtm2dxk" path="res://sprites/satelite_2.png" id="2_satellite_texture"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_satellite"]

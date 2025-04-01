@@ -35,6 +35,10 @@ var current_countdown: float = 0.0
 var current_zone: String = "ground"
 
 func _ready() -> void:
+	print("Mouse Mode: ", Input.get_mouse_mode())
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)  # Ensures it's in pointer mode
+
+	print("Main Level Connected joypads: ", Input.get_connected_joypads())
 	add_to_group("level")
 	#Start background music
 	if background_music:

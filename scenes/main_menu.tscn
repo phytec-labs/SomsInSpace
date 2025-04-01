@@ -1,8 +1,8 @@
 [gd_scene load_steps=9 format=3 uid="uid://b4rhfggb5gt1r"]
 
-[ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_4by2u"]
-[ext_resource type="Script" path="res://scripts/main_menu/main_menu_starfield.gd" id="2_jum82"]
-[ext_resource type="Script" path="res://scripts/main_menu/main_menu_ship_anim.gd" id="3_ft0p2"]
+[ext_resource type="Script" uid="uid://bb4cg5nspxdj5" path="res://scripts/main_menu.gd" id="1_4by2u"]
+[ext_resource type="Script" uid="uid://2futgbr401d3" path="res://scripts/main_menu/main_menu_starfield.gd" id="2_jum82"]
+[ext_resource type="Script" uid="uid://d3tj450n4de2j" path="res://scripts/main_menu/main_menu_ship_anim.gd" id="3_ft0p2"]
 [ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="5_7uyi4"]
 [ext_resource type="PackedScene" uid="uid://kxuok2ixyno7" path="res://scenes/main_menu_ui.tscn" id="6_n1nda"]
 [ext_resource type="PackedScene" uid="uid://c27ba8vwqiw0f" path="res://scenes/main_menu_ship.tscn" id="8_rpyfy"]

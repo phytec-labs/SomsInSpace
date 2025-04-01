@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://drddnlaqg13vc"]
 
-[ext_resource type="Script" path="res://scripts/main_level/launch_pad.gd" id="1_esbxg"]
+[ext_resource type="Script" uid="uid://cpg3kq3xgr3tu" path="res://scripts/main_level/launch_pad.gd" id="1_esbxg"]
 [ext_resource type="Texture2D" uid="uid://b1vvdrb8hd2qa" path="res://sprites/launch_pad_northwest_720p.png" id="2_yoxsb"]
 
 [node name="LaunchPad" type="Node2D"]

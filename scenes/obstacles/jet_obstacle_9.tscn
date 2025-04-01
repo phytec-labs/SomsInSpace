@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://wfuu71tid6aw"]
 
-[ext_resource type="Script" path="res://scripts/obstacles/jet_obstacle.gd" id="1_ex5xu"]
+[ext_resource type="Script" uid="uid://cg3o7lqkn67x8" path="res://scripts/obstacles/jet_obstacle.gd" id="1_ex5xu"]
 [ext_resource type="Texture2D" uid="uid://8v2yjm13gng" path="res://sprites/jet_9.png" id="2_6brd2"]
 
 [sub_resource type="Gradient" id="Gradient_jet_trail"]

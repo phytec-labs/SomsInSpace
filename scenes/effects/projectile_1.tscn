@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://dfjvynj27ebhu"]
 
-[ext_resource type="Script" path="res://scripts/effects/projectile.gd" id="1_lonon"]
+[ext_resource type="Script" uid="uid://cqd0furs3msmi" path="res://scripts/effects/projectile.gd" id="1_lonon"]
 [ext_resource type="Texture2D" uid="uid://clx3kx4832lwy" path="res://sprites/Laser Sprites/01.png" id="2_cdbh0"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_kcais"]

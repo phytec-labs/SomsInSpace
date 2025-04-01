@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://cbwma0mc4x48l"]
 
-[ext_resource type="Script" path="res://scripts/obstacles/obstacle.gd" id="1_umbk1"]
+[ext_resource type="Script" uid="uid://uhq4xka5ie3e" path="res://scripts/obstacles/obstacle.gd" id="1_umbk1"]
 [ext_resource type="PackedScene" uid="uid://cw3f33cxklwfi" path="res://scenes/effects/obstacle_explosion.tscn" id="2_qw8c0"]
 [ext_resource type="Texture2D" uid="uid://qjf6bei7njsj" path="res://sprites/balloon_2.png" id="2_xboth"]
 

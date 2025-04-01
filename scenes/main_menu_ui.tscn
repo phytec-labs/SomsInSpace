@@ -1,6 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://kxuok2ixyno7"]
+[gd_scene load_steps=6 format=3 uid="uid://kxuok2ixyno7"]
 
-[ext_resource type="Script" path="res://scripts/main_menu/main_menu_ui.gd" id="1_73no5"]
+[ext_resource type="Script" uid="uid://o420e7wahv70" path="res://scripts/main_menu/main_menu_ui.gd" id="1_73no5"]
 [ext_resource type="FontVariation" uid="uid://dgr2tavmqudm8" path="res://fonts/pixel_font.tres" id="2_pixel"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
@@ -29,8 +29,7 @@ border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(1, 1, 0, 1)  # Yellow border
-anti_aliasing = false
+border_color = Color(1, 1, 0, 1)
 
 [node name="MainMenuUi" type="CenterContainer"]
 anchors_preset = 15

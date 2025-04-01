@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://qqlunmposxs2"]
 
-[ext_resource type="Script" path="res://scripts/obstacles/satellite_obstacle.gd" id="1_ebr47"]
+[ext_resource type="Script" uid="uid://drhs3qd6sl3lx" path="res://scripts/obstacles/satellite_obstacle.gd" id="1_ebr47"]
 [ext_resource type="Texture2D" uid="uid://c7ujxwxp07j5m" path="res://sprites/satelite_1.png" id="2_vqs0j"]
 
 [node name="Satellite" type="Area2D"]

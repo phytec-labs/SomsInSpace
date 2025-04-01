@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://dxkq5s3j6xsfg"]
 
-[ext_resource type="Script" path="res://scripts/obstacles/alien_obstacle.gd" id="1_78uis"]
+[ext_resource type="Script" uid="uid://scxibf6wra6h" path="res://scripts/obstacles/alien_obstacle.gd" id="1_78uis"]
 [ext_resource type="SpriteFrames" uid="uid://jguv2molmqfr" path="res://sprites/alien_1.tres" id="2_jj68d"]
 
 [node name="Alien" type="Area2D"]

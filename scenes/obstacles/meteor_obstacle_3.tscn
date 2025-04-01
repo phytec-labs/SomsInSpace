@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://csk7ybavygcdg"]
 
-[ext_resource type="Script" path="res://scripts/obstacles/meteor_obstacle.gd" id="1_i72hn"]
+[ext_resource type="Script" uid="uid://c7nx1703vpabs" path="res://scripts/obstacles/meteor_obstacle.gd" id="1_i72hn"]
 [ext_resource type="Texture2D" uid="uid://dsu1v3you1irq" path="res://sprites/meteor_3.png" id="2_lesvm"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_41adi"]

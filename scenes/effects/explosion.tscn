@@ -1,6 +1,6 @@
-[gd_scene load_steps=6 format=3 uid="uid://some_uid_explosion"]
+[gd_scene load_steps=6 format=3 uid="uid://cvm0iuwqnwvc5"]
 
-[ext_resource type="Script" path="res://scripts/effects/explosion.gd" id="1_explosion"]
+[ext_resource type="Script" uid="uid://eh225qyw34pj" path="res://scripts/effects/explosion.gd" id="1_explosion"]
 [ext_resource type="Texture2D" uid="uid://bbf8kqq1rn2vq" path="res://sprites/Explosion1.png" id="2_explosion_texture"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_explosion"]
