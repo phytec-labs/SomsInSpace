@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://wfuu71tid6aw"]
+[gd_scene load_steps=7 format=3 uid="uid://wfuu71tid6aw"]
 
 [ext_resource type="Script" uid="uid://cg3o7lqkn67x8" path="res://scripts/obstacles/jet_obstacle.gd" id="1_ex5xu"]
+[ext_resource type="PackedScene" uid="uid://bfy0x6eryk700" path="res://scenes/effects/enemy_projectile_4.tscn" id="2_02pcu"]
 [ext_resource type="Texture2D" uid="uid://8v2yjm13gng" path="res://sprites/jet_9.png" id="2_6brd2"]
 [ext_resource type="Texture2D" uid="uid://bbf8kqq1rn2vq" path="res://sprites/Explosion1.png" id="3_wsy63"]
 
@@ -19,6 +20,7 @@ scale = Vector2(1.25, 1.25)
 collision_layer = 2
 script = ExtResource("1_ex5xu")
 can_shoot = true
+projectile_scene = ExtResource("2_02pcu")
 shoot_chance = 0.8
 
 [node name="Sprite2D" type="Sprite2D" parent="."]

@@ -9,7 +9,10 @@ rotation = 3.14159
 scale = Vector2(1.2, 1.2)
 collision_layer = 2
 script = ExtResource("1_78uis")
+can_shoot = true
 projectile_scene = ExtResource("2_ed731")
+projectile_speed = 180.0
+shoot_chance = 0.5
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 scale = Vector2(0.25, -0.272)
