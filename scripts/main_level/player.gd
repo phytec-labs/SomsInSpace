@@ -113,49 +113,52 @@ func update_sprite_visibility(visible: bool) -> void:
 	if som_sprite:
 		som_sprite.visible = visible
 
+# Simplified input handling
 func _input(event: InputEvent) -> void:
 	if not can_move:
 		return
 
-	var current_time = Time.get_ticks_msec() / 1000.0
-
-	# Handle firing inputs separately without throttling them
-	# This ensures shooting is as responsive as possible
-	if event is InputEventScreenTouch and event.pressed and event.index > 0:
-		# Second finger touch to fire
+	# Handle firing inputs
+	if _is_fire_input(event):
 		fire_projectile()
-	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
-		# Right-click to fire
-		fire_projectile()
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
-		# Space key to fire
-		fire_projectile()
-
-	# Apply throttling only to movement inputs to avoid flooding
-	if current_time - last_input_time < input_throttle:
 		return
 
-	# Handle movement inputs
-	if event is InputEventScreenTouch and event.index == 0:
-		# Primary touch for movement
-		is_touch_active = event.pressed
-		if is_touch_active:
-			update_target_position(event.position)
-			last_input_time = current_time
-	elif event is InputEventScreenDrag and is_touch_active:
-		# Drag movement
+	# Handle movement inputs with throttling
+	var current_time = Time.get_ticks_msec() / 1000.0
+	if current_time - last_input_time < input_throttle:
+		return
+		
+	if _is_movement_start_input(event):
+		is_touch_active = true
 		update_target_position(event.position)
 		last_input_time = current_time
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		# Left-click for movement
-		is_touch_active = event.pressed
-		if is_touch_active:
-			update_target_position(event.position)
-			last_input_time = current_time
-	elif event is InputEventMouseMotion and is_touch_active:
-		# Mouse movement
+	elif _is_movement_update_input(event) and is_touch_active:
 		update_target_position(event.position)
 		last_input_time = current_time
+	elif _is_movement_end_input(event):
+		is_touch_active = false
+
+# Helper function for firing inputs
+func _is_fire_input(event: InputEvent) -> bool:
+	return (event is InputEventScreenTouch and event.pressed and event.index > 0) or \
+		   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT) or \
+		   (event is InputEventKey and event.pressed and event.keycode == KEY_SPACE)
+  
+# Helper function for movement start
+func _is_movement_start_input(event: InputEvent) -> bool:
+	return (event is InputEventScreenTouch and event.index == 0 and event.pressed) or \
+		   (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed)
+		
+
+# Helper function for movement updates (drags/motion)
+func _is_movement_update_input(event: InputEvent) -> bool:
+	return (event is InputEventScreenDrag) or \
+		   (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
+
+# Helper function for movement end
+func _is_movement_end_input(event: InputEvent) -> bool:
+	return (event is InputEventScreenTouch and event.index == 0 and not event.pressed) or \
+		   (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed)
 
 func update_target_position(input_position: Vector2) -> void:
 	target_position = input_position
