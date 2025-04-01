@@ -6,7 +6,7 @@ A PHYTEC demo project where you play as a PHYTEC SoM making your way to outer sp
 
 ### Launching with OpenGL3
 ```bash
-/home/Soms-In-Space.sh --rendering-driver opengl3
+/Soms-In-Space.arm64 --display-driver wayland --rendering-driver opengl3_es --fullscreen
 ```
 
 ### Rotating Weston Display
