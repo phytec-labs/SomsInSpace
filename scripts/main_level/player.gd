@@ -11,7 +11,7 @@ extends CharacterBody2D
 @export var projectile_scene: PackedScene
 @export var fire_cooldown: float = 0.2  # Time between shots
 @export var projectile_offset: float = -30.0  # Offset from player position (negative = in front)
-@export var fire_sound: AudioStream  # New export variable for the firing sound
+@export var fire_sound: AudioStream  # Export variable for the firing sound
 
 # Node references
 @onready var ship_sprite: Sprite2D = $Ship
@@ -23,7 +23,7 @@ extends CharacterBody2D
 @onready var right_thruster: CPUParticles2D = $RightThruster
 @onready var up_thruster: CPUParticles2D = $UpThruster
 @onready var down_thruster: CPUParticles2D = $DownThruster
-@onready var fire_audio_player: AudioStreamPlayer2D = $ProjectileAudioPlayer 
+@onready var fire_audio_player: AudioStreamPlayer2D = $ProjectileAudioPlayer
 
 # State variables
 var can_move: bool = false
@@ -34,7 +34,7 @@ var last_input_time: float = 0.0
 var input_throttle: float = 1.0/60.0
 var previous_velocity: Vector2 = Vector2.ZERO
 var can_fire: bool = true
-var cooldown_timer: Timer
+var cooldown_time_remaining: float = 0.0
 var is_dead: bool = false
 
 # Damage blink variables
@@ -50,16 +50,13 @@ func _ready() -> void:
 	assert(collision_polygon != null, "CollisionPolygon2D node not found")
 	assert(area != null, "CollisionArea node not found")
 
-	# Set up cooldown timer for firing
-	cooldown_timer = Timer.new()
-	cooldown_timer.one_shot = true
-	cooldown_timer.wait_time = fire_cooldown
-	cooldown_timer.timeout.connect(_on_fire_cooldown_timeout)
-	add_child(cooldown_timer)
-
 	# Make sure fire_audio_player has the sound assigned if available
 	if fire_audio_player and fire_sound:
 		fire_audio_player.stream = fire_sound
+
+	# Initialize shooting as ready
+	can_fire = true
+	cooldown_time_remaining = 0.0
 
 	add_to_group("player")
 
@@ -68,6 +65,13 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if is_blinking:
 		process_blink(delta)
+
+	# Handle shooting cooldown
+	if not can_fire:
+		cooldown_time_remaining -= delta
+		if cooldown_time_remaining <= 0:
+			can_fire = true
+			cooldown_time_remaining = 0.0
 
 func process_blink(delta: float) -> void:
 	blink_timer += delta
@@ -102,7 +106,7 @@ func update_sprite_visibility(visible: bool) -> void:
 		if som_sprite:
 			som_sprite.visible = false
 		return
-	
+
 	# Normal visibility toggling for blinking when not dead
 	if ship_sprite:
 		ship_sprite.visible = visible
@@ -114,39 +118,44 @@ func _input(event: InputEvent) -> void:
 		return
 
 	var current_time = Time.get_ticks_msec() / 1000.0
+
+	# Handle firing inputs separately without throttling them
+	# This ensures shooting is as responsive as possible
+	if event is InputEventScreenTouch and event.pressed and event.index > 0:
+		# Second finger touch to fire
+		fire_projectile()
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		# Right-click to fire
+		fire_projectile()
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
+		# Space key to fire
+		fire_projectile()
+
+	# Apply throttling only to movement inputs to avoid flooding
 	if current_time - last_input_time < input_throttle:
 		return
 
-	# Handle firing inputs
-	if event is InputEventScreenTouch:
-		# If this is a second finger touch, fire
-		if event.pressed and event.index > 0:
-			fire_projectile()
-		# Regular movement for primary touch
-		else:
-			is_touch_active = event.pressed
-			if is_touch_active:
-				update_target_position(event.position)
-				last_input_time = current_time
+	# Handle movement inputs
+	if event is InputEventScreenTouch and event.index == 0:
+		# Primary touch for movement
+		is_touch_active = event.pressed
+		if is_touch_active:
+			update_target_position(event.position)
+			last_input_time = current_time
 	elif event is InputEventScreenDrag and is_touch_active:
+		# Drag movement
 		update_target_position(event.position)
 		last_input_time = current_time
-	elif event is InputEventMouseButton:
-		# Right-click to fire
-		if event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
-			fire_projectile()
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		# Left-click for movement
-		elif event.button_index == MOUSE_BUTTON_LEFT:
-			is_touch_active = event.pressed
-			if is_touch_active:
-				update_target_position(event.position)
-				last_input_time = current_time
+		is_touch_active = event.pressed
+		if is_touch_active:
+			update_target_position(event.position)
+			last_input_time = current_time
 	elif event is InputEventMouseMotion and is_touch_active:
+		# Mouse movement
 		update_target_position(event.position)
 		last_input_time = current_time
-	# Space key to fire
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
-		fire_projectile()
 
 func update_target_position(input_position: Vector2) -> void:
 	target_position = input_position
@@ -228,8 +237,9 @@ func reset_position() -> void:
 	end_blink()  # Ensure blink effect is reset
 
 func fire_projectile() -> void:
-	if not can_fire or not can_move:
-		print("Cannot fire: can_fire=", can_fire, ", can_move=", can_move)
+	if not can_fire or not can_move or is_dead:
+		# Debug output for troubleshooting
+		print("Cannot fire: can_fire=", can_fire, ", can_move=", can_move, ", is_dead=", is_dead)
 		return
 
 	if not projectile_scene:
@@ -243,16 +253,18 @@ func fire_projectile() -> void:
 	# Set projectile position (in front of the ship)
 	var spawn_position = position + Vector2(0, projectile_offset)
 	projectile.initialize(spawn_position, Vector2.UP)
-	print("Fired projectile at position: ", spawn_position)
-	
+
 	# Play firing sound
 	if fire_audio_player and fire_audio_player.stream:
-		fire_audio_player.pitch_scale = randf_range(1.0, 1.4)  # Random pitch between 1.0 and 1.4
+		fire_audio_player.pitch_scale = randf_range(1.0, 1.4)  # Random pitch variation
 		fire_audio_player.play()
 
-	# Start cooldown
+	# Start cooldown using the direct time tracking approach
 	can_fire = false
-	cooldown_timer.start()
+	cooldown_time_remaining = fire_cooldown
+
+	# Debug output
+	print("Fired projectile. Cooldown started: ", cooldown_time_remaining)
 
 
 func _on_fire_cooldown_timeout() -> void:
@@ -261,23 +273,23 @@ func _on_fire_cooldown_timeout() -> void:
 func die() -> void:
 	# Set the dead flag to prevent blinking from showing the sprite
 	is_dead = true
-	
+
 	# Hide all parts of the ship
 	if ship_sprite:
 		ship_sprite.visible = false
 	if som_sprite:
 		som_sprite.visible = false
-	
+
 	# Disable all thrusters
 	main_thruster.emitting = false
 	left_thruster.emitting = false
 	right_thruster.emitting = false
 	up_thruster.emitting = false
 	down_thruster.emitting = false
-	
+
 	# Disable collisions
 	area.collision_mask = 0
-	
+
 	# Stop movement
 	can_move = false
 	velocity = Vector2.ZERO
