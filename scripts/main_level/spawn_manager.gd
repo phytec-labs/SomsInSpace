@@ -39,7 +39,7 @@ var rng = RandomNumberGenerator.new()
 var obstacle_pool = {}
 
 func _ready() -> void:
-	print("SpawnManager initializing...")
+	# print("SpawnManager initializing...")
 	rng.randomize()
 
 	# Set initial spawn time
@@ -58,11 +58,11 @@ func _ready() -> void:
 	# Initialize object pools
 	initialize_obstacle_pools()
 
-	# Verify energy collectible scene is set
-	if energy_collectible_scene:
-		print("Energy collectible scene loaded: ", energy_collectible_scene.resource_path)
-	else:
-		push_error("Energy collectible scene not set!")
+	# # Verify energy collectible scene is set
+	# if energy_collectible_scene:
+	# 	print("Energy collectible scene loaded: ", energy_collectible_scene.resource_path)
+	# else:
+	# 	push_error("Energy collectible scene not set!")
 
 func initialize_obstacle_pools() -> void:
 	# Create pools for each obstacle type to improve performance
@@ -79,18 +79,18 @@ func initialize_obstacle_pools() -> void:
 func start_spawning() -> void:
 	is_spawning = true
 	spawn_timer.start()
-	print("SpawnManager started spawning")
+	# print("SpawnManager started spawning")
 
 # Stop spawning objects
 func stop_spawning() -> void:
 	is_spawning = false
 	spawn_timer.stop()
-	print("SpawnManager stopped spawning")
+	# print("SpawnManager stopped spawning")
 
 # Set the current zone to adjust spawn behavior
 func set_spawn_zone(zone: String) -> void:
 	current_zone = zone
-	print("SpawnManager zone set to: ", zone)
+	# print("SpawnManager zone set to: ", zone)
 
 	if formation_manager:
 		formation_manager.set_zone(zone)
@@ -126,7 +126,7 @@ func get_obstacle_scenes_for_zone() -> Array[PackedScene]:
 # Spawn timer callback
 func _on_spawn_timer_timeout() -> void:
 	if not is_spawning:
-		print("SpawnManager not spawning on timer timeout")
+		# print("SpawnManager not spawning on timer timeout")
 		return
 
 	# Determine if we're spawning a formation or single object
@@ -180,7 +180,7 @@ func spawn_single_object() -> void:
 	var random_value = randf()
 	var is_collectible = random_value < collectible_chance # Default 30% chance to spawn collectible
 
-	print("Random value for collectible spawn: ", random_value, " (threshold: ", collectible_chance, ")")
+	# print("Random value for collectible spawn: ", random_value, " (threshold: ", collectible_chance, ")")
 
 	if is_collectible and energy_collectible_scene:
 		spawn_collectible()
@@ -190,7 +190,7 @@ func spawn_single_object() -> void:
 # Spawn a collectible
 func spawn_collectible() -> Node2D:
 	if not energy_collectible_scene:
-		print("ERROR: energy_collectible_scene is null")
+		# print("ERROR: energy_collectible_scene is null")
 		return null
 
 	var collectible = energy_collectible_scene.instantiate()

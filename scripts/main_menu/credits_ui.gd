@@ -38,6 +38,16 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_cancel"):
 		_on_back_button_pressed()
 		get_viewport().set_input_as_handled()
+		
+	# Add touch input handling
+	if event is InputEventScreenTouch and event.pressed:
+		_handle_touch(event.position)
+
+# Add this new function to handle touch input
+func _handle_touch(position: Vector2) -> void:
+	if back_button.get_global_rect().has_point(position):
+		update_button_style(true)
+		_on_back_button_pressed()
 
 func update_button_style(highlighted: bool) -> void:
 	if highlighted:

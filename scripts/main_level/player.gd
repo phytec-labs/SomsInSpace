@@ -127,7 +127,7 @@ func _input(event: InputEvent) -> void:
 	var current_time = Time.get_ticks_msec() / 1000.0
 	if current_time - last_input_time < input_throttle:
 		return
-		
+
 	if _is_movement_start_input(event):
 		is_touch_active = true
 		update_target_position(event.position)
@@ -143,12 +143,12 @@ func _is_fire_input(event: InputEvent) -> bool:
 	return (event is InputEventScreenTouch and event.pressed and event.index > 0) or \
 		   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT) or \
 		   (event is InputEventKey and event.pressed and event.keycode == KEY_SPACE)
-  
+
 # Helper function for movement start
 func _is_movement_start_input(event: InputEvent) -> bool:
 	return (event is InputEventScreenTouch and event.index == 0 and event.pressed) or \
 		   (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed)
-		
+
 
 # Helper function for movement updates (drags/motion)
 func _is_movement_update_input(event: InputEvent) -> bool:
@@ -242,7 +242,7 @@ func reset_position() -> void:
 func fire_projectile() -> void:
 	if not can_fire or not can_move or is_dead:
 		# Debug output for troubleshooting
-		print("Cannot fire: can_fire=", can_fire, ", can_move=", can_move, ", is_dead=", is_dead)
+		# print("Cannot fire: can_fire=", can_fire, ", can_move=", can_move, ", is_dead=", is_dead)
 		return
 
 	if not projectile_scene:

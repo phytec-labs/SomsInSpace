@@ -46,6 +46,7 @@ func _ready():
 	# Initially hide the screen
 	hide()
 
+# Add this to your _input function in game_over_ui.gd
 func _input(event: InputEvent) -> void:
 	if not visible or buttons.is_empty():
 		return
@@ -56,6 +57,19 @@ func _input(event: InputEvent) -> void:
 		move_selection(-1)
 	elif event.is_action_pressed("ui_accept"):
 		select_current_item()
+	
+	# Add touch input handling
+	if event is InputEventScreenTouch and event.pressed:
+		_handle_touch(event.position)
+
+# Add this new function
+func _handle_touch(position: Vector2) -> void:
+	for i in range(buttons.size()):
+		if buttons[i].get_global_rect().has_point(position):
+			current_selection = i
+			update_selection()
+			select_current_item()
+			break
 
 func move_selection(direction: int) -> void:
 	if buttons.is_empty():

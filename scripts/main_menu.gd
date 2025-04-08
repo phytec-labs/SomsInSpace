@@ -23,13 +23,6 @@ func _ready() -> void:
 func configure_input() -> void:
 	# Set mouse mode to visible to ensure proper mouse/touch handling
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	
-	# Remove joypad events from input map to avoid conflict with touchscreen
-	for action in InputMap.get_actions():
-		var events = InputMap.action_get_events(action).duplicate()
-		for event in events:
-			if event is InputEventJoypadMotion or event is InputEventJoypadButton:
-				InputMap.action_erase_event(action, event)
 
 func _on_menu_item_selected(item: String) -> void:
 	match item:
