@@ -1,0 +1,202 @@
+[gd_scene load_steps=7 format=3 uid="uid://ci76j6nnodhti"]
+
+[ext_resource type="Script" uid="uid://dai1tjcw2bc2v" path="res://scripts/main_level/game_hud.gd" id="1_3c41i"]
+[ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="2_y6bie"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0, 0, 0, 0.5)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.8, 0.8, 0.8, 0.3)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health_bg"]
+bg_color = Color(0.2, 0.2, 0.2, 0.7)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.3, 0.3, 0.8)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health_fill"]
+bg_color = Color(0.2, 0.8, 0.2, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_zone_progress"]
+bg_color = Color(0.1, 0.1, 0.1, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.3, 0.3, 0.8)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[node name="GameHudUi" type="CanvasLayer"]
+script = ExtResource("1_3c41i")
+
+[node name="StatsPanel" type="PanelContainer" parent="."]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -144.0
+offset_right = 148.0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="MarginContainer" type="MarginContainer" parent="StatsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="StatsContainer" type="VBoxContainer" parent="StatsPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HealthContainer" type="VBoxContainer" parent="StatsPanel/MarginContainer/StatsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="HealthLabel" type="Label" parent="StatsPanel/MarginContainer/StatsContainer/HealthContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 25
+text = "♥ Health: 100%"
+
+[node name="HealthBar" type="ProgressBar" parent="StatsPanel/MarginContainer/StatsContainer/HealthContainer"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_health_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_health_fill")
+value = 100.0
+show_percentage = false
+
+[node name="HeightContainer" type="HBoxContainer" parent="StatsPanel/MarginContainer/StatsContainer"]
+layout_mode = 2
+
+[node name="HeightLabel" type="Label" parent="StatsPanel/MarginContainer/StatsContainer/HeightContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 25
+text = "⬆ Height: 0 m"
+
+[node name="PointsContainer" type="HBoxContainer" parent="StatsPanel/MarginContainer/StatsContainer"]
+layout_mode = 2
+
+[node name="PointsLabel" type="Label" parent="StatsPanel/MarginContainer/StatsContainer/PointsContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 25
+text = "✧ Points: 0"
+
+[node name="ZoneProgressContainer" type="VBoxContainer" parent="."]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -158.0
+offset_top = -46.0
+offset_right = 158.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 3
+
+[node name="ZoneBackground" type="PanelContainer" parent="ZoneProgressContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_zone_progress")
+
+[node name="MarginContainer" type="MarginContainer" parent="ZoneProgressContainer/ZoneBackground"]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="ZoneLabels" type="HBoxContainer" parent="ZoneProgressContainer/ZoneBackground/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="GroundLabel" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
+custom_minimum_size = Vector2(75, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 16
+text = "Ground"
+horizontal_alignment = 1
+
+[node name="|" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 16
+text = "|"
+horizontal_alignment = 1
+
+[node name="AtmosphereLabel" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
+custom_minimum_size = Vector2(75, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 16
+text = "Atmosphere"
+horizontal_alignment = 1
+
+[node name="|2" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 16
+text = "|"
+horizontal_alignment = 1
+
+[node name="UpperAtmoLabel" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
+custom_minimum_size = Vector2(75, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 16
+text = "Upper Atm."
+horizontal_alignment = 1
+
+[node name="|3" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 16
+text = "|"
+horizontal_alignment = 1
+
+[node name="SpaceLabel" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
+custom_minimum_size = Vector2(75, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 16
+text = "Space"
+horizontal_alignment = 1
+
+[node name="ZoneIndicator" type="Control" parent="ZoneProgressContainer"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[node name="ZoneMarker" type="Polygon2D" parent="ZoneProgressContainer/ZoneIndicator"]
+visible = false
+position = Vector2(40, 5)
+color = Color(1, 0.8, 0, 1)
+polygon = PackedVector2Array(-5, -5, 5, -5, 0, 5)

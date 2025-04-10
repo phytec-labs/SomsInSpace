@@ -1,11 +1,12 @@
-[gd_scene load_steps=32 format=3 uid="uid://bkco6j5gra7aw"]
+[gd_scene load_steps=33 format=3 uid="uid://bkco6j5gra7aw"]
 
 [ext_resource type="Script" uid="uid://bhlqnycgu75if" path="res://scripts/main_level.gd" id="1_dythh"]
 [ext_resource type="PackedScene" uid="uid://fgrg1yvq87i7" path="res://scenes/player.tscn" id="2_k0f0i"]
 [ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="3_k31y7"]
 [ext_resource type="Script" uid="uid://b07a7iyi7gjfa" path="res://scripts/main_level/spawn_manager.gd" id="4_5rh77"]
 [ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="4_npmd7"]
-[ext_resource type="PackedScene" uid="uid://ch54sqe6coblr" path="res://scenes/game_over_ui.tscn" id="5_fhkkc"]
+[ext_resource type="PackedScene" uid="uid://ci76j6nnodhti" path="res://scenes/ui/game_hud_ui.tscn" id="5_c88u2"]
+[ext_resource type="PackedScene" uid="uid://ch54sqe6coblr" path="res://scenes/ui/game_over_ui.tscn" id="5_fhkkc"]
 [ext_resource type="PackedScene" uid="uid://drddnlaqg13vc" path="res://scenes/launch_pad.tscn" id="6_nwq2p"]
 [ext_resource type="PackedScene" uid="uid://41k1mrkdmkop" path="res://scenes/misc/atmosphere_manager.tscn" id="7_8rbm4"]
 [ext_resource type="PackedScene" uid="uid://c12tn2cqydmqf" path="res://scenes/misc/cloud_manager.tscn" id="7_je1qi"]
@@ -70,29 +71,7 @@ label_settings = SubResource("LabelSettings_jn2f3")
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HeightDisplay" type="PanelContainer" parent="UI"]
-offset_right = 89.0
-offset_bottom = 23.0
-
-[node name="HeightLabel" type="Label" parent="UI/HeightDisplay"]
-layout_mode = 2
-text = "Height: 0 m"
-
-[node name="StatsDisplay" type="PanelContainer" parent="UI"]
-offset_top = 28.0
-offset_right = 103.0
-offset_bottom = 78.0
-
-[node name="StatsContainer" type="VBoxContainer" parent="UI/StatsDisplay"]
-layout_mode = 2
-
-[node name="HealthLabel" type="Label" parent="UI/StatsDisplay/StatsContainer"]
-layout_mode = 2
-text = "Health: 100%"
-
-[node name="PointsLabel" type="Label" parent="UI/StatsDisplay/StatsContainer"]
-layout_mode = 2
-text = "Points: 0"
+[node name="GameHUDUi" parent="UI" instance=ExtResource("5_c88u2")]
 
 [node name="GameOverScreen" parent="UI" instance=ExtResource("5_fhkkc")]
 

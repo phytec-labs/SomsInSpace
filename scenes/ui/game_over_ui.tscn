@@ -102,7 +102,7 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="RetryButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(250, 0)
+custom_minimum_size = Vector2(250, 50)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_fonts/font = ExtResource("2_j75ae")
@@ -113,7 +113,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 text = "Try Again"
 
 [node name="MainMenuButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(250, 0)
+custom_minimum_size = Vector2(250, 50)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_fonts/font = ExtResource("2_j75ae")

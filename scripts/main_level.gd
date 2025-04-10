@@ -8,11 +8,8 @@ extends Node2D
 @onready var atmosphere_manager = $AtmosphereManager
 @onready var cloud_manager: Node2D = $CloudManager
 @onready var countdown_label: Label = $UI/CountdownLabel
-@onready var height_label: Label = $UI/HeightDisplay/HeightLabel
-@onready var health_label: Label = $UI/StatsDisplay/StatsContainer/HealthLabel
-@onready var points_label: Label = $UI/StatsDisplay/StatsContainer/PointsLabel # Renamed from energy_label
 @onready var game_over_screen: Control = $UI/GameOverScreen
-
+@onready var game_hud = $UI/GameHUDUi
 # Game States
 enum GameState {COUNTDOWN, PLAYING, PAUSED, GAME_OVER}
 var current_state: GameState = GameState.COUNTDOWN
@@ -46,11 +43,6 @@ func _ready() -> void:
 	current_countdown = countdown_time
 	update_countdown_display()
 	player.disable_movement()
-
-	# Initialize UI
-	if not height_label:
-		push_error("Height label not found!")
-		return
 
 	# Connect signals from collectibles and obstacles
 	connect_game_objects()
@@ -105,25 +97,18 @@ func process_game(delta: float) -> void:
 	update_spawn_difficulty(current_height)
 
 func update_all_displays() -> void:
-	update_height_display()
-	update_health_display()
-	update_points_display()  # Renamed from update_energy_display
+	game_hud.update_height(height_score)
+	game_hud.update_health(current_health)
+	game_hud.update_points(points)
 
 func update_height_display() -> void:
-	if not height_label:
-		return
-	var height_in_meters: int = int(height_score)
-	height_label.text = "Height: %d m" % height_in_meters
+	game_hud.update_height(height_score)
 
 func update_health_display() -> void:
-	if not health_label:
-		return
-	health_label.text = "Health: %d%%" % int(current_health)
+	game_hud.update_health(current_health)
 
-func update_points_display() -> void:  # Renamed from update_energy_display
-	if not points_label:
-		return
-	points_label.text = "Points: %d" % points  # Changed to show points
+func update_points_display() -> void:
+	game_hud.update_points(points)
 
 func update_health(amount: float) -> void:
 	current_health = clamp(current_health + amount, 0, max_health)
