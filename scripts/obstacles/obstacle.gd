@@ -7,12 +7,17 @@ class_name Obstacle
 @export var base_speed: float = 100.0
 @export var health: float = 10.0  # Default health value
 @export var explosion_scene: PackedScene = preload("res://scenes/effects/obstacle_explosion.tscn")
+
 # Shooting properties
 @export var can_shoot: bool = false
 @export var projectile_scene: PackedScene= preload("res://scenes/effects/enemy_projectile_1.tscn")
 @export var shoot_cooldown: float = 2.0  # Time between shots
 @export var projectile_speed: float = 200.0
 @export var shoot_chance: float = 0.01  # Chance to shoot per frame
+@export var cooldown_variation: float = 1.0  # Adds/subtracts up to this amount from cooldown
+@export_range(0.0, 1.0) var accuracy: float = 0.8  # 1.0 = perfect, 0.0 = completely random
+@export_range(0.0, 90.0) var max_aim_angle: float = 30.0  # Maximum angle in degrees from straight down
+
 # Audio properties
 @export var shoot_sound: AudioStream = preload("res://audio/retro-laser-1.mp3")
 @export var explosion_sound: AudioStream = preload("res://audio/small-explosion-1.mp3")
@@ -60,6 +65,9 @@ func _ready() -> void:
 		# Ensure minimum point value of -1
 		if points == 0:
 			points = -1
+	
+	# Initialize with randomized cooldown
+	shoot_cooldown = max(1.0, 2.0 + rng.randf_range(-cooldown_variation, cooldown_variation))
 
 	# Initialize audio players
 	# Shooting sound player
@@ -109,6 +117,8 @@ func _process(delta: float) -> void:
 				if rng.randf() < shoot_chance:
 					shoot()
 					time_since_last_shot = 0.0
+					# Randomize next cooldown
+					shoot_cooldown = max(0.5, shoot_cooldown + rng.randf_range(-cooldown_variation, cooldown_variation))
 
 		return
 
@@ -165,7 +175,7 @@ func _process(delta: float) -> void:
 		if movement_pattern != "sine" or move_toward_center:
 			position.x += velocity.x * delta
 
-	 # Handle shooting if enabled
+	# Handle shooting if enabled
 	if can_shoot and projectile_scene:
 		time_since_last_shot += delta
 		if time_since_last_shot >= shoot_cooldown:
@@ -173,6 +183,8 @@ func _process(delta: float) -> void:
 			if rng.randf() < shoot_chance:
 				shoot()
 				time_since_last_shot = 0.0
+				# Randomize next cooldown
+				shoot_cooldown = max(0.5, shoot_cooldown + rng.randf_range(-cooldown_variation, cooldown_variation))
 
 	# Apply rotation if set
 	if rotation_speed != 0:
@@ -329,30 +341,55 @@ func handle_player_collision() -> void:
 func shoot() -> void:
 	if not projectile_scene or not is_active:
 		return
-
+		
 	# Choose which gun point to use (if there are multiple)
 	var gun_point = gun_points[rng.randi() % gun_points.size()]
-
+	
 	# Create projectile
 	var projectile = projectile_scene.instantiate()
 	get_tree().current_scene.add_child(projectile)
-
+	
 	# Calculate global spawn position
 	var spawn_position = gun_point.global_position
-
+	
+	# Default direction is straight down
+	var direction = Vector2.DOWN
+	
 	# Find the player
 	var player = get_tree().get_first_node_in_group("player")
-	var direction = Vector2.DOWN  # Default direction if player not found
-
 	if player:
-		direction = (player.global_position - spawn_position).normalized()
-
+		# Calculate direction to player
+		var player_direction = (player.global_position - spawn_position).normalized()
+		
+		# Limit the angle to max_aim_angle from straight down
+		var down_angle = Vector2.DOWN.angle()
+		var player_angle = player_direction.angle()
+		var angle_diff = rad_to_deg(absf(wrapf(player_angle - down_angle, -PI, PI)))
+		
+		if angle_diff <= max_aim_angle:
+			# Player is within aiming cone, use player direction
+			direction = player_direction
+		else:
+			# Player is outside aiming cone, use clamped direction
+			var sign_diff = sign(wrapf(player_angle - down_angle, -PI, PI))
+			var clamped_angle = down_angle + sign_diff * deg_to_rad(max_aim_angle)
+			direction = Vector2.from_angle(clamped_angle)
+	
+	# Apply accuracy variation
+	if accuracy < 1.0:
+		var max_deviation = (1.0 - accuracy) * PI * 0.5  # Scale to reasonable range
+		var deviation = rng.randf_range(-max_deviation, max_deviation)
+		direction = direction.rotated(deviation)
+	
 	# Initialize the projectile
 	if projectile.has_method("initialize"):
 		projectile.initialize(spawn_position, direction)
-
+		
 	# Play shoot sound if available
 	if shoot_audio_player and shoot_audio_player.stream:
 		# Add pitch variation for more natural sound
 		shoot_audio_player.pitch_scale = 1.0 + randf_range(-sound_pitch_variation, sound_pitch_variation)
 		shoot_audio_player.play()
+		
+	# Randomize next cooldown
+	shoot_cooldown = max(0.5, 2.0 + rng.randf_range(-cooldown_variation, cooldown_variation))
