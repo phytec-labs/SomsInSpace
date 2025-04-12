@@ -8,10 +8,6 @@ extends CharacterBody2D
 @export var smoothing_speed: float = 5.0
 @export var blink_duration: float = 2.0  # Duration of invulnerability
 @export var blink_frequency: float = 0.1  # How fast to toggle visibility
-@export var projectile_scene: PackedScene
-@export var fire_cooldown: float = 0.2  # Time between shots
-@export var projectile_offset: float = -30.0  # Offset from player position (negative = in front)
-@export var fire_sound: AudioStream  # Export variable for the firing sound
 
 # Node references
 @onready var ship_sprite: Sprite2D = $Ship
@@ -42,6 +38,18 @@ var is_blinking: bool = false
 var blink_timer: float = 0.0
 var blink_toggle_timer: float = 0.0
 var is_sprite_visible: bool = true
+
+# Weapon upgrade variables
+var weapon_upgraded: bool = false
+@export var fire_cooldown: float = 0.2  # Time between shots
+@export var fire_sound: AudioStream  # Export variable for the firing sound
+@export var projectile_scene: PackedScene
+@export var upgraded_projectile_scene: PackedScene
+
+# Gunpoint references
+@onready var center_gunpoint = $Gunpoints/CenterGunpoint
+@onready var left_gunpoint = $Gunpoints/LeftGunpoint
+@onready var right_gunpoint = $Gunpoints/RightGunpoint
 
 func _ready() -> void:
 	initial_position = position
@@ -239,23 +247,48 @@ func reset_position() -> void:
 	is_dead = false  # Reset the dead flag
 	end_blink()  # Ensure blink effect is reset
 
+# Function to upgrade weapon
+func upgrade_weapon() -> void:
+	weapon_upgraded = true
+	
+	# Visual effect to indicate upgrade
+	var tween = create_tween()
+	tween.tween_property(self, "modulate", Color(1, 0.5, 1), 0.3)  # Flash pink
+	tween.tween_property(self, "modulate", Color(1, 1, 1), 0.3)    # Back to normal
+	
+	# Enable the side gunpoints
+	if left_gunpoint:
+		left_gunpoint.visible = true
+	if right_gunpoint:
+		right_gunpoint.visible = true
+
+# Modified fire_projectile method to use gunpoints
 func fire_projectile() -> void:
 	if not can_fire or not can_move or is_dead:
-		# Debug output for troubleshooting
-		# print("Cannot fire: can_fire=", can_fire, ", can_move=", can_move, ", is_dead=", is_dead)
 		return
 
 	if not projectile_scene:
 		print("No projectile scene assigned to player!")
 		return
-
-	# Create projectile instance
-	var projectile = projectile_scene.instantiate()
-	get_parent().add_child(projectile)
-
-	# Set projectile position (in front of the ship)
-	var spawn_position = position + Vector2(0, projectile_offset)
-	projectile.initialize(spawn_position, Vector2.UP)
+	
+	# Always fire from center gunpoint
+	var center_projectile = projectile_scene.instantiate()
+	get_parent().add_child(center_projectile)
+	center_projectile.initialize(center_gunpoint.global_position, Vector2.UP)
+	
+	# Fire from side gunpoints if weapon is upgraded
+	if weapon_upgraded:
+		var side_projectile_scene = upgraded_projectile_scene if upgraded_projectile_scene else projectile_scene
+		
+		if left_gunpoint:
+			var left_projectile = side_projectile_scene.instantiate()
+			get_parent().add_child(left_projectile)
+			left_projectile.initialize(left_gunpoint.global_position, Vector2.UP)
+			
+		if right_gunpoint:
+			var right_projectile = side_projectile_scene.instantiate()
+			get_parent().add_child(right_projectile)
+			right_projectile.initialize(right_gunpoint.global_position, Vector2.UP)
 
 	# Play firing sound
 	if fire_audio_player and fire_audio_player.stream:

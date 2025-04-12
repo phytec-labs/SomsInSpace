@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://5tcbqrpdutal"]
 
-[ext_resource type="Script" uid="uid://i75q5gimjyre" path="res://scripts/main_level/energy_collectible.gd" id="1_7pvfx"]
+[ext_resource type="Script" uid="uid://i75q5gimjyre" path="res://scripts/collectibles/energy_collectible.gd" id="1_7pvfx"]
 [ext_resource type="Texture2D" uid="uid://co8pfdb5q12or" path="res://sprites/pixil-frame-0(1).png" id="2_cwfl6"]
 [ext_resource type="AudioStream" uid="uid://ba7lcd7dluclr" path="res://audio/retro-coin-1.mp3" id="3_f3hhj"]
 

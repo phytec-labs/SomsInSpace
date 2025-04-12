@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://ci76j6nnodhti"]
+[gd_scene load_steps=8 format=3 uid="uid://ci76j6nnodhti"]
 
 [ext_resource type="Script" uid="uid://dai1tjcw2bc2v" path="res://scripts/main_level/game_hud.gd" id="1_3c41i"]
 [ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="2_y6bie"]
@@ -38,6 +38,19 @@ corner_radius_bottom_left = 2
 anti_aliasing = false
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_zone_progress"]
+bg_color = Color(0.1, 0.1, 0.1, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.3, 0.3, 0.8)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_weapon_slot"]
 bg_color = Color(0.1, 0.1, 0.1, 0.8)
 border_width_left = 1
 border_width_top = 1
@@ -200,3 +213,51 @@ visible = false
 position = Vector2(40, 5)
 color = Color(1, 0.8, 0, 1)
 polygon = PackedVector2Array(-5, -5, 5, -5, 0, 5)
+
+[node name="WeaponsPanel" type="PanelContainer" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -148.0
+offset_top = -144.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="MarginContainer" type="MarginContainer" parent="WeaponsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="WeaponsContainer" type="VBoxContainer" parent="WeaponsPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="WeaponLabel" type="Label" parent="WeaponsPanel/MarginContainer/WeaponsContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 25
+text = "⚔ Weapon"
+horizontal_alignment = 1
+
+[node name="WeaponSlot" type="PanelContainer" parent="WeaponsPanel/MarginContainer/WeaponsContainer"]
+custom_minimum_size = Vector2(100, 100)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_weapon_slot")
+
+[node name="WeaponSprite" type="TextureRect" parent="WeaponsPanel/MarginContainer/WeaponsContainer/WeaponSlot"]
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="WeaponName" type="Label" parent="WeaponsPanel/MarginContainer/WeaponsContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 20
+text = "Basic Laser"
+horizontal_alignment = 1

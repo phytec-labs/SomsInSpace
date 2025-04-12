@@ -10,6 +10,7 @@ extends Node2D
 @onready var countdown_label: Label = $UI/CountdownLabel
 @onready var game_over_screen: Control = $UI/GameOverScreen
 @onready var game_hud = $UI/GameHUDUi
+
 # Game States
 enum GameState {COUNTDOWN, PLAYING, PAUSED, GAME_OVER}
 var current_state: GameState = GameState.COUNTDOWN
@@ -31,14 +32,21 @@ var current_countdown: float = 0.0
 # Zone tracking
 var current_zone: String = "ground"
 
+# Weapon upgrade variables
+@export var weapon_upgrade_scene: PackedScene
+var upgrade_spawned: bool = false
+var message_label: Label
+
 func _ready() -> void:
 	print("Main Level Connected joypads: ", Input.get_connected_joypads())
 	add_to_group("level")
+
 	#Start background music
 	if background_music:
 		background_music.play()
 	else:
 		print("Warning: background_music node not found")
+
 	# Initialize game
 	current_countdown = countdown_time
 	update_countdown_display()
@@ -48,6 +56,28 @@ func _ready() -> void:
 	connect_game_objects()
 	$UI/GameOverScreen.retry_pressed.connect(_on_game_over_retry)
 	$UI/GameOverScreen.main_menu_pressed.connect(_on_game_over_main_menu)
+
+	# Add GameHud to the "hud" group so it can be found by collectibles
+	if game_hud:
+		game_hud.add_to_group("hud")
+
+	# Create a message label for displaying upgrade messages
+	message_label = Label.new()
+	message_label.add_theme_font_override("font", preload("res://fonts/m5x7.ttf"))
+	message_label.add_theme_font_size_override("font_size", 40)
+	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	message_label.visible = false
+	message_label.anchors_preset = Control.PRESET_CENTER
+	message_label.size = Vector2(600, 100)
+	message_label.position = Vector2(-300, -50)  # Center it
+
+	# Add outline effect
+	message_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	message_label.add_theme_constant_override("outline_size", 3)
+
+	# Add to UI layer
+	$UI.add_child(message_label)
 
 	update_all_displays()
 
@@ -158,35 +188,35 @@ func start_game() -> void:
 
 func game_over() -> void:
 	current_state = GameState.GAME_OVER
-	
+
 	# Create player explosion before hiding the player
 	create_player_explosion()
-	
+
 	# Call the player's die function
 	player.die()
-	
+
 	# Stop game systems
 	spawn_manager.stop_spawning()
 	cloud_manager.stop_spawning()
-	
+
 	# Show game over screen after a short delay to see explosion
 	await get_tree().create_timer(1.0).timeout
-	
+
 	if game_over_screen:
 		game_over_screen.show()
 		game_over_screen.set_final_height(height_score)
-		game_over_screen.set_final_score(points) 
+		game_over_screen.set_final_score(points)
 
 func create_player_explosion() -> void:
 	# Define the explosion scene - same as enemies use
 	var explosion_scene = preload("res://scenes/effects/explosion.tscn")
-	
+
 	# Create the explosion
 	if explosion_scene:
 		var explosion = explosion_scene.instantiate()
 		add_child(explosion)
 		explosion.global_position = player.global_position
-		
+
 		# Make explosion bigger for player (type 2 = LARGE)
 		explosion.set_explosion_type(2)
 		explosion.start()
@@ -199,17 +229,21 @@ func update_spawn_difficulty(height: int) -> void:
 		"upper_atmosphere": 10000,
 		"space": 30000
 	}
-	
+
+	# Check if we should spawn the weapon upgrade at the atmosphere level
+	if current_zone == "atmosphere" and not upgrade_spawned:
+		spawn_weapon_upgrade()
+
 	# Determine new zone
 	var new_zone = "ground"
 	for zone in zone_thresholds:
 		if height >= zone_thresholds[zone]:
 			new_zone = zone
-	
+
 	# Only update if the zone has changed
 	if new_zone != current_zone:
 		current_zone = new_zone
-		
+
 		# Update all managers at once
 		spawn_manager.set_spawn_zone(new_zone)
 		atmosphere_manager.set_zone(new_zone)
@@ -222,3 +256,40 @@ func _on_game_over_retry() -> void:
 func _on_game_over_main_menu() -> void:
 	# Transition to main menu scene
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+
+func spawn_weapon_upgrade() -> void:
+	if not weapon_upgrade_scene or upgrade_spawned:
+		return
+
+	upgrade_spawned = true
+
+	# Create the upgrade collectible
+	var upgrade = weapon_upgrade_scene.instantiate()
+	add_child(upgrade)
+
+	# Calculate spawn position - centered horizontally and just above screen
+	var viewport_rect = get_viewport_rect()
+	var spawn_x = viewport_rect.size.x / 2
+	var spawn_y = -100
+
+	# Initialize the collectible
+	upgrade.initialize(Vector2(spawn_x, spawn_y))
+
+	# Show message to notify player
+	show_message("Weapon Upgrade Available!")
+
+func show_message(text: String, duration: float = 3.0) -> void:
+	if not message_label:
+		return
+
+	# Set message text
+	message_label.text = text
+	message_label.visible = true
+
+	# Animate in
+	message_label.modulate = Color(1, 1, 1, 0)
+	var tween = create_tween()
+	tween.tween_property(message_label, "modulate", Color(1, 1, 1, 1), 0.5)
+	tween.tween_interval(duration - 1.0)  # Wait
+	tween.tween_property(message_label, "modulate", Color(1, 1, 1, 0), 0.5)
+	tween.tween_callback(func(): message_label.visible = false)

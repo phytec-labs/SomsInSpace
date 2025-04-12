@@ -1,6 +1,7 @@
-[gd_scene load_steps=33 format=3 uid="uid://bkco6j5gra7aw"]
+[gd_scene load_steps=34 format=3 uid="uid://bkco6j5gra7aw"]
 
 [ext_resource type="Script" uid="uid://bhlqnycgu75if" path="res://scripts/main_level.gd" id="1_dythh"]
+[ext_resource type="PackedScene" uid="uid://u6mrrbgifign" path="res://scenes/collectibles/weapon_expansion.tscn" id="2_gr2jy"]
 [ext_resource type="PackedScene" uid="uid://fgrg1yvq87i7" path="res://scenes/player.tscn" id="2_k0f0i"]
 [ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="3_k31y7"]
 [ext_resource type="Script" uid="uid://b07a7iyi7gjfa" path="res://scripts/main_level/spawn_manager.gd" id="4_5rh77"]
@@ -41,6 +42,7 @@ shadow_offset = Vector2(5, 5)
 
 [node name="MainLevel" type="Node2D"]
 script = ExtResource("1_dythh")
+weapon_upgrade_scene = ExtResource("2_gr2jy")
 
 [node name="Player" parent="." instance=ExtResource("2_k0f0i")]
 position = Vector2(360, 1085)
