@@ -1,7 +1,8 @@
-[gd_scene load_steps=8 format=3 uid="uid://ci76j6nnodhti"]
+[gd_scene load_steps=9 format=3 uid="uid://ci76j6nnodhti"]
 
 [ext_resource type="Script" uid="uid://dai1tjcw2bc2v" path="res://scripts/main_level/game_hud.gd" id="1_3c41i"]
 [ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="2_y6bie"]
+[ext_resource type="LabelSettings" uid="uid://0n6l0xlohf01" path="res://fonts/label_settings/upgrade_collected_label.tres" id="3_ynucu"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0, 0, 0, 0.5)
@@ -261,3 +262,36 @@ theme_override_fonts/font = ExtResource("2_y6bie")
 theme_override_font_sizes/font_size = 20
 text = "Basic Laser"
 horizontal_alignment = 1
+
+[node name="MessageControl" type="Control" parent="."]
+layout_mode = 3
+anchor_left = 0.5
+anchor_top = 0.25
+anchor_right = 0.5
+anchor_bottom = 0.25
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MessageControl"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -71.0
+offset_top = -20.0
+offset_right = 71.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="MessageControl/MarginContainer"]
+visible = false
+layout_mode = 2
+text = "Upgrade Collected"
+label_settings = ExtResource("3_ynucu")

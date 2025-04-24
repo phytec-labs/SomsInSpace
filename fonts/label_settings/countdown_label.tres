@@ -1,0 +1,10 @@
+[gd_resource type="LabelSettings" load_steps=2 format=3 uid="uid://r7x52bgkknb3"]
+
+[ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="1_ctapr"]
+
+[resource]
+font = ExtResource("1_ctapr")
+font_size = 125
+shadow_size = 25
+shadow_color = Color(0, 0, 0, 0.356863)
+shadow_offset = Vector2(5, 5)

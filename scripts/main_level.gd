@@ -35,7 +35,7 @@ var current_zone: String = "ground"
 # Weapon upgrade variables
 @export var weapon_upgrade_scene: PackedScene
 var upgrade_spawned: bool = false
-var message_label: Label
+@onready var message_label = $UI/GameHUDUi/MessageControl/MarginContainer/Label
 
 func _ready() -> void:
 	print("Main Level Connected joypads: ", Input.get_connected_joypads())
@@ -60,24 +60,6 @@ func _ready() -> void:
 	# Add GameHud to the "hud" group so it can be found by collectibles
 	if game_hud:
 		game_hud.add_to_group("hud")
-
-	# Create a message label for displaying upgrade messages
-	message_label = Label.new()
-	message_label.add_theme_font_override("font", preload("res://fonts/m5x7.ttf"))
-	message_label.add_theme_font_size_override("font_size", 40)
-	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	message_label.visible = false
-	message_label.anchors_preset = Control.PRESET_CENTER
-	message_label.size = Vector2(600, 100)
-	message_label.position = Vector2(-300, -50)  # Center it
-
-	# Add outline effect
-	message_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	message_label.add_theme_constant_override("outline_size", 3)
-
-	# Add to UI layer
-	$UI.add_child(message_label)
 
 	update_all_displays()
 

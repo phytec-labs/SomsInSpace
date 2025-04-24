@@ -1,7 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://dwxk4euegfsik"]
+[gd_scene load_steps=7 format=3 uid="uid://dwxk4euegfsik"]
 
 [ext_resource type="Script" uid="uid://c7bhdqe6tdx3a" path="res://scripts/main_menu/credits_ui.gd" id="1_credits"]
-[ext_resource type="FontVariation" uid="uid://dgr2tavmqudm8" path="res://fonts/pixel_font.tres" id="2_pixel"]
+[ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="2_bg8x7"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0, 0, 0, 0)
@@ -13,6 +13,9 @@ border_color = Color(0.17, 0.24, 0.25, 1)
 shadow_color = Color(0, 0, 0, 0.3)
 shadow_size = 8
 anti_aliasing = false
+
+[sub_resource type="Theme" id="Theme_nsy7m"]
+default_font = ExtResource("2_bg8x7")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_highlighted"]
 bg_color = Color(0, 0, 0, 1)
@@ -53,11 +56,11 @@ theme_override_constants/margin_bottom = 20
 
 [node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
 layout_mode = 2
+theme = SubResource("Theme_nsy7m")
 theme_override_constants/separation = 10
 
 [node name="TitleLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_fonts/font = ExtResource("2_pixel")
 theme_override_font_sizes/font_size = 40
 text = "Credits"
 horizontal_alignment = 1
@@ -65,17 +68,17 @@ horizontal_alignment = 1
 [node name="CreditsText" type="RichTextLabel" parent="PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(300, 200)
 layout_mode = 2
-theme_override_fonts/normal_font = ExtResource("2_pixel")
 theme_override_font_sizes/normal_font_size = 24
 bbcode_enabled = true
 text = "[center]
 Game Design & Programming
 PHYTEC America
+Garrett Giordano
 claude.ai
 
 Art Assets
-PHYTEC America
 Midjourney
+Sora AI
 
 Font
 m5x7 by Daniel Linssen
@@ -93,7 +96,6 @@ fit_content = true
 custom_minimum_size = Vector2(200, 50)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_fonts/font = ExtResource("2_pixel")
 theme_override_font_sizes/font_size = 32
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button")

@@ -1,7 +1,16 @@
-[gd_scene load_steps=6 format=3 uid="uid://kxuok2ixyno7"]
+[gd_scene load_steps=9 format=3 uid="uid://kxuok2ixyno7"]
 
 [ext_resource type="Script" uid="uid://o420e7wahv70" path="res://scripts/main_menu/main_menu_ui.gd" id="1_73no5"]
-[ext_resource type="FontVariation" uid="uid://dgr2tavmqudm8" path="res://fonts/pixel_font.tres" id="2_pixel"]
+[ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="2_3bauu"]
+
+[sub_resource type="Theme" id="Theme_3bauu"]
+default_font = ExtResource("2_3bauu")
+
+[sub_resource type="LabelSettings" id="LabelSettings_b8bkt"]
+font_size = 100
+
+[sub_resource type="LabelSettings" id="LabelSettings_qegi1"]
+font_size = 45
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0, 0, 0, 0)
@@ -37,51 +46,89 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = SubResource("Theme_3bauu")
 script = ExtResource("1_73no5")
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 75
+
+[node name="TitleControl" type="Control" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/TitleControl"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -272.0
+offset_right = 272.0
+offset_bottom = 209.0
+grow_horizontal = 2
+theme_override_constants/margin_left = 25
+theme_override_constants/margin_top = 25
+theme_override_constants/margin_right = 25
+theme_override_constants/margin_bottom = 25
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TitleControl/MarginContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBoxContainer/TitleControl/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "SoMs In Space!"
+label_settings = SubResource("LabelSettings_b8bkt")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SubTitle" type="Label" parent="VBoxContainer/TitleControl/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 75)
+layout_mode = 2
+text = "A PHYTEC Demo"
+label_settings = SubResource("LabelSettings_qegi1")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PanelContainer" type="PanelContainer" parent="VBoxContainer"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/PanelContainer"]
 layout_mode = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="MenuContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+[node name="MenuContainer" type="VBoxContainer" parent="VBoxContainer/PanelContainer/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="StartGameButton" type="Button" parent="PanelContainer/MarginContainer/MenuContainer"]
-custom_minimum_size = Vector2(200, 100)
+[node name="StartGameButton" type="Button" parent="VBoxContainer/PanelContainer/MarginContainer/MenuContainer"]
+custom_minimum_size = Vector2(250, 125)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_fonts/font = ExtResource("2_pixel")
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 45
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 text = "Start Game"
 
-[node name="CreditsButton" type="Button" parent="PanelContainer/MarginContainer/MenuContainer"]
-custom_minimum_size = Vector2(200, 50)
+[node name="CreditsButton" type="Button" parent="VBoxContainer/PanelContainer/MarginContainer/MenuContainer"]
+custom_minimum_size = Vector2(250, 75)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_fonts/font = ExtResource("2_pixel")
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 45
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 text = "Credits"
 
-[node name="QuitButton" type="Button" parent="PanelContainer/MarginContainer/MenuContainer"]
-custom_minimum_size = Vector2(200, 50)
+[node name="QuitButton" type="Button" parent="VBoxContainer/PanelContainer/MarginContainer/MenuContainer"]
+custom_minimum_size = Vector2(250, 75)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_fonts/font = ExtResource("2_pixel")
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 45
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")

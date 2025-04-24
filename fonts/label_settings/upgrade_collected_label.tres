@@ -1,0 +1,10 @@
+[gd_resource type="LabelSettings" load_steps=2 format=3 uid="uid://0n6l0xlohf01"]
+
+[ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="1_cfql6"]
+
+[resource]
+font = ExtResource("1_cfql6")
+font_size = 50
+shadow_size = 4
+shadow_color = Color(0, 0, 0, 0.356863)
+shadow_offset = Vector2(5, 5)

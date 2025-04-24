@@ -14,12 +14,12 @@ var highlighted_color = Color(1, 1, 0)  # Yellow
 
 func _ready() -> void:
 	# Get both styles from the first button
-	var base_button = $PanelContainer/MarginContainer/MenuContainer/StartGameButton
+	var base_button = $VBoxContainer/PanelContainer/MarginContainer/MenuContainer/StartGameButton
 	normal_style = base_button.get_theme_stylebox("normal")
 	highlighted_style = base_button.get_theme_stylebox("hover")
 
 	# Get all buttons
-	var menu_container = $PanelContainer/MarginContainer/MenuContainer
+	var menu_container = $VBoxContainer/PanelContainer/MarginContainer/MenuContainer
 	buttons = menu_container.get_children()
 
 	# Configure each button
