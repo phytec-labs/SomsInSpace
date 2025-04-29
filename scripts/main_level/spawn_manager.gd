@@ -1,20 +1,21 @@
-# spawn_manager.gd
+# spawn_manager_updated.gd
 extends Node2D
 
 signal object_spawned(game_object)
 
 # Node references
 @onready var formation_manager = $FormationManager
-@onready var spawn_timer = $SpawnTimer
+@onready var wave_manager = $WaveManager
+@onready var collectible_timer = $CollectibleTimer
 
 # Export variables
-@export var base_spawn_time: float = 3.0
-@export var min_spawn_time: float = 0.5
-@export var spawn_time_decrease_rate: float = 0.05
-@export var collectible_chance: float = 0.3  # Chance to spawn a collectible
+@export var base_collectible_time: float = 5.0
+@export var min_collectible_time: float = 2.0
+@export var collectible_time_decrease_rate: float = 0.01
+@export_range(0.0, 1.0) var initial_collectible_chance: float = 0.7  # Higher chance for collectibles
 
 @export var energy_collectible_scene: PackedScene
-# Keep this for backward compatibility
+# Keep obstacle scenes for backward compatibility and direct spawning
 @export var obstacle_scenes: Array[PackedScene] = []
 
 @export_group("Obstacle Scenes by Zone")
@@ -27,42 +28,39 @@ signal object_spawned(game_object)
 @export_group("Enemy Settings")
 @export var enemy_speed_multi_min: float = 0.8
 @export var enemy_speed_multi_max: float = 1.2
-@export_range(0.0, 1.0) var formation_chance: float = 0.3
 
 # Game state variables
-var current_spawn_time: float
+var current_collectible_time: float
+var current_collectible_chance: float
 var current_zone: String = "ground"
 var is_spawning: bool = false
 var rng = RandomNumberGenerator.new()
 
 # Object pools
 var obstacle_pool = {}
+var collectible_pool = []
 
 func _ready() -> void:
-	# print("SpawnManager initializing...")
 	rng.randomize()
 
-	# Set initial spawn time
-	current_spawn_time = base_spawn_time
-	spawn_timer.wait_time = current_spawn_time
+	# Set initial collectible time
+	current_collectible_time = base_collectible_time
+	current_collectible_chance = initial_collectible_chance
+	collectible_timer.wait_time = current_collectible_time
 
 	# Connect signals
-	spawn_timer.timeout.connect(_on_spawn_timer_timeout)
+	collectible_timer.timeout.connect(_on_collectible_timer_timeout)
 
 	# Ensure formation manager is ready
-	if formation_manager:
-		formation_manager.formation_created.connect(_on_formation_created)
-	else:
-		push_error("FormationManager not found!")
+	if not formation_manager:
+		push_error("SpawnManager: FormationManager not found!")
+
+	# Ensure wave manager is ready
+	if not wave_manager:
+		push_error("SpawnManager: WaveManager not found!")
 
 	# Initialize object pools
 	initialize_obstacle_pools()
-
-	# # Verify energy collectible scene is set
-	# if energy_collectible_scene:
-	# 	print("Energy collectible scene loaded: ", energy_collectible_scene.resource_path)
-	# else:
-	# 	push_error("Energy collectible scene not set!")
 
 func initialize_obstacle_pools() -> void:
 	# Create pools for each obstacle type to improve performance
@@ -78,36 +76,57 @@ func initialize_obstacle_pools() -> void:
 # Start spawning objects
 func start_spawning() -> void:
 	is_spawning = true
-	spawn_timer.start()
-	# print("SpawnManager started spawning")
+	
+	# Start collectible timer
+	collectible_timer.start()
+	
+	# Start wave manager
+	if wave_manager:
+		wave_manager.start_spawning()
+	
+	print("SpawnManager started spawning with collectibles and wave-based enemies")
 
 # Stop spawning objects
 func stop_spawning() -> void:
 	is_spawning = false
-	spawn_timer.stop()
-	# print("SpawnManager stopped spawning")
+	collectible_timer.stop()
+	
+	if wave_manager:
+		wave_manager.stop_spawning()
+	
+	print("SpawnManager stopped spawning")
 
 # Set the current zone to adjust spawn behavior
 func set_spawn_zone(zone: String) -> void:
 	current_zone = zone
-	# print("SpawnManager zone set to: ", zone)
+	print("SpawnManager zone set to: ", zone)
 
+	# Update formation manager
 	if formation_manager:
 		formation_manager.set_zone(zone)
+	
+	# Update wave manager
+	if wave_manager:
+		wave_manager.set_zone(zone)
 
-	# Adjust spawn time based on zone
+	# Adjust collectible spawn time based on zone
 	match zone:
 		"ground":
-			current_spawn_time = base_spawn_time
+			current_collectible_time = base_collectible_time
+			current_collectible_chance = initial_collectible_chance
 		"atmosphere":
-			current_spawn_time = base_spawn_time * 0.8
+			current_collectible_time = base_collectible_time * 0.8
+			current_collectible_chance = initial_collectible_chance * 0.9
 		"upper_atmosphere":
-			current_spawn_time = base_spawn_time * 0.6
+			current_collectible_time = base_collectible_time * 0.7
+			current_collectible_chance = initial_collectible_chance * 0.8
 		"space":
-			current_spawn_time = base_spawn_time * 0.4
+			current_collectible_time = base_collectible_time * 0.6
+			current_collectible_chance = initial_collectible_chance * 0.7
 
-	current_spawn_time = max(current_spawn_time, min_spawn_time)
-	spawn_timer.wait_time = current_spawn_time
+	# Ensure we don't go below minimum time
+	current_collectible_time = max(current_collectible_time, min_collectible_time)
+	collectible_timer.wait_time = current_collectible_time
 
 # Get appropriate obstacle scenes for current zone
 func get_obstacle_scenes_for_zone() -> Array[PackedScene]:
@@ -123,44 +142,20 @@ func get_obstacle_scenes_for_zone() -> Array[PackedScene]:
 		_:
 			return obstacle_scenes if not obstacle_scenes.is_empty() else []
 
-# Spawn timer callback
-func _on_spawn_timer_timeout() -> void:
+# Collectible timer callback - handles ONLY collectibles now
+func _on_collectible_timer_timeout() -> void:
 	if not is_spawning:
-		# print("SpawnManager not spawning on timer timeout")
 		return
 
-	# Determine if we're spawning a formation or single object
-	var is_formation = randf() < formation_chance
-
-	if is_formation:
-		spawn_formation()
-	else:
-		spawn_single_object()
-
-	# Decrease spawn time gradually, but not below minimum
-	current_spawn_time = max(current_spawn_time - spawn_time_decrease_rate, min_spawn_time)
-	spawn_timer.wait_time = current_spawn_time
-	spawn_timer.start()
-
-# Get a random spawn position based on viewport size
-func get_random_spawn_position() -> Vector2:
-	var viewport_rect = get_viewport_rect()
-
-	if formation_manager:
-		return formation_manager.generate_spawn_position(viewport_rect.size)
-
-	# Default implementation if formation manager isn't available
-	var x_pos = rng.randf_range(50, viewport_rect.size.x - 50)
-	var y_pos = -50 # Just above the screen
-
-	# In upper zones, enemies can come from sides too
-	if current_zone == "upper_atmosphere" or current_zone == "space":
-		var come_from_side = rng.randi() % 3 == 0 # 33% chance
-		if come_from_side:
-			x_pos = rng.randi() % 2 * (viewport_rect.size.x + 200) - 100 # Either -100 or viewport+100
-			y_pos = rng.randf_range(100, viewport_rect.size.y / 2)
-
-	return Vector2(x_pos, y_pos)
+	# Determine if we spawn a collectible based on chance
+	var random_value = randf()
+	if random_value < current_collectible_chance:
+		spawn_collectible()
+	
+	# Gradually decrease collectible spawn time, but not below minimum
+	current_collectible_time = max(current_collectible_time - collectible_time_decrease_rate, min_collectible_time)
+	collectible_timer.wait_time = current_collectible_time
+	collectible_timer.start()
 
 # Get a random spawn position specifically for collectibles
 func get_collectible_spawn_position() -> Vector2:
@@ -168,33 +163,25 @@ func get_collectible_spawn_position() -> Vector2:
 
 	# Ensure collectibles spawn within horizontal screen bounds
 	var margin = 50.0
-	var x_pos = rng.randf_range(margin, viewport_rect.size.x - margin)
+	var x_pos = randf_range(margin, viewport_rect.size.x - margin)
 
 	# Spawn just above the visible screen, but close enough to quickly enter view
 	var y_pos = -30  # Reduced from -50 to -30 to enter screen faster
 
 	return Vector2(x_pos, y_pos)
 
-# Spawn a single object (obstacle or collectible)
-func spawn_single_object() -> void:
-	var random_value = randf()
-	var is_collectible = random_value < collectible_chance # Default 30% chance to spawn collectible
-
-	# print("Random value for collectible spawn: ", random_value, " (threshold: ", collectible_chance, ")")
-
-	if is_collectible and energy_collectible_scene:
-		spawn_collectible()
-	else:
-		spawn_obstacle()
-
 # Spawn a collectible
 func spawn_collectible() -> Node2D:
 	if not energy_collectible_scene:
-		# print("ERROR: energy_collectible_scene is null")
 		return null
 
-	var collectible = energy_collectible_scene.instantiate()
-	add_child(collectible)
+	# Get collectible from pool or create new
+	var collectible = null
+	if not collectible_pool.is_empty():
+		collectible = collectible_pool.pop_back()
+	else:
+		collectible = energy_collectible_scene.instantiate()
+		add_child(collectible)
 
 	# Use the collectible-specific spawn position
 	var spawn_position = get_collectible_spawn_position()
@@ -203,15 +190,15 @@ func spawn_collectible() -> Node2D:
 	emit_signal("object_spawned", collectible)
 	return collectible
 
-# Spawn an obstacle from the appropriate zone
-func spawn_obstacle(custom_position = null) -> Node2D:
+# This function is called by the wave manager to spawn obstacles in formations
+func spawn_obstacle(spawn_position: Vector2) -> Node2D:
 	var obstacle_scenes = get_obstacle_scenes_for_zone()
 	if obstacle_scenes.is_empty():
 		push_warning("No obstacle scenes available for the current zone!")
 		return null
 
 	# Select a random obstacle type for this zone
-	var selected_scene = obstacle_scenes[rng.randi() % obstacle_scenes.size()]
+	var selected_scene = obstacle_scenes[randi() % obstacle_scenes.size()]
 	if not selected_scene:
 		return null
 
@@ -221,12 +208,9 @@ func spawn_obstacle(custom_position = null) -> Node2D:
 		obstacle = selected_scene.instantiate()
 		add_child(obstacle)
 
-	# Initialize with random properties
-	var spawn_position = custom_position if custom_position else get_random_spawn_position()
-
 	# Set random speed multiplier if the obstacle supports it
 	if obstacle.has_method("set_speed_multiplier"):
-		var speed_multi = rng.randf_range(enemy_speed_multi_min, enemy_speed_multi_max)
+		var speed_multi = randf_range(enemy_speed_multi_min, enemy_speed_multi_max)
 		obstacle.set_speed_multiplier(speed_multi)
 
 	# Set random movement pattern if the obstacle supports it
@@ -244,7 +228,7 @@ func spawn_obstacle(custom_position = null) -> Node2D:
 		for w in weights:
 			total_weight += w
 
-		var rand_val = rng.randf() * total_weight
+		var rand_val = randf() * total_weight
 		var cumulative_weight = 0.0
 		var selected_pattern = patterns[0]
 
@@ -266,63 +250,6 @@ func spawn_obstacle(custom_position = null) -> Node2D:
 	emit_signal("object_spawned", obstacle)
 	return obstacle
 
-# Spawn a formation of obstacles
-func spawn_formation() -> void:
-	if not formation_manager:
-		spawn_single_object()
-		return
-
-	var base_position = get_random_spawn_position()
-
-	# Create a formation using the formation manager
-	formation_manager.create_random_formation(base_position, func(pos): return spawn_obstacle(pos))
-
-# Formation created callback
-func _on_formation_created(formation_objects: Array) -> void:
-	if formation_objects.is_empty():
-		return
-
-	# Determine common settings for the formation
-	var base_speed = 0.0
-	var pattern = ""
-	var pattern_weights = {"linear": 0.6, "sine": 0.3, "zigzag": 0.1}
-
-	# Adjust pattern weights based on zone
-	if current_zone == "upper_atmosphere":
-		pattern_weights = {"linear": 0.4, "sine": 0.4, "zigzag": 0.2}
-	elif current_zone == "space":
-		pattern_weights = {"linear": 0.3, "sine": 0.4, "zigzag": 0.3}
-
-	# Select a pattern for the whole formation
-	var total_weight = 0.0
-	for w in pattern_weights.values():
-		total_weight += w
-
-	var rand_val = rng.randf() * total_weight
-	var cumulative_weight = 0.0
-	var selected_pattern = "linear"  # Default
-
-	for p in pattern_weights.keys():
-		cumulative_weight += pattern_weights[p]
-		if rand_val <= cumulative_weight:
-			selected_pattern = p
-			break
-
-	# Determine formation speed
-	base_speed = rng.randf_range(enemy_speed_multi_min, enemy_speed_multi_max) * 100.0  # Base speed
-
-	# Apply common settings to all formation members
-	for obj in formation_objects:
-		if obj.has_method("set_formation_member"):
-			obj.set_formation_member(true)
-
-		if obj.has_method("set_speed_multiplier"):
-			obj.set_speed_multiplier(base_speed / 100.0)  # Normalized to base
-
-		# Override individual patterns with formation pattern
-		if obj.has_method("set_movement_pattern"):
-			obj.set_movement_pattern("linear")  # Individual objects move straight but maintain formation
-
 # Object exited screen callback
 func _on_object_exited(object: Node2D) -> void:
 	return_to_pool(object)
@@ -335,6 +262,13 @@ func get_from_pool(scene_path: String) -> Node2D:
 	return null
 
 func return_to_pool(object: Node2D) -> void:
+	# Handle collectibles
+	if object is EnergyCollectible:
+		object.deactivate()
+		collectible_pool.append(object)
+		return
+		
+	# Handle obstacles
 	var scene_path = object.scene_file_path
 	if scene_path and obstacle_pool.has(scene_path):
 		object.deactivate()

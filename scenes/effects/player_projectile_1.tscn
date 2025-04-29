@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://dfjvynj27ebhu"]
 
-[ext_resource type="Script" uid="uid://cqd0furs3msmi" path="res://scripts/effects/projectile.gd" id="1_lonon"]
-[ext_resource type="Texture2D" uid="uid://be7bc6wl1m485" path="res://sprites/Laser Sprites/08.png" id="2_l5yol"]
+[ext_resource type="Script" uid="uid://cqd0furs3msmi" path="res://scripts/effects/projectile.gd" id="1_uxaaf"]
+[ext_resource type="Texture2D" uid="uid://be7bc6wl1m485" path="res://sprites/Laser Sprites/08.png" id="2_w7hna"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_kcais"]
 radius = 2.0
@@ -10,7 +10,7 @@ height = 6.0
 [node name="Projectile" type="Area2D"]
 collision_layer = 8
 collision_mask = 2
-script = ExtResource("1_lonon")
+script = ExtResource("1_uxaaf")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CapsuleShape2D_kcais")
@@ -18,4 +18,4 @@ shape = SubResource("CapsuleShape2D_kcais")
 [node name="Sprite2D" type="Sprite2D" parent="."]
 rotation = 1.5708
 scale = Vector2(0.26, 0.25)
-texture = ExtResource("2_l5yol")
+texture = ExtResource("2_w7hna")

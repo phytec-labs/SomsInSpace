@@ -1,10 +1,9 @@
-[gd_scene load_steps=33 format=3 uid="uid://bkco6j5gra7aw"]
+[gd_scene load_steps=32 format=3 uid="uid://bkco6j5gra7aw"]
 
 [ext_resource type="Script" uid="uid://bhlqnycgu75if" path="res://scripts/main_level.gd" id="1_dythh"]
 [ext_resource type="PackedScene" uid="uid://u6mrrbgifign" path="res://scenes/collectibles/weapon_expansion.tscn" id="2_gr2jy"]
 [ext_resource type="PackedScene" uid="uid://fgrg1yvq87i7" path="res://scenes/player.tscn" id="2_k0f0i"]
 [ext_resource type="AudioStream" uid="uid://dliemunshq6be" path="res://audio/Sketch4_BB-CDG_v6.mp3" id="3_k31y7"]
-[ext_resource type="Script" uid="uid://b07a7iyi7gjfa" path="res://scripts/main_level/spawn_manager.gd" id="4_5rh77"]
 [ext_resource type="PackedScene" uid="uid://ci76j6nnodhti" path="res://scenes/ui/game_hud_ui.tscn" id="5_c88u2"]
 [ext_resource type="PackedScene" uid="uid://ch54sqe6coblr" path="res://scenes/ui/game_over_ui.tscn" id="5_fhkkc"]
 [ext_resource type="LabelSettings" uid="uid://0n6l0xlohf01" path="res://fonts/label_settings/upgrade_collected_label.tres" id="5_gr2jy"]
@@ -13,8 +12,8 @@
 [ext_resource type="PackedScene" uid="uid://c12tn2cqydmqf" path="res://scenes/misc/cloud_manager.tscn" id="7_je1qi"]
 [ext_resource type="PackedScene" uid="uid://5tcbqrpdutal" path="res://scenes/collectibles/energy_collectible_1.tscn" id="9_6i8ks"]
 [ext_resource type="PackedScene" uid="uid://dasb4akorj1ja" path="res://scenes/obstacles/balloon_obstacle_1.tscn" id="10_76tdh"]
+[ext_resource type="PackedScene" uid="uid://k67em33ijj21" path="res://scenes/misc/spawn_manager.tscn" id="11_2sb77"]
 [ext_resource type="PackedScene" uid="uid://cx8j6r8jv1uwr" path="res://scenes/obstacles/jet_obstacle_1.tscn" id="11_7shu0"]
-[ext_resource type="Script" uid="uid://c1bk3oqltg62q" path="res://scripts/main_level/formation_manager.gd" id="11_133uv"]
 [ext_resource type="PackedScene" uid="uid://ccofur7yq33i7" path="res://scenes/obstacles/meteor_obstacle_1.tscn" id="12_bugkk"]
 [ext_resource type="PackedScene" uid="uid://bg2b5qeqf850i" path="res://scenes/obstacles/plane_obstacle_1.tscn" id="13_xjqvk"]
 [ext_resource type="PackedScene" uid="uid://dan3irwnoxqa7" path="res://scenes/obstacles/satellite_obstacle_1.tscn" id="14_1flmh"]
@@ -84,17 +83,9 @@ upper_atmosphere_color = Color(0.118526, 0.152406, 0.147788, 1)
 min_cloud_speed = 50.0
 max_cloud_speed = 70.0
 
-[node name="SpawnManager" type="Node2D" parent="."]
-script = ExtResource("4_5rh77")
-collectible_chance = 0.5
+[node name="SpawnManager" parent="." instance=ExtResource("11_2sb77")]
 energy_collectible_scene = ExtResource("9_6i8ks")
-obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh")])
-ground_obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh"), ExtResource("13_xjqvk"), ExtResource("15_06to2"), ExtResource("18_p6chc")])
-atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh"), ExtResource("13_xjqvk"), ExtResource("16_jdvxr"), ExtResource("17_8rgmx"), ExtResource("19_d6rj5"), ExtResource("20_mqvgc")])
-upper_atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("11_7shu0"), ExtResource("20_mqvgc"), ExtResource("21_tth8c"), ExtResource("14_1flmh"), ExtResource("22_ixnvf"), ExtResource("26_k07cd")])
-space_obstacle_scenes = Array[PackedScene]([ExtResource("12_bugkk"), ExtResource("25_e0ale"), ExtResource("26_vob2f"), ExtResource("27_l1mbx"), ExtResource("23_g7w6n"), ExtResource("24_ng61r"), ExtResource("26_k07cd")])
-
-[node name="FormationManager" type="Node" parent="SpawnManager"]
-script = ExtResource("11_133uv")
-
-[node name="SpawnTimer" type="Timer" parent="SpawnManager"]
+ground_obstacle_scenes = Array[PackedScene]([ExtResource("10_76tdh"), ExtResource("15_06to2"), ExtResource("13_xjqvk")])
+atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("16_jdvxr"), ExtResource("17_8rgmx"), ExtResource("18_p6chc"), ExtResource("11_7shu0"), ExtResource("19_d6rj5"), ExtResource("13_xjqvk")])
+upper_atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("11_7shu0"), ExtResource("19_d6rj5"), ExtResource("20_mqvgc"), ExtResource("21_tth8c"), ExtResource("12_bugkk"), ExtResource("25_e0ale"), ExtResource("14_1flmh"), ExtResource("22_ixnvf")])
+space_obstacle_scenes = Array[PackedScene]([ExtResource("26_k07cd"), ExtResource("26_vob2f"), ExtResource("27_l1mbx"), ExtResource("14_1flmh"), ExtResource("22_ixnvf"), ExtResource("23_g7w6n"), ExtResource("24_ng61r")])

@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://k67em33ijj21"]
+
+[ext_resource type="Script" uid="uid://b07a7iyi7gjfa" path="res://scripts/main_level/spawn_manager.gd" id="1_yy1bg"]
+[ext_resource type="Script" uid="uid://c1bk3oqltg62q" path="res://scripts/main_level/formation_manager.gd" id="2_070jw"]
+[ext_resource type="PackedScene" uid="uid://djgcu4b65xvs4" path="res://scenes/misc/wave_manager.tscn" id="3_5dfax"]
+
+[node name="SpawnManager" type="Node2D"]
+script = ExtResource("1_yy1bg")
+
+[node name="FormationManager" type="Node" parent="."]
+script = ExtResource("2_070jw")
+
+[node name="CollectibleTimer" type="Timer" parent="."]
+wait_time = 5.0
+one_shot = true
+
+[node name="WaveManager" parent="." instance=ExtResource("3_5dfax")]
