@@ -1,21 +1,19 @@
-[gd_scene load_steps=4 format=3 uid="uid://bg2b5qeqf850i"]
+[gd_scene load_steps=3 format=3 uid="uid://bg2b5qeqf850i"]
 
 [ext_resource type="Script" uid="uid://bal1aj5u1uxst" path="res://scripts/obstacles/plane_obstacle.gd" id="1_1sqvm"]
 [ext_resource type="SpriteFrames" uid="uid://btnv1rdv33rdq" path="res://sprites/plane_3.tres" id="2_ilvf4"]
-[ext_resource type="PackedScene" uid="uid://cw3f33cxklwfi" path="res://scenes/effects/obstacle_explosion.tscn" id="2_k7bwb"]
 
 [node name="Plane" type="Area2D"]
 rotation = 3.14159
 scale = Vector2(1.2, 1.2)
 collision_layer = 2
 script = ExtResource("1_1sqvm")
-explosion_scene = ExtResource("2_k7bwb")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 rotation = 3.14159
-scale = Vector2(0.25, -0.272)
+scale = Vector2(0.15, -0.163)
 sprite_frames = ExtResource("2_ilvf4")
 frame_progress = 0.854039
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-polygon = PackedVector2Array(0, -30, 11, -23, 32, -23, 33, -6, 20, -3, 14, 21, 0, 30, -14, 21, -20, -3, -33, -6, -32, -23, -11, -23)
+polygon = PackedVector2Array(4.43657e-05, -17.5, 6.66669, -9.99998, 19.1667, -9.16662, 19.1667, -3.33328, 10, 2.53518e-05, 7.49997, 12.5, -4.64783e-05, 18.3333, -8.33336, 11.6666, -10, -2.53518e-05, -19.1667, -3.33338, -19.1666, -8.33338, -7.49998, -9.16669)

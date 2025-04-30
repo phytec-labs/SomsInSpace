@@ -1,5 +1,5 @@
 # formation_manager.gd
-extends Node
+extends Node2D
 
 signal formation_created(formation_objects)
 
@@ -51,31 +51,31 @@ var default_formation_speeds = {
 var zone_formation_settings = {
 	"ground": {
 		"allowed_formations": [FormationType.LINE, FormationType.V_SHAPE, FormationType.DIAGONAL],
-		"min_spread": 80.0,
-		"max_spread": 120.0,
-		"min_objects": 3,
-		"max_objects": 5
+		"min_spread": 50.0,
+		"max_spread": 80.0,
+		"min_objects": 2,
+		"max_objects": 4
 	},
 	"atmosphere": {
 		"allowed_formations": [FormationType.LINE, FormationType.V_SHAPE, FormationType.SQUARE, FormationType.WAVE],
-		"min_spread": 100.0,
-		"max_spread": 180.0,
-		"min_objects": 4,
-		"max_objects": 7
+		"min_spread": 80.0,
+		"max_spread": 150.0,
+		"min_objects": 3,
+		"max_objects": 5
 	},
 	"upper_atmosphere": {
 		"allowed_formations": [FormationType.V_SHAPE, FormationType.SQUARE, FormationType.CIRCLE, FormationType.WAVE],
-		"min_spread": 100.0,
-		"max_spread": 180.0,
-		"min_objects": 5,
-		"max_objects": 9
+		"min_spread": 80.0,
+		"max_spread": 125.0,
+		"min_objects": 4,
+		"max_objects": 7
 	},
 	"space": {
 		"allowed_formations": [FormationType.SQUARE, FormationType.CIRCLE, FormationType.DIAGONAL, FormationType.RANDOM],
 		"min_spread": 100.0,
-		"max_spread": 200.0,
-		"min_objects": 6,
-		"max_objects": 12
+		"max_spread": 150.0,
+		"min_objects": 7,
+		"max_objects": 10
 	}
 }
 

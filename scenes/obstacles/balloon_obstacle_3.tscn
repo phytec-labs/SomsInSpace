@@ -5,8 +5,8 @@
 [ext_resource type="PackedScene" uid="uid://8pgn5ymkynsq" path="res://scenes/effects/enemy_projectile_3.tscn" id="2_vtk4n"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dspdq"]
-radius = 29.0
-height = 68.0
+radius = 18.0
+height = 38.0
 
 [node name="Balloon" type="Area2D"]
 collision_layer = 2
@@ -16,8 +16,8 @@ projectile_scene = ExtResource("2_vtk4n")
 projectile_speed = 150.0
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(0, 13)
-scale = Vector2(0.15, 0.15)
+position = Vector2(0, 9)
+scale = Vector2(0.1, 0.1)
 texture = ExtResource("2_le1j1")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

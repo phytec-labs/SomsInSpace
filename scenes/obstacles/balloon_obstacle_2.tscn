@@ -4,8 +4,8 @@
 [ext_resource type="Texture2D" uid="uid://qjf6bei7njsj" path="res://sprites/balloon_2.png" id="2_xboth"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dspdq"]
-radius = 29.0
-height = 68.0
+radius = 17.0
+height = 38.0
 
 [node name="Balloon" type="Area2D"]
 collision_layer = 2
@@ -13,8 +13,8 @@ script = ExtResource("1_umbk1")
 projectile_speed = 150.0
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(0, 13)
-scale = Vector2(0.15, 0.15)
+position = Vector2(0, 9)
+scale = Vector2(0.1, 0.1)
 texture = ExtResource("2_xboth")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

@@ -4,8 +4,8 @@
 [ext_resource type="Texture2D" uid="uid://dkoiqhjtm2dxk" path="res://sprites/satelite_2.png" id="2_satellite_texture"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_satellite"]
-radius = 11.3137
-height = 53.7401
+radius = 7.07107
+height = 31.1127
 
 [node name="Satellite" type="Area2D"]
 collision_layer = 2
@@ -15,7 +15,7 @@ min_rotation_speed = 10.0
 max_rotation_speed = 40.0
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.25, 0.25)
+scale = Vector2(0.15, 0.15)
 texture = ExtResource("2_satellite_texture")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
