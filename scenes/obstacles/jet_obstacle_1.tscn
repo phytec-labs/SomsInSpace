@@ -21,11 +21,12 @@ script = ExtResource("1_jet")
 can_shoot = true
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.1, 0.1)
+scale = Vector2(0.08, 0.08)
 texture = ExtResource("2_jet_texture")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-polygon = PackedVector2Array(0, -30, 8, -4, 25, 5, 8, 6, 15, 14, 6, 15, 0, 28, -5, 15, -16, 14, -8, 6, -25, 6, -9, -4)
+position = Vector2(0, 8.66667)
+polygon = PackedVector2Array(0, -30.6667, 6, -12, 18, -4.66667, 6, -4, 11.3333, 2.66667, 4, 3.33333, 0, 14, -4.66667, 3.33333, -12, 2.66667, -6, -4, -18.6667, -4.66667, -6.66667, -12)
 
 [node name="ThrusterThruster" type="CPUParticles2D" parent="."]
 z_index = -1

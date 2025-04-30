@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cofp5vjifwmcm" path="res://scripts/main_level/player.gd" id="1_vp455"]
 [ext_resource type="Texture2D" uid="uid://douycueqct0mh" path="res://sprites/AM62A7_midjourney.png" id="2_ax0x5"]
-[ext_resource type="PackedScene" uid="uid://dfjvynj27ebhu" path="res://scenes/effects/projectile_1.tscn" id="2_fcb3v"]
+[ext_resource type="PackedScene" uid="uid://dfjvynj27ebhu" path="res://scenes/effects/player_projectile_1.tscn" id="2_fcb3v"]
 [ext_resource type="Texture2D" uid="uid://dhfyxwm2kciwn" path="res://sprites/player_ship_body1.png" id="3_f3p6y"]
 [ext_resource type="AudioStream" uid="uid://dlxidj4l5uuvv" path="res://audio/laser-1.mp3" id="3_tuyoq"]
 [ext_resource type="Texture2D" uid="uid://bbf8kqq1rn2vq" path="res://sprites/Explosion1.png" id="4_6ief2"]

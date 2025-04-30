@@ -19,14 +19,13 @@ scale = Vector2(1.5, 1.5)
 collision_layer = 2
 script = ExtResource("1_7awkg")
 can_shoot = true
-shoot_chance = 0.8
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.1, 0.1)
+scale = Vector2(0.08, 0.08)
 texture = ExtResource("2_f2fjh")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-polygon = PackedVector2Array(0, -25, 6, -15, 28, -8, 26, 3, 8, 2, 12, 16, 3, 15, 0, 28, -3, 15, -14, 16, -8, 3, -25, 2, -29, -9, -7, -15)
+polygon = PackedVector2Array(0, -20.6667, 6, -11.3333, 22, -7.33333, 20, 2, 4, 3.33333, 10.6667, 13.3333, 2.66667, 10.6667, 0, 21.3333, -3.33333, 10.6667, -11.3333, 12.6667, -5.33333, 3.33333, -20.6667, 2, -22.6667, -7.33333, -6.66667, -11.3333)
 
 [node name="GunPoint1" type="Marker2D" parent="."]
 position = Vector2(0, -14.6667)
