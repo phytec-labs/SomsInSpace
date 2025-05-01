@@ -1,12 +1,11 @@
-[gd_scene load_steps=10 format=3 uid="uid://fgrg1yvq87i7"]
+[gd_scene load_steps=9 format=3 uid="uid://fgrg1yvq87i7"]
 
 [ext_resource type="Script" uid="uid://cofp5vjifwmcm" path="res://scripts/main_level/player.gd" id="1_vp455"]
-[ext_resource type="Texture2D" uid="uid://douycueqct0mh" path="res://sprites/AM62A7_midjourney.png" id="2_ax0x5"]
 [ext_resource type="PackedScene" uid="uid://dfjvynj27ebhu" path="res://scenes/effects/player_projectile_1.tscn" id="2_fcb3v"]
-[ext_resource type="Texture2D" uid="uid://dhfyxwm2kciwn" path="res://sprites/player_ship_body1.png" id="3_f3p6y"]
 [ext_resource type="AudioStream" uid="uid://dlxidj4l5uuvv" path="res://audio/laser-1.mp3" id="3_tuyoq"]
 [ext_resource type="Texture2D" uid="uid://bbf8kqq1rn2vq" path="res://sprites/Explosion1.png" id="4_6ief2"]
 [ext_resource type="Texture2D" uid="uid://b77jlqemvprf3" path="res://sprites/weapon_laser.png" id="4_fjrip"]
+[ext_resource type="Texture2D" uid="uid://bikfkvgj1jug6" path="res://sprites/player_ship_body2.png" id="5_tuyoq"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_17f3c"]
 particles_animation = true
@@ -25,6 +24,16 @@ script = ExtResource("1_vp455")
 fire_sound = ExtResource("3_tuyoq")
 projectile_scene = ExtResource("2_fcb3v")
 
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(-55, 39, -55, 25, -19, -9, -7, -44, 0, -59, 7, -44, 19, -9, 56, 26, 55, 38, 30, 29, 34, 58, 18, 50, -17, 52, -35, 59, -29, 31)
+
+[node name="CollisionArea" type="Area2D" parent="."]
+z_index = 1
+collision_mask = 2
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="CollisionArea"]
+polygon = PackedVector2Array(-55, 39, -55, 25, -19, -9, -7, -44, 0, -59, 7, -44, 19, -9, 56, 26, 55, 38, 30, 29, 34, 58, 18, 50, -17, 52, -35, 59, -29, 31)
+
 [node name="Gunpoints" type="Node2D" parent="."]
 
 [node name="CenterGunpoint" type="Marker2D" parent="Gunpoints"]
@@ -36,39 +45,43 @@ scale = Vector2(0.05, 0.05)
 texture = ExtResource("4_fjrip")
 
 [node name="LeftGunpoint" type="Marker2D" parent="Gunpoints"]
-visible = false
-position = Vector2(-40, 25)
+position = Vector2(-31, 8)
 
 [node name="Sprite2D" type="Sprite2D" parent="Gunpoints/LeftGunpoint"]
-scale = Vector2(0.075, 0.075)
+scale = Vector2(0.06, 0.06)
 texture = ExtResource("4_fjrip")
 
 [node name="RightGunpoint" type="Marker2D" parent="Gunpoints"]
-visible = false
-position = Vector2(40, 25)
+position = Vector2(30, 8)
 
 [node name="Sprite2D" type="Sprite2D" parent="Gunpoints/RightGunpoint"]
-scale = Vector2(0.075, 0.075)
+scale = Vector2(0.06, 0.06)
 texture = ExtResource("4_fjrip")
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-polygon = PackedVector2Array(-78, 30, -49, 18, -15, -12, -14, -36, -5, -53, 4, -53, 13, -36, 17, -10, 48, 18, 80, 31, 79, 53, 22, 42, 23, 69, -22, 70, -23, 42, -77, 52)
-
-[node name="SoM" type="Sprite2D" parent="."]
-z_index = 1
-position = Vector2(0, 20)
-scale = Vector2(0.035, 0.035)
-texture = ExtResource("2_ax0x5")
-
 [node name="Ship" type="Sprite2D" parent="."]
-scale = Vector2(0.09, 0.09)
-texture = ExtResource("3_f3p6y")
+scale = Vector2(0.125, 0.125)
+texture = ExtResource("5_tuyoq")
 
 [node name="MainThruster" type="CPUParticles2D" parent="."]
 z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
-position = Vector2(0, 32)
-amount = 32
+position = Vector2(-12, 48)
+texture = ExtResource("4_6ief2")
+lifetime = 0.5
+direction = Vector2(0, 1)
+spread = 10.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 100.0
+initial_velocity_max = 200.0
+scale_amount_min = 0.08
+scale_amount_max = 0.2
+anim_speed_min = 1.0
+anim_speed_max = 1.0
+
+[node name="MainThruster2" type="CPUParticles2D" parent="MainThruster"]
+z_index = -1
+material = SubResource("CanvasItemMaterial_17f3c")
+position = Vector2(24, 0)
 texture = ExtResource("4_6ief2")
 lifetime = 0.5
 direction = Vector2(0, 1)
@@ -86,7 +99,6 @@ z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
 position = Vector2(26, 22)
 rotation = -1.0472
-amount = 32
 texture = ExtResource("4_6ief2")
 direction = Vector2(0, 1)
 spread = 10.0
@@ -104,7 +116,6 @@ z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
 position = Vector2(-26, 22)
 rotation = 1.0472
-amount = 32
 texture = ExtResource("4_6ief2")
 direction = Vector2(0, 1)
 spread = 10.0
@@ -122,7 +133,6 @@ z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
 position = Vector2(0, -36)
 rotation = -3.14159
-amount = 32
 texture = ExtResource("4_6ief2")
 direction = Vector2(0, 1)
 spread = 10.0
@@ -139,7 +149,6 @@ anim_speed_max = 2.0
 z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
 position = Vector2(0, 32)
-amount = 10
 texture = ExtResource("4_6ief2")
 direction = Vector2(0, 1)
 spread = 10.0
@@ -151,12 +160,5 @@ scale_amount_max = 0.25
 color_ramp = SubResource("Gradient_rkppw")
 anim_speed_min = 1.0
 anim_speed_max = 2.0
-
-[node name="CollisionArea" type="Area2D" parent="."]
-z_index = 1
-collision_mask = 2
-
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="CollisionArea"]
-polygon = PackedVector2Array(-78, 30, -49, 18, -15, -12, -14, -36, -5, -53, 4, -53, 13, -36, 17, -10, 48, 18, 80, 31, 79, 53, 22, 42, 23, 69, -22, 70, -23, 42, -77, 52)
 
 [node name="ProjectileAudioPlayer" type="AudioStreamPlayer2D" parent="."]

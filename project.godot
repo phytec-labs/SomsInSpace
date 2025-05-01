@@ -17,6 +17,10 @@ boot_splash/bg_color=Color(0.104245, 0.181417, 0.293333, 1)
 boot_splash/image="res://splash.png"
 config/icon="res://icon.svg"
 
+[autoload]
+
+ScoreboardManager="*res://scripts/scoreboard_manager.gd"
+
 [display]
 
 window/size/viewport_width=720

@@ -1,19 +1,34 @@
-[gd_scene load_steps=5 format=3 uid="uid://ccofur7yq33i7"]
+[gd_scene load_steps=6 format=3 uid="uid://ccofur7yq33i7"]
 
 [ext_resource type="Script" uid="uid://c7nx1703vpabs" path="res://scripts/obstacles/meteor_obstacle.gd" id="1_meteor"]
 [ext_resource type="Texture2D" uid="uid://bd5hnsp1dulpm" path="res://sprites/meteor_1.png" id="2_meteor_texture"]
-
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_41adi"]
-radius = 5.83013
-height = 22.5885
+[ext_resource type="Texture2D" uid="uid://5b6pi4ysk3ut" path="res://sprites/particle_masks/round_soft_mask.png" id="3_jveb0"]
 
 [sub_resource type="Gradient" id="Gradient_meteor_flame"]
 offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
 colors = PackedColorArray(1, 0.7, 0.2, 0.9, 1, 0.4, 0.1, 0.7, 0.7, 0.1, 0.05, 0.4, 0, 0, 0, 0)
 
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_41adi"]
+radius = 5.83013
+height = 22.5885
+
 [node name="Meteor" type="Area2D"]
 collision_layer = 2
 script = ExtResource("1_meteor")
+
+[node name="FlameParticles" type="CPUParticles2D" parent="."]
+texture = ExtResource("3_jveb0")
+lifetime = 0.8
+emission_shape = 1
+emission_sphere_radius = 8.0
+direction = Vector2(0, -1)
+spread = 15.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 30.0
+initial_velocity_max = 50.0
+scale_amount_min = 0.02
+scale_amount_max = 0.04
+color_ramp = SubResource("Gradient_meteor_flame")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(0.1, 0.1)
@@ -22,18 +37,3 @@ texture = ExtResource("2_meteor_texture")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 rotation = 1.0472
 shape = SubResource("CapsuleShape2D_41adi")
-
-[node name="FlameParticles" type="CPUParticles2D" parent="."]
-emitting = false
-amount = 25
-lifetime = 0.8
-emission_shape = 1
-emission_sphere_radius = 12.0
-direction = Vector2(0, 1)
-spread = 15.0
-gravity = Vector2(0, 0)
-initial_velocity_min = 30.0
-initial_velocity_max = 50.0
-scale_amount_min = 3.0
-scale_amount_max = 8.0
-color_ramp = SubResource("Gradient_meteor_flame")

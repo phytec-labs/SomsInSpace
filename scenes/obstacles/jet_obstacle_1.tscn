@@ -32,7 +32,6 @@ polygon = PackedVector2Array(0, -30.6667, 6, -12, 18, -4.66667, 6, -4, 11.3333, 
 z_index = -1
 material = SubResource("CanvasItemMaterial_0toxj")
 position = Vector2(0, 16)
-amount = 20
 texture = ExtResource("3_en3w4")
 lifetime = 0.5
 local_coords = true

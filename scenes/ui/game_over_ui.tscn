@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://ch54sqe6coblr"]
+[gd_scene load_steps=9 format=3 uid="uid://ch54sqe6coblr"]
 
 [ext_resource type="Script" uid="uid://cy2igkhcscfxh" path="res://scripts/main_level/game_over_ui.gd" id="1_vitpl"]
 [ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="2_u4odh"]
@@ -17,6 +17,9 @@ anti_aliasing = false
 [sub_resource type="Theme" id="Theme_u4odh"]
 default_font = ExtResource("2_u4odh")
 
+[sub_resource type="Theme" id="Theme_sxdiq"]
+default_font_size = 30
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_highlighted"]
 bg_color = Color(0, 0, 0, 1)
 border_width_left = 2
@@ -33,6 +36,9 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.17, 0.24, 0.25, 1)
 anti_aliasing = false
+
+[sub_resource type="Theme" id="Theme_pgjlk"]
+default_font_size = 75
 
 [node name="GameOverScreen" type="Control"]
 layout_mode = 3
@@ -61,7 +67,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(500, 400)
+custom_minimum_size = Vector2(640, 720)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
@@ -97,6 +103,53 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 50
 text = "0 m"
 horizontal_alignment = 1
+
+[node name="NameInput" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme = SubResource("Theme_sxdiq")
+theme_override_constants/separation = 10
+
+[node name="Label" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NameInput"]
+layout_mode = 2
+text = "Your Name:"
+
+[node name="LineEdit" type="LineEdit" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NameInput"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+placeholder_text = "Enter"
+max_length = 5
+select_all_on_focus = true
+caret_blink = true
+
+[node name="SubmitButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NameInput"]
+custom_minimum_size = Vector2(100, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+text = "Submit"
+
+[node name="ScoreboardContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Label" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreboardContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Leaderboard"
+horizontal_alignment = 1
+
+[node name="ScoreboardList" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreboardContainer"]
+custom_minimum_size = Vector2(0, 25)
+layout_mode = 2
+theme = SubResource("Theme_pgjlk")
+theme_override_constants/separation = 8
+
+[node name="UISpacerControl" type="Control" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 25)
+layout_mode = 2
 
 [node name="ButtonContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2

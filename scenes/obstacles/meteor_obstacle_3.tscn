@@ -1,13 +1,14 @@
-[gd_scene load_steps=5 format=3 uid="uid://csk7ybavygcdg"]
+[gd_scene load_steps=6 format=3 uid="uid://csk7ybavygcdg"]
 
 [ext_resource type="Script" uid="uid://c7nx1703vpabs" path="res://scripts/obstacles/meteor_obstacle.gd" id="1_i72hn"]
 [ext_resource type="Texture2D" uid="uid://dsu1v3you1irq" path="res://sprites/meteor_3.png" id="2_lesvm"]
+[ext_resource type="Texture2D" uid="uid://5b6pi4ysk3ut" path="res://sprites/particle_masks/round_soft_mask.png" id="3_j3wky"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_41adi"]
 radius = 6.20913
 height = 32.7909
 
-[sub_resource type="Gradient" id="Gradient_meteor_flame"]
+[sub_resource type="Gradient" id="Gradient_68h2c"]
 offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
 colors = PackedColorArray(1, 0.7, 0.2, 0.9, 1, 0.4, 0.1, 0.7, 0.7, 0.1, 0.05, 0.4, 0, 0, 0, 0)
 
@@ -25,16 +26,15 @@ rotation = 2.25307
 shape = SubResource("CapsuleShape2D_41adi")
 
 [node name="FlameParticles" type="CPUParticles2D" parent="."]
-emitting = false
-amount = 25
+texture = ExtResource("3_j3wky")
 lifetime = 0.8
 emission_shape = 1
-emission_sphere_radius = 12.0
-direction = Vector2(0, 1)
+emission_sphere_radius = 8.0
+direction = Vector2(0, -1)
 spread = 15.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 30.0
 initial_velocity_max = 50.0
-scale_amount_min = 3.0
-scale_amount_max = 8.0
-color_ramp = SubResource("Gradient_meteor_flame")
+scale_amount_min = 0.02
+scale_amount_max = 0.04
+color_ramp = SubResource("Gradient_68h2c")

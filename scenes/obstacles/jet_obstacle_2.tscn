@@ -34,7 +34,6 @@ position = Vector2(0, -14.6667)
 z_index = -1
 material = SubResource("CanvasItemMaterial_hx4tn")
 position = Vector2(0, 14)
-amount = 20
 texture = ExtResource("3_8xqmd")
 lifetime = 0.5
 local_coords = true

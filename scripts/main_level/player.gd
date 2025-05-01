@@ -11,7 +11,6 @@ extends CharacterBody2D
 
 # Node references
 @onready var ship_sprite: Sprite2D = $Ship
-@onready var som_sprite: Sprite2D = $SoM
 @onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
 @onready var area: Area2D = $CollisionArea
 @onready var main_thruster: CPUParticles2D = $MainThruster
@@ -116,15 +115,11 @@ func update_sprite_visibility(visible: bool) -> void:
 	if is_dead:
 		if ship_sprite:
 			ship_sprite.visible = false
-		if som_sprite:
-			som_sprite.visible = false
 		return
 
 	# Normal visibility toggling for blinking when not dead
 	if ship_sprite:
 		ship_sprite.visible = visible
-	if som_sprite:
-		som_sprite.visible = visible
 
 # Simplified input handling
 func _input(event: InputEvent) -> void:
@@ -325,8 +320,6 @@ func die() -> void:
 	# Hide all parts of the ship
 	if ship_sprite:
 		ship_sprite.visible = false
-	if som_sprite:
-		som_sprite.visible = false
 
 	# Disable all thrusters
 	main_thruster.emitting = false

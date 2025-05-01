@@ -1,18 +1,33 @@
-[gd_scene load_steps=5 format=3 uid="uid://s4nml6qlsigi"]
+[gd_scene load_steps=6 format=3 uid="uid://s4nml6qlsigi"]
 
 [ext_resource type="Script" uid="uid://c7nx1703vpabs" path="res://scripts/obstacles/meteor_obstacle.gd" id="1_0iym5"]
 [ext_resource type="Texture2D" uid="uid://y72wt4vlavu1" path="res://sprites/meteor_2.png" id="2_dbk87"]
+[ext_resource type="Texture2D" uid="uid://5b6pi4ysk3ut" path="res://sprites/particle_masks/round_soft_mask.png" id="2_qpsr4"]
+
+[sub_resource type="Gradient" id="Gradient_fx87m"]
+offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
+colors = PackedColorArray(1, 0.7, 0.2, 0.9, 1, 0.4, 0.1, 0.7, 0.7, 0.1, 0.05, 0.4, 0, 0, 0, 0)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_5tt17"]
 radius = 6.32456
 
-[sub_resource type="Gradient" id="Gradient_meteor_flame"]
-offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
-colors = PackedColorArray(1, 0.7, 0.2, 0.9, 1, 0.4, 0.1, 0.7, 0.7, 0.1, 0.05, 0.4, 0, 0, 0, 0)
-
 [node name="Meteor" type="Area2D"]
 collision_layer = 2
 script = ExtResource("1_0iym5")
+
+[node name="FlameParticles" type="CPUParticles2D" parent="."]
+texture = ExtResource("2_qpsr4")
+lifetime = 0.8
+emission_shape = 1
+emission_sphere_radius = 5.0
+direction = Vector2(0, -1)
+spread = 15.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 30.0
+initial_velocity_max = 50.0
+scale_amount_min = 0.02
+scale_amount_max = 0.04
+color_ramp = SubResource("Gradient_fx87m")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(0.1, 0.1)
@@ -21,18 +36,3 @@ texture = ExtResource("2_dbk87")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 rotation = 1.0472
 shape = SubResource("CircleShape2D_5tt17")
-
-[node name="FlameParticles" type="CPUParticles2D" parent="."]
-emitting = false
-amount = 25
-lifetime = 0.8
-emission_shape = 1
-emission_sphere_radius = 12.0
-direction = Vector2(0, 1)
-spread = 15.0
-gravity = Vector2(0, 0)
-initial_velocity_min = 30.0
-initial_velocity_max = 50.0
-scale_amount_min = 3.0
-scale_amount_max = 8.0
-color_ramp = SubResource("Gradient_meteor_flame")
