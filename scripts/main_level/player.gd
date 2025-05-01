@@ -32,6 +32,7 @@ var previous_velocity: Vector2 = Vector2.ZERO
 var can_fire: bool = true
 var cooldown_time_remaining: float = 0.0
 var is_dead: bool = false
+var is_firing: bool = false  # New variable to track if fire button is held down
 
 # Damage blink variables
 var is_blinking: bool = false
@@ -80,6 +81,10 @@ func _process(delta: float) -> void:
 		if cooldown_time_remaining <= 0:
 			can_fire = true
 			cooldown_time_remaining = 0.0
+			
+	# Check if we should fire while button is held down
+	if is_firing and can_fire and can_move and not is_dead:
+		fire_projectile()
 
 func process_blink(delta: float) -> void:
 	blink_timer += delta
@@ -126,9 +131,13 @@ func _input(event: InputEvent) -> void:
 	if not can_move:
 		return
 
-	# Handle firing inputs
-	if _is_fire_input(event):
-		fire_projectile()
+	# Handle firing inputs - track both press and release events
+	if _is_fire_press_input(event):
+		is_firing = true
+		fire_projectile()  # Fire immediately when button is first pressed
+		return
+	elif _is_fire_release_input(event):
+		is_firing = false
 		return
 
 	# Handle movement inputs with throttling
@@ -146,11 +155,17 @@ func _input(event: InputEvent) -> void:
 	elif _is_movement_end_input(event):
 		is_touch_active = false
 
-# Helper function for firing inputs
-func _is_fire_input(event: InputEvent) -> bool:
+# Helper function for firing inputs - PRESS
+func _is_fire_press_input(event: InputEvent) -> bool:
 	return (event is InputEventScreenTouch and event.pressed and event.index > 0) or \
 		   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT) or \
 		   (event is InputEventKey and event.pressed and event.keycode == KEY_SPACE)
+
+# Helper function for firing inputs - RELEASE
+func _is_fire_release_input(event: InputEvent) -> bool:
+	return (event is InputEventScreenTouch and not event.pressed and event.index > 0) or \
+		   (event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_RIGHT) or \
+		   (event is InputEventKey and not event.pressed and event.keycode == KEY_SPACE)
 
 # Helper function for movement start
 func _is_movement_start_input(event: InputEvent) -> bool:
@@ -305,6 +320,7 @@ func _on_fire_cooldown_timeout() -> void:
 func die() -> void:
 	# Set the dead flag to prevent blinking from showing the sprite
 	is_dead = true
+	is_firing = false  # Make sure we stop firing when dead
 
 	# Hide all parts of the ship
 	if ship_sprite:
