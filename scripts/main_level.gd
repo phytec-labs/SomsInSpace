@@ -185,9 +185,11 @@ func game_over() -> void:
 	await get_tree().create_timer(1.0).timeout
 
 	if game_over_screen:
-		game_over_screen.show()
+		# SET VALUES FIRST - before showing the screen
 		game_over_screen.set_final_height(height_score)
 		game_over_screen.set_final_score(points)
+		# THEN show the screen
+		game_over_screen.show()
 
 func create_player_explosion() -> void:
 	# Define the explosion scene - same as enemies use
