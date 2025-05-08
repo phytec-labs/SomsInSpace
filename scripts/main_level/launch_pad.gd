@@ -1,8 +1,6 @@
 # launch_pad.gd
 extends Node2D
 
-@onready var sprite: Sprite2D = $LaunchPad
-
 var fall_speed: float = 100.0
 var fall_acceleration: float = 200.0
 var rotation_speed: float = 0
@@ -31,7 +29,7 @@ func _process(delta: float) -> void:
 		rotation += rotation_speed * fall_direction * delta
 
 		# If we are moved off screen, fade out
-		if position.y > get_viewport_rect().size.y + 100:
+		if position.y > get_viewport_rect().size.y + 1000:
 			# Fade out
 			modulate.a = max(0, modulate.a - delta)
 

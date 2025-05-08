@@ -37,7 +37,7 @@ script = ExtResource("1_qefxu")
 weapon_upgrade_scene = ExtResource("2_dj36a")
 
 [node name="Player" parent="." instance=ExtResource("3_2cqd5")]
-position = Vector2(360, 1085)
+position = Vector2(360, 879)
 scale = Vector2(0.8, 0.8)
 speed = 500.0
 stopping_distance = 25.0
@@ -71,7 +71,7 @@ vertical_alignment = 1
 
 [node name="LaunchPad" parent="." instance=ExtResource("8_atjli")]
 z_index = -1
-position = Vector2(369, 887)
+position = Vector2(360, 844)
 scale = Vector2(0.621341, 0.621341)
 
 [node name="AtmosphereManager" parent="." instance=ExtResource("9_c88u2")]
