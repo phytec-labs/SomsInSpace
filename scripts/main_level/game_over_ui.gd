@@ -14,6 +14,7 @@ signal main_menu_pressed
 @onready var submit_button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NameInput/SubmitButton
 @onready var scoreboard_container = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreboardContainer
 @onready var scoreboard_list = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreboardContainer/ScoreboardList
+@onready var keyboard = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/OnscreenKeyboard
 
 var buttons: Array[Button]
 var current_selection: int = 0
@@ -67,6 +68,15 @@ func _ready():
 	# Connect visibility signal
 	visibility_changed.connect(_on_visibility_changed)
 	
+	# Configure the keyboard if it exists
+	if keyboard:
+		# Make sure auto_show is enabled to automatically detect the LineEdit
+		keyboard.auto_show = true
+		keyboard.animate = true
+		
+		# Initially hide the keyboard
+		keyboard.visible = false
+	
 	# Initially hide the scoreboard
 	set_ui_state(UIState.SCORE_INPUT)
 	
@@ -74,9 +84,24 @@ func _ready():
 	hide()
 
 func _input(event: InputEvent) -> void:
-	if not visible or buttons.is_empty():
+	if not visible:
 		return
 
+	# Handle touch input for the NameInput state
+	if current_state == UIState.SCORE_INPUT and event is InputEventScreenTouch and event.pressed:
+		# Check if the LineEdit was touched
+		if name_input.get_global_rect().has_point(event.position):
+			name_input.grab_focus()
+			get_viewport().set_input_as_handled()
+			return
+			
+		# Check if the SubmitButton was touched
+		if submit_button.get_global_rect().has_point(event.position):
+			_on_submit_button_pressed()
+			get_viewport().set_input_as_handled()
+			return
+	
+	# Normal button navigation in scoreboard state
 	if current_state == UIState.SCOREBOARD_VIEW:
 		if event.is_action_pressed("ui_down") or event.is_action_pressed("move_down"):
 			move_selection(1)
@@ -85,9 +110,9 @@ func _input(event: InputEvent) -> void:
 		elif event.is_action_pressed("ui_accept"):
 			select_current_item()
 	
-	# Add touch input handling
-	if event is InputEventScreenTouch and event.pressed:
-		_handle_touch(event.position)
+		# Add touch input handling
+		if event is InputEventScreenTouch and event.pressed:
+			_handle_touch(event.position)
 
 func _handle_touch(position: Vector2) -> void:
 	if current_state == UIState.SCOREBOARD_VIEW:
@@ -150,8 +175,7 @@ func _on_button_hover(index: int) -> void:
 		update_selection()
 
 func _on_button_mouse_exit() -> void:
-	# Optional: If you want the selection to stay when mouse exits,
-	# leave this empty. Remove this function if you don't need it.
+	# Keep the button highlighted when mouse exits
 	pass
 
 func _on_visibility_changed() -> void:
@@ -166,13 +190,18 @@ func _on_visibility_changed() -> void:
 		# If the score would make the leaderboard, show name input
 		if would_make_leaderboard:
 			set_ui_state(UIState.SCORE_INPUT)
-			# Focus on the name input field
+			# Focus on the name input field - this will also trigger the keyboard to show
+			# if auto_show is enabled
 			if name_input:
-				name_input.grab_focus()
+				call_deferred("_focus_name_input")
 		else:
 			# Score wouldn't make leaderboard, skip name input and show scoreboard
 			populate_scoreboard()
 			set_ui_state(UIState.SCOREBOARD_VIEW)
+
+# This is called deferred to ensure the UI is properly visible before setting focus
+func _focus_name_input():
+	name_input.grab_focus()
 
 func _on_submit_button_pressed() -> void:
 	submit_score()
@@ -181,11 +210,15 @@ func _on_name_submitted(_text: String) -> void:
 	submit_score()
 
 func submit_score() -> void:
+	# Make sure we have actual text
 	var player_name = name_input.text.strip_edges()
 	
 	# If name is empty, use "Player"
 	if player_name.is_empty():
 		player_name = "Player"
+	
+	# Release focus to hide keyboard
+	name_input.release_focus()
 	
 	# Add score to scoreboard
 	scoreboard_manager.add_score(player_name, current_final_height, current_final_score)
@@ -284,6 +317,10 @@ func set_ui_state(state: UIState) -> void:
 			scoreboard_container.visible = true
 			retry_button.visible = true
 			main_menu_button.visible = true
+			
+			# Make sure keyboard is hidden (by removing focus)
+			if name_input and name_input.has_focus():
+				name_input.release_focus()
 			
 			# Reset current selection to first button
 			current_selection = 0

@@ -1,0 +1,109 @@
+[gd_scene load_steps=4 format=3 uid="uid://c63aiw5uln52w"]
+
+[ext_resource type="Script" uid="uid://dcn80krl51aes" path="res://addons/onscreenkeyboard/onscreen_keyboard.gd" id="1_55ilm"]
+[ext_resource type="Script" uid="uid://ch8s7ue4w1588" path="res://scripts/keyboard_test.gd" id="1_bgqgv"]
+[ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="3_pr4c1"]
+
+[node name="KeyboardTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_bgqgv")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 6
+theme_override_font_sizes/font_size = 32
+text = "Keyboard Test Scene"
+horizontal_alignment = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 225)
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_right = 30
+
+[node name="OnscreenKeyboard" type="PanelContainer" parent="VBoxContainer/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("1_55ilm")
+animate = false
+font = ExtResource("3_pr4c1")
+metadata/_custom_type_script = "uid://dcn80krl51aes"
+
+[node name="BoxContainer" type="BoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="CenterContainer" type="CenterContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="VBoxContainer/CenterContainer"]
+custom_minimum_size = Vector2(400, 200)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/CenterContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/CenterContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="VBoxContainer/CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Enter Your Name:"
+horizontal_alignment = 1
+
+[node name="NameInput" type="HBoxContainer" parent="VBoxContainer/CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="LineEdit" type="LineEdit" parent="VBoxContainer/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NameInput"]
+custom_minimum_size = Vector2(250, 50)
+layout_mode = 2
+placeholder_text = "Tap to enter name"
+alignment = 1
+max_length = 12
+
+[node name="SubmitButton" type="Button" parent="VBoxContainer/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NameInput"]
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Submit"
+
+[node name="ResultLabel" type="Label" parent="VBoxContainer/CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "No submission yet"
+horizontal_alignment = 1
+
+[node name="InfoLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="DebugInfo" type="Label" parent="VBoxContainer"]
+layout_mode = 2
