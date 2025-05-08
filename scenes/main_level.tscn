@@ -83,6 +83,7 @@ upper_atmosphere_color = Color(0.117647, 0.152941, 0.14902, 1)
 [node name="CloudManager" parent="." instance=ExtResource("10_cvtml")]
 min_cloud_speed = 50.0
 max_cloud_speed = 70.0
+max_clouds = 6
 
 [node name="SpawnManager" parent="." instance=ExtResource("11_8o16g")]
 energy_collectible_scene = ExtResource("12_02t4n")

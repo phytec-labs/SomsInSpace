@@ -84,13 +84,7 @@ func _input(event: InputEvent) -> void:
 			name_input.grab_focus()
 			get_viewport().set_input_as_handled()
 			return
-			
-		# Check if the SubmitButton was touched
-		if submit_button.get_global_rect().has_point(event.position):
-			_on_submit_button_pressed()
-			get_viewport().set_input_as_handled()
-			return
-	
+
 	# Normal button navigation in scoreboard state
 	if current_state == UIState.SCOREBOARD_VIEW:
 		if event.is_action_pressed("ui_down") or event.is_action_pressed("move_down"):
@@ -99,7 +93,7 @@ func _input(event: InputEvent) -> void:
 			move_selection(-1)
 		elif event.is_action_pressed("ui_accept"):
 			select_current_item()
-	
+
 		# Add touch input handling
 		if event is InputEventScreenTouch and event.pressed:
 			_handle_touch(event.position)
