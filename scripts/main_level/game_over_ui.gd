@@ -14,7 +14,6 @@ signal main_menu_pressed
 @onready var submit_button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/NameInput/SubmitButton
 @onready var scoreboard_container = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreboardContainer
 @onready var scoreboard_list = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreboardContainer/ScoreboardList
-@onready var keyboard = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/OnscreenKeyboard
 
 var buttons: Array[Button]
 var current_selection: int = 0
@@ -67,15 +66,6 @@ func _ready():
 	
 	# Connect visibility signal
 	visibility_changed.connect(_on_visibility_changed)
-	
-	# Configure the keyboard if it exists
-	if keyboard:
-		# Make sure auto_show is enabled to automatically detect the LineEdit
-		keyboard.auto_show = true
-		keyboard.animate = true
-		
-		# Initially hide the keyboard
-		keyboard.visible = false
 	
 	# Initially hide the scoreboard
 	set_ui_state(UIState.SCORE_INPUT)

@@ -45,6 +45,7 @@ scale = Vector2(0.05, 0.05)
 texture = ExtResource("4_fjrip")
 
 [node name="LeftGunpoint" type="Marker2D" parent="Gunpoints"]
+visible = false
 position = Vector2(-31, 8)
 
 [node name="Sprite2D" type="Sprite2D" parent="Gunpoints/LeftGunpoint"]
@@ -52,6 +53,7 @@ scale = Vector2(0.06, 0.06)
 texture = ExtResource("4_fjrip")
 
 [node name="RightGunpoint" type="Marker2D" parent="Gunpoints"]
+visible = false
 position = Vector2(30, 8)
 
 [node name="Sprite2D" type="Sprite2D" parent="Gunpoints/RightGunpoint"]
@@ -78,10 +80,10 @@ scale_amount_max = 0.2
 anim_speed_min = 1.0
 anim_speed_max = 1.0
 
-[node name="MainThruster2" type="CPUParticles2D" parent="MainThruster"]
+[node name="MainThruster2" type="CPUParticles2D" parent="."]
 z_index = -1
 material = SubResource("CanvasItemMaterial_17f3c")
-position = Vector2(24, 0)
+position = Vector2(12, 48)
 texture = ExtResource("4_6ief2")
 lifetime = 0.5
 direction = Vector2(0, 1)

@@ -14,6 +14,7 @@ extends CharacterBody2D
 @onready var collision_polygon: CollisionPolygon2D = $CollisionPolygon2D
 @onready var area: Area2D = $CollisionArea
 @onready var main_thruster: CPUParticles2D = $MainThruster
+@onready var main_thruster2: CPUParticles2D = $MainThruster2
 @onready var left_thruster: CPUParticles2D = $LeftThruster
 @onready var right_thruster: CPUParticles2D = $RightThruster
 @onready var up_thruster: CPUParticles2D = $UpThruster
@@ -216,7 +217,8 @@ func _physics_process(delta: float) -> void:
 func update_thrusters(current_velocity: Vector2) -> void:
 	# Main thruster is always on when moving
 	main_thruster.emitting = can_move
-
+	main_thruster2.emitting = can_move
+	
 	# Update directional thrusters based on current velocity
 	var threshold = 10.0  # Minimum velocity to trigger thrusters
 
@@ -236,6 +238,7 @@ func enable_movement() -> void:
 	is_touch_active = false
 	target_position = position
 	main_thruster.emitting = true
+	main_thruster2.emitting = true
 
 func disable_movement() -> void:
 	can_move = false
@@ -244,6 +247,7 @@ func disable_movement() -> void:
 
 	# Stop all particle emitters
 	main_thruster.emitting = false
+	main_thruster2.emitting = false
 	left_thruster.emitting = false
 	right_thruster.emitting = false
 	up_thruster.emitting = false
@@ -323,6 +327,7 @@ func die() -> void:
 
 	# Disable all thrusters
 	main_thruster.emitting = false
+	main_thruster2.emitting = false
 	left_thruster.emitting = false
 	right_thruster.emitting = false
 	up_thruster.emitting = false

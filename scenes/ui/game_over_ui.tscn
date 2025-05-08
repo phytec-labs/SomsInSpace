@@ -132,14 +132,6 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 text = "Submit"
 
-[node name="OnscreenKeyboard" type="PanelContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
-visible = false
-z_index = 10
-layout_mode = 2
-script = ExtResource("3_sxdiq")
-animate = false
-metadata/_custom_type_script = "uid://dcn80krl51aes"
-
 [node name="ScoreboardContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 10
@@ -183,3 +175,19 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_highlighted")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 text = "Main Menu"
+
+[node name="OnscreenKeyboard" type="PanelContainer" parent="."]
+visible = false
+z_index = 10
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+offset_left = 62.0
+offset_top = 639.0
+offset_right = 658.0
+offset_bottom = 839.0
+script = ExtResource("3_sxdiq")
+animate = false
+font = ExtResource("2_u4odh")
+font_color_hover = Color(1, 0.905882, 0, 1)
+font_color_pressed = Color(1, 0.662745, 0, 1)
+metadata/_custom_type_script = "uid://dcn80krl51aes"
