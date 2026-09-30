@@ -4,6 +4,10 @@
 extends Area2D
 class_name Projectile
 
+# Impact sparks on non-lethal hits (kills show the obstacle's explosion)
+const HIT_SPARK_SCENE := preload("res://scenes/effects/hit_spark.tscn")
+const HitSparkScript := preload("res://scripts/effects/hit_spark.gd")
+
 @export var speed: float = 500.0
 @export var damage: float = 10.0
 @export var lifetime: float = 2.0
@@ -81,7 +85,21 @@ func _on_area_entered(area: Area2D) -> void:
 		# Deal damage to obstacle using the dedicated take_damage method
 		# (intentionally NOT using handle_player_collision here)
 		obstacle.take_damage(damage)
+		# Survived the hit: sparks where the shot landed (capped, see
+		# hit_spark.gd MAX_LIVE)
+		if obstacle.is_active and obstacle.health > 0.0:
+			_spawn_hit_spark()
 		_despawn()
+
+func _spawn_hit_spark() -> void:
+	if not HitSparkScript.can_spawn():
+		return
+	var parent = get_parent()
+	if parent == null:
+		return
+	var spark = ObjectPool.acquire(HIT_SPARK_SCENE, parent)
+	if spark:
+		spark.burst(global_position)
 
 func _despawn() -> void:
 	if not is_active:

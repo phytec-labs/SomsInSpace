@@ -103,6 +103,9 @@ func _process(delta: float) -> void:
 	if not is_active:
 		return
 
+	# (replaces Obstacle._process(), so run the hit flash / punch here)
+	_update_hit_feedback(delta)
+
 	match state:
 		State.ENTERING:
 			_process_entering(delta)

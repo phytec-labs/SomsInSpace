@@ -66,6 +66,11 @@ var _flash_tween: Tween
 var _death_tween: Tween
 
 func _ready() -> void:
+	# The boss flashes itself (_flash(), its hue-shift shader's `flash`
+	# uniform) and has its own HUD health bar: no base hit flash / punch /
+	# mini health bar
+	_handles_own_flash = true
+	show_health_bar = false
 	super._ready()
 	# The scene's shader material must not be shared between instances
 	if animated_sprite and animated_sprite.material:

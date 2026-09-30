@@ -66,6 +66,9 @@ func _process(delta: float) -> void:
 	if not is_active:
 		return
 
+	# (replaces Obstacle._process(), so run the hit flash / punch here)
+	_update_hit_feedback(delta)
+
 	pattern_time += delta
 	position.y += base_speed * speed_multiplier * delta
 	position.x = initial_x + sin(pattern_time * drift_frequency) * drift_amplitude

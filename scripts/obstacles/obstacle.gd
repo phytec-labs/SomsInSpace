@@ -5,6 +5,14 @@ class_name Obstacle
 # Emitted once when the obstacle is destroyed (shot down or rammed by the
 # player), so the spawner can return it to its pool.
 signal destroyed
+# Emitted on every non-lethal hit through take_damage() (after the hit
+# feedback started); `at` is the obstacle's global position
+signal damaged(amount: float, at: Vector2)
+
+const HIT_FLASH_SHADER := preload("res://shaders/hit_flash.gdshader")
+const HEALTH_BAR_SCENE := preload("res://scenes/effects/enemy_health_bar.tscn")
+# Hit sounds (all obstacles share one player): at most one per this interval
+const HIT_SOUND_MIN_INTERVAL_USEC: int = 50000
 
 # Base obstacle properties
 @export var damage: float = 10.0
@@ -77,6 +85,53 @@ var _base_rotation: float = 0.0
 # Optional rotation
 @export var rotation_speed: float = 0.0  # Degrees per second
 
+# --- Hit feedback (non-lethal hits; kills show the explosion instead) ---
+# White flash (res://shaders/hit_flash.gdshader on the sprite, assigned once
+# per instance in _ready()), a short scale punch, a mini health bar under
+# tanky enemies and a rate-limited tick sound. Impact sparks are spawned by
+# the projectile (projectile.gd). Timing is accumulated in
+# _update_hit_feedback(), which subclasses that replace _process() without
+# calling super must call themselves (UFO, blimp). Pause-safe, no tweens.
+@export_group("Hit Feedback")
+## Seconds the white hit flash takes to fade out
+@export var hit_flash_duration: float = 0.08
+## Seconds the scale punch takes to settle back
+@export var hit_punch_duration: float = 0.1
+## Scale multiplier at the start of the punch
+@export var hit_punch_scale: float = 1.12
+## Show the mini health bar (after the first hit) when this spawn's
+## max_health (base x zone multiplier) is at least this
+@export var health_bar_threshold: float = 35.0
+## Pixels between the bottom of the sprite and the health bar
+@export var health_bar_gap: float = 8.0
+## Enemies with their own health display (boss) turn this off
+@export var show_health_bar: bool = true
+# PLACEHOLDER_ART: (audio) hit tick = the collectible coin sound pitched up;
+# replace with a short hit tick (0.1-0.2 s, mp3/ogg), see
+# docs/ART_SWAP_TRACKER.md
+@export var hit_sound: AudioStream = preload("res://audio/retro-coin-1.mp3")
+@export var hit_sound_pitch: float = 2.4
+@export var hit_sound_volume_db: float = -16.0
+@export_group("")
+
+# Set by subclasses that flash themselves on hits (BossAlien): the base class
+# then neither assigns the flash material nor flashes / punches the sprite
+var _handles_own_flash: bool = false
+var _hit_material: ShaderMaterial = null
+var _flash_time: float = 0.0
+var _punch_time: float = 0.0
+# Scale the punch returns to; captured when a punch starts (after any
+# per-spawn size change: meteor size, asteroid size_level, blimp 2.5x)
+var _hit_base_scale: Vector2 = Vector2.ONE
+var _health_bar: Node2D = null
+
+# Shared by all obstacles: one hit sound player (under the current scene) and
+# the time of the last hit sound, for the rate limit
+static var _hit_sound_player: AudioStreamPlayer = null
+static var _last_hit_sound_usec: int = -1000000000
+# Observability (tests): hit sounds actually played
+static var hit_sounds_played: int = 0
+
 # Initial position tracking for patterns
 var initial_x: float = 0.0
 
@@ -105,6 +160,8 @@ func _ready() -> void:
 	if shoot_sound:
 		shoot_audio_player.stream = shoot_sound
 
+	_setup_hit_flash()
+
 	# Find all gun point nodes
 	for child in get_children():
 		if child is Node2D and "GunPoint" in child.name:
@@ -122,6 +179,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not is_active:
 		return
+
+	_update_hit_feedback(delta)
 
 	# If this obstacle is part of a formation and uses formation movement,
 	# don't process individual movement - the formation manager will position it
@@ -238,6 +297,8 @@ func set_use_formation_movement(value: bool) -> void:
 # set_use_formation_movement(true) AFTER this, so resetting formation state
 # here is safe.
 func initialize(spawn_position: Vector2) -> void:
+	# Before subclasses re-apply their per-spawn scale
+	_reset_hit_feedback()
 	super.initialize(spawn_position)
 	initial_x = spawn_position.x
 	pattern_time = 0.0
@@ -312,7 +373,9 @@ func take_damage(damage: float) -> void:
 
 	health -= damage
 
-	if health <= 0:
+	if health > 0:
+		_on_hit(damage)
+	else:
 		# Award the kill (x combo) before deactivating: the level marks this
 		# spawn_count so its `destroyed` hook doesn't count the kill again
 		_award_kill_points()
@@ -498,3 +561,157 @@ func _fire_from_direction(gun_point: Node2D, direction: Vector2) -> void:
 		# Add pitch variation for more natural sound
 		shoot_audio_player.pitch_scale = 1.0 + randf_range(-sound_pitch_variation, sound_pitch_variation)
 		shoot_audio_player.play()
+
+func deactivate() -> void:
+	_reset_hit_feedback()
+	super.deactivate()
+
+# --- Hit feedback ---
+
+# The sprite that flashes (Sprite2D, else AnimatedSprite2D)
+func _get_flash_target() -> CanvasItem:
+	if sprite:
+		return sprite
+	return animated_sprite
+
+# One-time (per instance, so pooled reuse keeps it): give the sprite its own
+# hit flash material, or reuse an existing ShaderMaterial with a `flash`
+# uniform. A sprite with another material keeps it and just doesn't flash.
+func _setup_hit_flash() -> void:
+	if _handles_own_flash:
+		return
+	var target := _get_flash_target()
+	if target == null:
+		return
+	if target.material == null:
+		_hit_material = ShaderMaterial.new()
+		_hit_material.shader = HIT_FLASH_SHADER
+		target.material = _hit_material
+		# Untextured placeholder art drawn by children (mine polygons) flashes
+		# with the sprite
+		for child in target.get_children():
+			if child is Polygon2D and child.material == null:
+				child.use_parent_material = true
+	elif target.material is ShaderMaterial and _shader_has_flash(target.material.shader):
+		_hit_material = target.material
+
+func _shader_has_flash(shader: Shader) -> bool:
+	if shader == null:
+		return false
+	for uniform in shader.get_shader_uniform_list():
+		if uniform.get("name") == "flash":
+			return true
+	return false
+
+# A hit that didn't kill: flash, punch, health bar, tick sound
+func _on_hit(amount: float) -> void:
+	if not _handles_own_flash:
+		if hit_flash_duration > 0.0 and _hit_material:
+			_flash_time = hit_flash_duration
+			_hit_material.set_shader_parameter("flash", 1.0)
+		if hit_punch_duration > 0.0:
+			# Capture the resting scale unless a punch is already running
+			if _punch_time <= 0.0:
+				_hit_base_scale = scale
+			_punch_time = hit_punch_duration
+			scale = _hit_base_scale * hit_punch_scale
+	_update_health_bar()
+	_play_hit_sound()
+	damaged.emit(amount, global_position)
+
+# Called every frame from _process() while active; cheap when idle
+func _update_hit_feedback(delta: float) -> void:
+	if _flash_time > 0.0:
+		_flash_time = maxf(_flash_time - delta, 0.0)
+		if _hit_material:
+			_hit_material.set_shader_parameter("flash", _flash_time / hit_flash_duration)
+	if _punch_time > 0.0:
+		_punch_time = maxf(_punch_time - delta, 0.0)
+		if _punch_time <= 0.0:
+			scale = _hit_base_scale
+		else:
+			scale = _hit_base_scale * lerpf(1.0, hit_punch_scale, _punch_time / hit_punch_duration)
+
+# Back to rest: no flash, resting scale, bar hidden (spawn and deactivate)
+func _reset_hit_feedback() -> void:
+	if _flash_time > 0.0 and _hit_material:
+		_hit_material.set_shader_parameter("flash", 0.0)
+	_flash_time = 0.0
+	if _punch_time > 0.0:
+		scale = _hit_base_scale
+	_punch_time = 0.0
+	if _health_bar:
+		_health_bar.hide_bar()
+
+# Mini bar for tanky spawns: shown from the first non-lethal hit on
+func _update_health_bar() -> void:
+	if not show_health_bar or max_health < health_bar_threshold or max_health <= 0.0:
+		return
+	if _health_bar == null:
+		_health_bar = HEALTH_BAR_SCENE.instantiate()
+		_health_bar.name = "HealthBar"
+		add_child(_health_bar)
+	if not _health_bar.visible:
+		_health_bar.show_for(self, _sprite_half_extent() + health_bar_gap)
+	_health_bar.set_fraction(health / max_health)
+
+# Half the sprite's on-screen height at rest (the larger dimension for
+# spinning obstacles, whose height changes as they turn)
+func _sprite_half_extent() -> float:
+	var target := _get_flash_target()
+	var tex_size := Vector2(32.0, 32.0)
+	if target is Sprite2D and (target as Sprite2D).texture:
+		tex_size = (target as Sprite2D).get_rect().size
+	elif target is AnimatedSprite2D:
+		var anim := target as AnimatedSprite2D
+		if anim.sprite_frames and anim.sprite_frames.has_animation(anim.animation):
+			var tex: Texture2D = anim.sprite_frames.get_frame_texture(anim.animation, anim.frame)
+			if tex:
+				tex_size = tex.get_size()
+	var local_size := tex_size
+	if target:
+		# The sprite's own scale and rotation (e.g. the UFO's 45 deg pod)
+		var node := target as Node2D
+		var rect_xform := Transform2D(node.rotation, node.scale.abs(), 0.0, Vector2.ZERO)
+		var corners := [Vector2(-0.5, -0.5), Vector2(0.5, -0.5), Vector2(0.5, 0.5), Vector2(-0.5, 0.5)]
+		var min_y := INF
+		var max_y := -INF
+		var min_x := INF
+		var max_x := -INF
+		for c in corners:
+			var p: Vector2 = rect_xform * (c * tex_size)
+			min_x = minf(min_x, p.x)
+			max_x = maxf(max_x, p.x)
+			min_y = minf(min_y, p.y)
+			max_y = maxf(max_y, p.y)
+		local_size = Vector2(max_x - min_x, max_y - min_y)
+	var s := _hit_base_scale if _punch_time > 0.0 else scale
+	var screen_size := local_size * s.abs()
+	if rotation_speed != 0.0:
+		return maxf(screen_size.x, screen_size.y) / 2.0
+	return screen_size.y / 2.0
+
+# Rate limited globally (HIT_SOUND_MIN_INTERVAL_USEC), so volleys into a
+# swarm don't stack into noise; GameConfig.enemy_hit_sound_enabled turns it off
+func _play_hit_sound() -> void:
+	if hit_sound == null:
+		return
+	var now := Time.get_ticks_usec()
+	if now - _last_hit_sound_usec < HIT_SOUND_MIN_INTERVAL_USEC:
+		return
+	var level = get_tree().get_first_node_in_group("level")
+	if level and "config" in level and level.config \
+			and level.config.get("enemy_hit_sound_enabled") == false:
+		return
+	_last_hit_sound_usec = now
+	if not is_instance_valid(_hit_sound_player) or not _hit_sound_player.is_inside_tree():
+		_hit_sound_player = AudioStreamPlayer.new()
+		_hit_sound_player.name = "EnemyHitSoundPlayer"
+		_hit_sound_player.max_polyphony = 3
+		_get_effects_parent().add_child(_hit_sound_player)
+	if _hit_sound_player.stream != hit_sound:
+		_hit_sound_player.stream = hit_sound
+	_hit_sound_player.pitch_scale = hit_sound_pitch
+	_hit_sound_player.volume_db = hit_sound_volume_db
+	_hit_sound_player.play()
+	hit_sounds_played += 1

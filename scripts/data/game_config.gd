@@ -28,6 +28,9 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 @export var lose_weapon_tier_on_hit: bool = false
 ## Selectable player ships, in ship select order (the first is the default).
 @export var ships: Array[ShipDefinitionScript] = []
+## Short tick when a shot hits an enemy without killing it (Obstacle
+## hit_sound, rate limited). Off = only kills make a sound.
+@export var enemy_hit_sound_enabled: bool = true
 
 @export_group("Pickups")
 ## Pickup scenes rolled by SpawnManager.spawn_collectible() with each zone's
