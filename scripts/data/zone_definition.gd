@@ -39,6 +39,10 @@ const FormationSettingsScript := preload("res://scripts/data/formation_settings.
 ## Waves played in order, looping; pacing ramps up over time (see Difficulty Ramp).
 @export var waves: Array[WaveDefinitionScript] = []
 @export var formation_settings: FormationSettingsScript
+## Formations allowed on screen at once in this zone (WaveManager holds the
+## next group while this many are alive); 0 = GameConfig.max_formations_on_screen.
+## Raising it only matters for waves whose groups overlap (AFTER_DELAY).
+@export var max_formations_on_screen: int = 0
 ## Multipliers applied to SpawnManager's base collectible time / chance.
 @export var collectible_time_scale: float = 1.0
 @export var collectible_chance_scale: float = 1.0

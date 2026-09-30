@@ -14,8 +14,10 @@ Data: `data/zones/*.tres` (waves), `data/paths/*.tres` (entry paths),
 
 For each wave of the zone, in order, and for each group of the wave, in order:
 
-1. **Slot**: wait until fewer than `GameConfig.max_formations_on_screen` (3)
-   formations are alive. A scene_override group counts as one formation.
+1. **Slot**: wait until fewer than the zone's formation cap are alive:
+   `ZoneDefinition.max_formations_on_screen` if set (atmosphere and
+   upper_atmosphere: 4), else `GameConfig.max_formations_on_screen` (3). A
+   scene_override group counts as one formation.
 2. **Telegraph** (if `telegraph`): a yellow chevron + "!" marker appears at the
    path's first point, pulled onto the screen edge and pointing along the path.
    It shows for `GameConfig.telegraph_seconds` (0.5 s, shortened by the ramp's
@@ -139,7 +141,11 @@ been on it are released to the pool.
 
 ### ZoneDefinition (`scripts/data/zone_definition.gd`)
 
-`waves` (the sequence) and `formation_settings`. `obstacle_scenes` and the
+`waves` (the sequence) and `formation_settings`. `max_formations_on_screen`
+(group "Spawning") is the zone's formation cap; 0 (the default: ground,
+space, orbit) uses `GameConfig.max_formations_on_screen`. It only matters in
+zones whose waves overlap groups (AFTER_DELAY), since a wave never overlaps the
+next one (see "How a zone plays"). `obstacle_scenes` and the
 movement pattern weights are only used by the legacy `spawn_obstacle()` and by
 boss minions. Ramp: `ramp_interval_seconds` (25), `ramp_speed_multiplier` (1.1),
 `max_speed_multiplier` (1.6), `ramp_beat_multiplier` (0.9),
@@ -173,8 +179,8 @@ medium / small), UFO 40, blimp 160 (320 in the atmosphere, its only zone).
 
 ### GameConfig caps
 
-`max_active_obstacles = 60`, `max_formations_on_screen = 3`,
-`telegraph_seconds = 0.5`.
+`max_active_obstacles = 60`, `max_formations_on_screen = 3` (default for
+zones that leave their own cap at 0), `telegraph_seconds = 0.5`.
 
 ## Difficulty knobs
 
@@ -190,7 +196,7 @@ The values play-testing usually touches, and where they live:
 | `first_shot_delay` | `Obstacle` export (per scene) | 0.5 s (blimp 0.8 s) | Individual shooters' first shot after spawning (only once on screen) |
 | Ramp fields | each zone, "Difficulty Ramp" | 25 s, x1.1 (max 1.6), x0.9 (min 0.5) | How fast a zone speeds up while the player stays in it |
 | `max_active_obstacles` | `data/game_config.tres` | 60 | Hard cap on live obstacles (safety valve) |
-| `max_formations_on_screen` | `data/game_config.tres` | 3 | How many formations may overlap |
+| `max_formations_on_screen` | `data/game_config.tres`, overridden per zone in `data/zones/<zone>.tres` | 3; atmosphere and upper_atmosphere 4 | How many formations may overlap |
 
 ## Adding or editing a wave
 
@@ -203,8 +209,10 @@ The values play-testing usually touches, and where they live:
 4. Choose the release. Keep ON_CLEAR as the default, since it is what keeps the
    screen readable. Use AFTER_DELAY with a small `delay` only for deliberate
    overlaps: pincer halves, an escort behind a UFO, or a follow-up line. Every
-   AFTER_DELAY group adds a formation to the screen at once, and the cap of 3
-   still applies.
+   AFTER_DELAY group adds a formation to the screen at once, and the zone's
+   formation cap (3, or the zone's own `max_formations_on_screen`) still
+   applies. Overlap only happens inside a wave: a wave with two groups never
+   shows more than two formations, whatever the cap.
 5. For a symmetric pincer, add two groups with the same path. Set the first to
    `mirror_allowed = false` and AFTER_DELAY 0. Set the second to
    `force_mirror = true`.
@@ -216,13 +224,22 @@ The values play-testing usually touches, and where they live:
 
 ## Authored waves
 
-Times are bot loop times at ramp 0 (headless harness, invulnerable sweeping
-bot, tier-2 auto-fire, `--fixed-fps 60`); they vary by a few seconds between
-runs (mirror rolls, physics). They were measured before the zone health
-multipliers; loops past the ground are now somewhat longer. The bot usually kills the UFO within ~2 s; a UFO
-left alive lives ~22 s, which no longer holds its wave (see above).
+Times are bot loop times at ramp 0 (headless harness, invulnerable bot sweeping
+side to side, balanced ship, tier-2 auto-fire, `--fixed-fps 60`, zone held with
+scroll 0, seeds 1-3), measured 2026-09 with the zone health multipliers. They
+vary by a few seconds between runs (mirror rolls, physics). The sweeping bot
+needs ~25 s to kill the blimp (a player aiming at it needs a few seconds), so
+the atmosphere's first loop is much longer than later ones. The bot usually
+kills the UFO within ~2 s; a UFO left alive lives ~22 s, which no longer holds
+its wave (see above).
 C = `completion_delay`; beat = `beat_after`. Groups are ON_CLEAR unless an
 AFTER_DELAY value is given.
+
+In a normal run (100 m/s) a zone lasts ground 15 s, atmosphere 35 s,
+upper_atmosphere 50 s, space 35 s, so only the first waves of each list are
+seen: atmosphere Jet Swoop, Pincer, Crossfire Lite and the Blimp (from ~27 s);
+upper_atmosphere Jet Loop, Meteor Dive, Saucer Escort, Meteor Storm and
+Satellite Grid (from ~39-46 s). Keep that in mind when inserting a wave.
 
 ### Ground (spread 90; loop ≈ 14 s)
 
@@ -232,29 +249,38 @@ AFTER_DELAY value is given.
 | 2 Planes | 4 × plane_1 V_SHAPE `swoop_left` (mirror), NONE, beat 0.4 | 0.5 |
 | 3 Swarm | 6 × drone SWARM `side_sweep_left` (mirror), NONE, beat 0.6 | 1.0 |
 
-### Atmosphere (spread 100; first loop ≈ 32 s with the blimp, then ≈ 28 s)
+### Atmosphere (spread 100, formation cap 4; first loop ≈ 68-73 s with the blimp, then ≈ 41-48 s)
+
+Groups follow each other quickly (AFTER_DELAY 1.0-1.5 s) so three, sometimes
+four, formations share the screen; beats are 0.6 s and completion delays
+0.8 s.
 
 | Wave | Groups | C |
 |---|---|---|
-| 1 Jet Swoop | 5 × jet_1 V `swoop_left` RIPPLE 2.0, AFTER_DELAY 1.5 → 3 × balloon_5 LINE `top_straight` (spread 120), NONE, beat 1.2 | 1.5 |
-| 2 Pincer | 3 × jet_2 DIAGONAL `pincer_left` (no mirror) VOLLEY 2.5, AFTER_DELAY 0 → 3 × jet_2 DIAGONAL `pincer_left` force_mirror VOLLEY 2.5, beat 1.2 | 1.5 |
-| 3 Drone Loop | 7 × drone SWARM `loop_left`, AFTER_DELAY 2.0 → 4 × plane_1 V `swoop_left`, beat 1.2 | 1.5 |
-| 4 Blimp | 1 × blimp (scene_override, enters at top center), one_shot, beat 1.0 | 1.0 |
-| 5 Turrets | 4 × balloon_3 LINE `hover_top` hold 6 s (spread 120) VOLLEY 2.0, beat 1.2 | 2.0 |
+| 1 Jet Swoop | 5 × jet_1 V `swoop_left` RIPPLE 2.0, AFTER_DELAY 1.5 → 3 × balloon_5 LINE `top_straight` (spread 120), NONE, AFTER_DELAY 1.0 | 0.8 |
+| 2 Pincer | 3 × jet_2 DIAGONAL `pincer_left` (no mirror) VOLLEY 2.5, AFTER_DELAY 0 → 3 × jet_2 DIAGONAL `pincer_left` force_mirror VOLLEY 2.5, AFTER_DELAY 1.0 → 6 × drone SWARM `swoop_left`, AFTER_DELAY 1.0 → 3 × balloon_5 LINE `top_straight` (spread 120), beat 0.6 | 0.8 |
+| 3 Crossfire Lite | 4 × jet_1 V `swoop_left` RIPPLE 2.0, AFTER_DELAY 1.0 → 4 × balloon_5 LINE `top_straight` (spread 120), AFTER_DELAY 1.5 → 6 × drone SWARM `side_sweep_left`, beat 0.6 | 0.8 |
+| 4 Blimp | 1 × blimp (scene_override, enters at top center), one_shot, beat 0.6 (ON_CLEAR: the mini-boss beat) | 1.0 |
+| 5 Drone Loop | 7 × drone SWARM `loop_left`, AFTER_DELAY 1.2 → 4 × plane_1 V `swoop_left`, AFTER_DELAY 1.0 → 3 × balloon_5 LINE `top_straight` (spread 120), beat 0.6 | 0.8 |
+| 6 Turrets | 4 × balloon_3 LINE `hover_top` hold 6 s (spread 120) VOLLEY 2.0, AFTER_DELAY 1.5 → 4 × jet_2 V `swoop_left` RIPPLE 2.0, AFTER_DELAY 1.5 → 6 × drone SWARM `side_sweep_left`, beat 0.6 | 1.0 |
 
-### Upper atmosphere (spread 100; loop ≈ 47-58 s)
+### Upper atmosphere (spread 100, formation cap 4; loop ≈ 75-82 s)
+
+Same pacing as the atmosphere: AFTER_DELAY 0.8-1.5 s, beats 0.6 s, completion
+delays 0.8-1.0 s.
 
 | Wave | Groups | C |
 |---|---|---|
-| 1 Jet Loop | 6 × jet_1 DIAGONAL `loop_left` (spread 110) RIPPLE 1.8, beat 1.2 | 1.5 |
-| 2 Meteor Dive | 5 × meteor_1 LINE `dive_center` (spread 110), AFTER_DELAY 1.2 → 5 × meteor_2 LINE `dive_center` force_mirror, beat 1.2 | 1.5 |
-| 3 Saucer Escort | 1 × UFO (scene_override, does not hold the wave), AFTER_DELAY 1.0 → 4 × jet_2 V `pincer_left` VOLLEY 2.2, beat 1.2 | 1.5 |
-| 4 Satellite Grid | 4 × satellite_turret SQUARE `hover_top` hold 5 s (spread 120) VOLLEY 1.8, beat 1.2 | 1.5 |
-| 5 Asteroids | 3 × asteroid LINE `top_straight` (spread 200), NONE, beat 1.2 | 1.5 |
-| 6 Swarm Strike | 6 × drone SWARM `swoop_left`, AFTER_DELAY 1.0 → 3 × jet_8 LINE `dive_center` (spread 100) RIPPLE 1.2, beat 1.2 | 1.5 |
-| 7 Crossfire | 5 × jet_9 WAVE `side_sweep_left` (spread 70) RIPPLE 1.6, AFTER_DELAY 1.5 → 5 × jet_9 WAVE `side_sweep_left` force_mirror RIPPLE 1.6, beat 1.2 | 2.0 |
+| 1 Jet Loop | 6 × jet_1 DIAGONAL `loop_left` (spread 110) RIPPLE 1.8, AFTER_DELAY 1.5 → 6 × drone SWARM `side_sweep_left`, beat 0.6 | 0.8 |
+| 2 Meteor Dive | 5 × meteor_1 LINE `dive_center` (spread 110), AFTER_DELAY 1.2 → 5 × meteor_2 LINE `dive_center` force_mirror, AFTER_DELAY 1.0 → 4 × jet_1 V `swoop_left` RIPPLE 1.8, beat 0.6 | 0.8 |
+| 3 Saucer Escort | 1 × UFO (scene_override, does not hold the wave), AFTER_DELAY 1.0 → 4 × jet_2 V `pincer_left` VOLLEY 2.2, AFTER_DELAY 1.0 → 4 × jet_2 V `pincer_left` force_mirror VOLLEY 2.2, beat 0.6 | 0.8 |
+| 4 Meteor Storm | 5 × meteor_1 LINE `dive_center` (spread 110, no mirror), AFTER_DELAY 0.8 → 5 × meteor_2 LINE `dive_center` force_mirror, AFTER_DELAY 1.0 → 4 × jet_1 V `loop_left` VOLLEY 2.0, AFTER_DELAY 1.5 → 2 × asteroid LINE `top_straight` (spread 200), beat 0.6 | 1.0 |
+| 5 Satellite Grid | 4 × satellite_turret SQUARE `hover_top` hold 5 s (spread 120) VOLLEY 1.8, AFTER_DELAY 1.5 → 6 × drone SWARM `swoop_left`, beat 0.6 | 0.8 |
+| 6 Asteroids | 3 × asteroid LINE `top_straight` (spread 200), NONE, AFTER_DELAY 1.5 → 5 × meteor_1 LINE `dive_center` (spread 110), beat 0.6 | 0.8 |
+| 7 Swarm Strike | 6 × drone SWARM `swoop_left`, AFTER_DELAY 1.0 → 3 × jet_8 LINE `dive_center` (spread 100) RIPPLE 1.2, AFTER_DELAY 1.0 → 4 × jet_1 V `loop_left` RIPPLE 1.8, beat 0.6 | 0.8 |
+| 8 Crossfire | 5 × jet_9 WAVE `side_sweep_left` (spread 70) RIPPLE 1.6, AFTER_DELAY 1.5 → 5 × jet_9 WAVE `side_sweep_left` force_mirror RIPPLE 1.6, beat 0.6 | 1.0 |
 
-### Space (spread 110; loop ≈ 34-43 s)
+### Space (spread 110; loop ≈ 46-51 s)
 
 | Wave | Groups | C |
 |---|---|---|

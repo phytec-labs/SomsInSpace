@@ -4,7 +4,8 @@
 # groups that allow it (see docs/WAVE_DESIGN.md).
 #
 # For each WaveGroup of a wave:
-#   1. wait for a free formation slot (GameConfig.max_formations_on_screen)
+#   1. wait for a free formation slot (the zone's max_formations_on_screen,
+#      or GameConfig.max_formations_on_screen when the zone leaves it at 0)
 #   2. telegraph: show a marker at the entry point, wait telegraph_seconds
 #      (scaled by the ramp's beat multiplier, min 0.3 s)
 #   3. spawn the formation (FormationManager) or scene_override singles
@@ -314,7 +315,11 @@ func _get_config() -> Resource:
 	var spawn_manager = get_parent()
 	return spawn_manager.get("config") if spawn_manager else null
 
+# Formation slots for the current zone: its own max_formations_on_screen if
+# set (> 0), else GameConfig.max_formations_on_screen
 func _get_max_formations() -> int:
+	if zone and zone.max_formations_on_screen > 0:
+		return zone.max_formations_on_screen
 	var config = _get_config()
 	return config.max_formations_on_screen if config else DEFAULT_MAX_FORMATIONS
 
