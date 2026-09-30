@@ -18,8 +18,10 @@ class_name BlimpObstacle
 @export_group("Blimp Tuning")
 ## Seconds between aimed shots (each from the next turret mount)
 @export var shot_interval: float = 1.4
-## Delay before the first shot after spawning
-@export var first_shot_delay: float = 1.5
+# The first shot comes Obstacle.first_shot_delay after spawning (0.8 s in
+# blimp_obstacle.tscn), once the turret mount is on screen.
+# Health: the scene's base (160) times the zone's enemy_health_multiplier
+# (atmosphere 2.0 -> 320), applied by the SpawnManager like any obstacle.
 ## Side-to-side drift amplitude (px) and angular frequency (rad/s)
 @export var drift_amplitude: float = 60.0
 @export var drift_frequency: float = 0.5
@@ -66,7 +68,8 @@ func _process(delta: float) -> void:
 	position.x = initial_x + sin(pattern_time * drift_frequency) * drift_amplitude
 
 	_shot_timer += delta
-	if _shot_timer >= shot_interval and projectile_scene and not gun_points.is_empty():
+	if _shot_timer >= shot_interval and projectile_scene and not gun_points.is_empty() \
+			and _next_gun_point_on_screen():
 		_shot_timer = 0.0
 		_fire_from(_next_gun_point())
 
@@ -82,6 +85,11 @@ func _next_gun_point() -> Node2D:
 	var step = _gun_step % cycle
 	_gun_step += 1
 	return gun_points[step if step < n else cycle - step]
+
+# The mount the next shot uses is below the top edge (the blimp spawns
+# above the screen and descends slowly; don't waste shots up there)
+func _next_gun_point_on_screen() -> bool:
+	return gun_points[get_next_gun_index()].global_position.y > 0.0
 
 # Index (into gun_points) of the mount the next shot will use
 func get_next_gun_index() -> int:

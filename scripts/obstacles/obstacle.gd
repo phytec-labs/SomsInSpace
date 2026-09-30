@@ -21,6 +21,10 @@ signal destroyed
 @export var cooldown_variation: float = 1.0  # Adds/subtracts up to this amount from cooldown
 @export_range(0.0, 1.0) var accuracy: float = 0.8  # 1.0 = perfect, 0.0 = completely random
 @export_range(0.0, 90.0) var max_aim_angle: float = 30.0  # Maximum angle in degrees from straight down
+## Seconds after spawning before an individually shooting obstacle may take
+## its first shot (it still has to be on screen, and pass the shoot_chance
+## roll). Formation fire patterns use WaveGroup.first_fire_delay instead.
+@export var first_shot_delay: float = 0.5
 
 # Audio properties
 @export var shoot_sound: AudioStream = preload("res://audio/retro-laser-1.mp3")
@@ -58,6 +62,11 @@ var shoot_audio_player: AudioStreamPlayer2D
 
 # Configured values captured on the first spawn (after subclass _ready() and
 # scene overrides have been applied) so pooled instances can be reset.
+var base_health: float = -1.0
+# Health multiplier for this spawn, set by the SpawnManager before
+# initialize() (ZoneDefinition.enemy_health_multiplier; 1.0 for bosses)
+var health_scale: float = 1.0
+# Full health of the current spawn: base_health * health_scale
 var max_health: float = -1.0
 var _base_rotation: float = 0.0
 
@@ -192,7 +201,9 @@ func _process_shooting(delta: float) -> void:
 		return
 
 	time_since_last_shot += delta
-	if time_since_last_shot >= shoot_cooldown:
+	# Hold fire while off screen (e.g. still flying in from above); the timer
+	# keeps running so the first shot comes as soon as it is visible
+	if time_since_last_shot >= shoot_cooldown and is_on_screen():
 		# Random chance to shoot
 		if rng.randf() < shoot_chance:
 			shoot()
@@ -202,6 +213,11 @@ func _process_shooting(delta: float) -> void:
 
 func _reset_shoot_cooldown() -> void:
 	shoot_cooldown = max(1.0, 2.0 + rng.randf_range(-cooldown_variation, cooldown_variation))
+
+# Inside the visible screen horizontally and below its top edge
+func is_on_screen() -> bool:
+	var size := get_viewport_rect().size
+	return global_position.y > 0.0 and global_position.x >= 0.0 and global_position.x <= size.x
 
 func _check_formation_offscreen() -> void:
 	if has_exited_screen:
@@ -222,17 +238,21 @@ func initialize(spawn_position: Vector2) -> void:
 	initial_x = spawn_position.x
 	pattern_time = 0.0
 
-	# Restore health (captured lazily on first spawn so subclass _ready()
-	# changes and scene overrides of the exported value are respected)
-	if max_health < 0.0:
-		max_health = health
+	# Restore health (base captured lazily on first spawn so subclass _ready()
+	# changes and scene overrides of the exported value are respected), scaled
+	# by the zone's multiplier for this spawn
+	if base_health < 0.0:
+		base_health = health
+	max_health = base_health * health_scale
 	health = max_health
 
 	# Reset shooting state. The per-instance RNG is re-seeded from the global
 	# one so a seeded run (tests) replays identically; gameplay is unchanged.
 	rng.seed = randi()
-	time_since_last_shot = 0.0
 	_reset_shoot_cooldown()
+	# First shot first_shot_delay after spawning (once on screen), then the
+	# usual randomized cooldown
+	time_since_last_shot = shoot_cooldown - first_shot_delay
 
 	# Reset orientation, then let subclasses re-roll per-spawn variation
 	rotation = _base_rotation

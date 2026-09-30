@@ -44,6 +44,9 @@ enum Release {
 @export var fire_mode: FormationManagerScript.FireMode = FormationManagerScript.FireMode.NONE
 ## Seconds between volleys / ripples (VOLLEY, RIPPLE).
 @export var fire_interval: float = 2.0
+## Seconds from the first member appearing on screen (y > 0) to the first
+## volley / ripple (VOLLEY, RIPPLE); later ones follow every fire_interval.
+@export var first_fire_delay: float = 0.6
 
 @export_group("Release")
 @export var release: Release = Release.ON_CLEAR

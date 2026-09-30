@@ -164,3 +164,4 @@ collectible_chance_scale = 0.7
 pattern_weight_linear = 0.2
 pattern_weight_sine = 0.4
 pattern_weight_zigzag = 0.4
+enemy_health_multiplier = 3.0

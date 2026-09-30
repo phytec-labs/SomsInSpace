@@ -131,3 +131,4 @@ waves = Array[ExtResource("9_20ipa")]([SubResource("Resource_sa254"), SubResourc
 formation_settings = SubResource("Resource_8rxys")
 collectible_time_scale = 0.8
 collectible_chance_scale = 0.9
+enemy_health_multiplier = 2.0

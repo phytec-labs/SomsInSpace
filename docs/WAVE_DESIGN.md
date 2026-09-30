@@ -72,6 +72,7 @@ The HUD threat indicator shows the ramp level (`WaveManager.get_ramp_level()`).
 | `force_mirror` | Always mirror (the right half of a pincer). Overrides `mirror_allowed` |
 | `fire_mode` | NONE, VOLLEY, RIPPLE, INDIVIDUAL (see below) |
 | `fire_interval` | Seconds between volleys / ripples |
+| `first_fire_delay` | Seconds from the first member appearing on screen to the first volley / ripple (0.6); later ones follow every `fire_interval` |
 | `release` | ON_CLEAR or AFTER_DELAY (see above) |
 | `delay` | AFTER_DELAY: seconds after spawning before the next group |
 | `beat_after` | ON_CLEAR: pause after the group is cleared |
@@ -84,9 +85,21 @@ The HUD threat indicator shows the ramp level (`WaveManager.get_ramp_level()`).
 | Mode | Behaviour |
 |---|---|
 | NONE | Members never shoot |
-| VOLLEY | Every `fire_interval`, every live on-screen member with `can_shoot` fires at once |
-| RIPPLE | Every `fire_interval`, members fire one after another in index order, 0.12 s apart |
+| VOLLEY | `first_fire_delay` after the first member is on screen, then every `fire_interval`: every live on-screen member with `can_shoot` fires at once |
+| RIPPLE | Same clock as VOLLEY; members fire one after another in index order, 0.12 s apart |
 | INDIVIDUAL | Members use the old per-frame random shooting (`Obstacle._process_shooting`) |
+
+The fire clock only starts once a member is on screen (inside the viewport),
+so a formation that takes a while to fly in doesn't open fire the moment it
+appears, and doesn't wait a whole `fire_interval` either.
+
+Individual shooters (INDIVIDUAL members, boss minions) take their first shot
+`Obstacle.first_shot_delay` (0.5 s) after spawning, and only while on screen
+(below the top edge, inside the sides); after that the usual 1-3 s random
+cooldown and the per-frame `shoot_chance` roll apply (so a `shoot_chance` of
+0.01 still adds ~1.7 s on average). The blimp schedules its own shots: first
+one `first_shot_delay` = 0.8 s after spawning (set in `blimp_obstacle.tscn`)
+once the turret mount is below the top edge, then every `shot_interval`.
 
 Formation fire sets `Obstacle.fire_controlled`, which disables the random
 shooting. Only members on screen fire. Members whose scene has
@@ -132,6 +145,27 @@ boss minions. Ramp: `ramp_interval_seconds` (25), `ramp_speed_multiplier` (1.1),
 `max_speed_multiplier` (1.6), `ramp_beat_multiplier` (0.9),
 `min_beat_multiplier` (0.5).
 
+`enemy_health_multiplier` (group "Difficulty") scales the health of every
+obstacle the SpawnManager spawns in the zone: formation members,
+scene_override singles (blimp, UFO), mines, asteroids and their split pieces,
+and boss minions. It is applied on every spawn (`Obstacle.health_scale`, set
+before `initialize()`), so pooled instances reused in another zone get that
+zone's value. Bosses (`spawn_boss()`) and collectibles are never scaled.
+
+| Zone | Multiplier | Typical enemy (10 hp base) | Balanced / light / heavy hits at tier 1 |
+|---|---|---|---|
+| ground | 1.0 | 10 | 1 / 2 / 1 |
+| atmosphere | 2.0 | 20 | 2 / 3 / 2 |
+| upper_atmosphere | 2.5 | 25 | 3 / 3 / 2 |
+| space | 3.0 | 30 | 3 / 4 / 3 |
+| orbit | 1.0 | 10 (boss minions) | 1 / 2 / 1 |
+
+Tier-1 damage per shot: balanced (phyCORE-AM62x) 10 every 0.2 s, light
+(i.MX 93) 8.5 every 0.16 s, heavy (i.MX 8M Plus) 12.5 every 0.23 s. Tier 2
+adds two side shots (3 per volley), tier 3 two angled 12-damage shots. Base
+health that differs from 10: drone 5, mine 8, asteroid 30 / 15 / 6 (large /
+medium / small), UFO 40, blimp 160 (320 in the atmosphere, its only zone).
+
 ### FormationSettings (`scripts/data/formation_settings.gd`)
 
 `default_spread`, plus the swarm fields `swarm_radius`, `swarm_sine_amplitude`,
@@ -141,6 +175,22 @@ boss minions. Ramp: `ramp_interval_seconds` (25), `ramp_speed_multiplier` (1.1),
 
 `max_active_obstacles = 60`, `max_formations_on_screen = 3`,
 `telegraph_seconds = 0.5`.
+
+## Difficulty knobs
+
+The values play-testing usually touches, and where they live:
+
+| Knob | Where | Current | Effect |
+|---|---|---|---|
+| `enemy_health_multiplier` | each `data/zones/<zone>.tres` | ground 1.0, atmosphere 2.0, upper_atmosphere 2.5, space 3.0, orbit 1.0 | Hits to kill every non-boss enemy in the zone (table above) |
+| Boss health | `scenes/obstacles/boss_alien.tscn` `health` | 750 | Fight length; phases change at 2/3 and 1/3 of it automatically (~16.5 s with the sweeping tier-2 bot) |
+| Blimp health | `scenes/obstacles/blimp_obstacle.tscn` `health` | 160 (x 2.0 in atmosphere = 320) | Mini-boss length (~2 s of sustained tier-2 fire) |
+| `first_fire_delay` | each `WaveGroup` | 0.6 s | Formation's first volley / ripple after it appears on screen |
+| `fire_interval` | each `WaveGroup` | 1.2-2.5 s | Time between formation volleys / ripples |
+| `first_shot_delay` | `Obstacle` export (per scene) | 0.5 s (blimp 0.8 s) | Individual shooters' first shot after spawning (only once on screen) |
+| Ramp fields | each zone, "Difficulty Ramp" | 25 s, x1.1 (max 1.6), x0.9 (min 0.5) | How fast a zone speeds up while the player stays in it |
+| `max_active_obstacles` | `data/game_config.tres` | 60 | Hard cap on live obstacles (safety valve) |
+| `max_formations_on_screen` | `data/game_config.tres` | 3 | How many formations may overlap |
 
 ## Adding or editing a wave
 
@@ -168,7 +218,8 @@ boss minions. Ramp: `ramp_interval_seconds` (25), `ramp_speed_multiplier` (1.1),
 
 Times are bot loop times at ramp 0 (headless harness, invulnerable sweeping
 bot, tier-2 auto-fire, `--fixed-fps 60`); they vary by a few seconds between
-runs (mirror rolls, physics). The bot usually kills the UFO within ~2 s; a UFO
+runs (mirror rolls, physics). They were measured before the zone health
+multipliers; loops past the ground are now somewhat longer. The bot usually kills the UFO within ~2 s; a UFO
 left alive lives ~22 s, which no longer holds its wave (see above).
 C = `completion_delay`; beat = `beat_after`. Groups are ON_CLEAR unless an
 AFTER_DELAY value is given.

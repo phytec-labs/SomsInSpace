@@ -50,6 +50,13 @@ const FormationSettingsScript := preload("res://scripts/data/formation_settings.
 @export var pattern_weight_sine: float = 0.3
 @export var pattern_weight_zigzag: float = 0.2
 
+@export_group("Difficulty")
+## Multiplies the health of every obstacle spawned in this zone (formation
+## members, scene_override singles, asteroid pieces, boss minions; not the
+## boss itself). Enemies have 10 base health (drones 5, mines 8, asteroids
+## 30/15/6 by size, UFO 40, blimp 160) vs 10 damage per tier-1 shot.
+@export var enemy_health_multiplier: float = 1.0
+
 @export_group("Difficulty Ramp")
 ## Seconds spent in this zone per ramp level (level = int(zone_time / this)).
 ## The ramp adds speed, never bodies: counts stay as authored.

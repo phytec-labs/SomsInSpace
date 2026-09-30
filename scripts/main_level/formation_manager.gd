@@ -194,6 +194,8 @@ func create_path_formation(group: Resource, zone: Resource, mirrored: bool, spee
 		"time": 0.0,
 		"fire_mode": group.fire_mode,
 		"fire_interval": group.fire_interval,
+		"first_fire_delay": group.first_fire_delay,
+		"fire_armed": false,  # Set once a member is on screen
 		"fire_timer": 0.0,
 		"ripple_index": -1,
 		"ripple_timer": 0.0,
@@ -377,6 +379,15 @@ func _update_fire(f: Dictionary, delta: float) -> void:
 			if f.ripple_index >= f.members.size():
 				f.ripple_index = -1
 
+	# The fire clock starts when the first member comes on screen: the first
+	# volley / ripple first_fire_delay later, then every fire_interval
+	if not f.fire_armed:
+		if not _any_member_on_screen(f):
+			return
+		f.fire_armed = true
+		f.fire_timer = f.fire_interval - maxf(f.first_fire_delay, 0.0)
+		return
+
 	f.fire_timer += delta
 	if f.fire_timer < f.fire_interval:
 		return
@@ -389,6 +400,16 @@ func _update_fire(f: Dictionary, delta: float) -> void:
 		f.ripple_index = 0
 		f.ripple_timer = RIPPLE_STEP  # First member fires on the next update
 
+func _any_member_on_screen(f: Dictionary) -> bool:
+	for m in f.members:
+		if m.driven and _is_member_alive(m) and _is_on_screen(m.node.global_position):
+			return true
+	return false
+
+func _is_on_screen(pos: Vector2) -> bool:
+	var size := _get_viewport_rect().size
+	return pos.y > 0.0 and pos.y < size.y and pos.x > 0.0 and pos.x < size.x
+
 # Live, able to shoot, and on screen
 func _can_fire(m: Dictionary) -> bool:
 	if not m.driven or not _is_member_alive(m):
@@ -396,9 +417,7 @@ func _can_fire(m: Dictionary) -> bool:
 	var node = m.node
 	if not node.get("can_shoot") or not node.has_method("shoot"):
 		return false
-	var pos: Vector2 = node.global_position
-	var size := _get_viewport_rect().size
-	return pos.y > 0.0 and pos.y < size.y and pos.x > 0.0 and pos.x < size.x
+	return _is_on_screen(node.global_position)
 
 # --- Shapes ---
 

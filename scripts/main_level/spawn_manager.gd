@@ -199,6 +199,7 @@ func spawn_scene(scene: PackedScene, spawn_position: Vector2, random_movement: b
 	return _spawn_capped_obstacle(scene, spawn_position, random_movement)
 
 # Minions summoned by the boss: spawn_scene() with random movement, as before
+# (health scaled by the current zone's multiplier: orbit = 1.0, one-hit fodder)
 func spawn_minion(scene: PackedScene, spawn_position: Vector2) -> Node2D:
 	return spawn_scene(scene, spawn_position, true)
 
@@ -210,6 +211,9 @@ func spawn_boss(scene: PackedScene) -> Node2D:
 		return null
 
 	var boss = _acquire(scene)
+	# Bosses carry their own health; the zone multiplier never applies
+	if "health_scale" in boss:
+		boss.health_scale = 1.0
 
 	var spawn_position = Vector2(get_viewport_rect().size.x / 2.0, -250.0)
 	boss.initialize(spawn_position)
@@ -258,6 +262,11 @@ func _spawn_capped_obstacle(scene: PackedScene, spawn_position: Vector2, random_
 	# Random movement pattern (opt-in) if the obstacle supports it
 	if random_movement and obstacle.has_method("set_movement_pattern"):
 		obstacle.set_movement_pattern(_pick_movement_pattern())
+
+	# Zone health multiplier, re-applied on every spawn (pooled instances may
+	# come from another zone); initialize() computes health from it
+	if "health_scale" in obstacle:
+		obstacle.health_scale = current_zone.enemy_health_multiplier if current_zone else 1.0
 
 	# Initialize the obstacle (sets position, resets formation_id to -1, shows it)
 	obstacle.initialize(spawn_position)

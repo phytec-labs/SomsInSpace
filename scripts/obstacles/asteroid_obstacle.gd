@@ -58,8 +58,10 @@ func set_size_level(level: int) -> void:
 	size_level = clampi(level, 1, 3)
 	var i = size_level - 1
 	scale = _base_scale * _pick(size_scales, i, 1.0)
-	health = _pick(size_health, i, health)
-	max_health = health
+	# Per-size base health, times the zone multiplier of this spawn
+	base_health = _pick(size_health, i, base_health)
+	max_health = base_health * health_scale
+	health = max_health
 	damage = _pick(size_damage, i, damage)
 	points = int(_pick(size_points, i, points))
 	rotation_speed = randf_range(min_spin, max_spin) / _pick(size_scales, i, 1.0)
