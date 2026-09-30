@@ -111,6 +111,14 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 10
 
+[node name="ShipNameLabel" type="Label" parent="StatsPanel/MarginContainer/StatsContainer"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 0.5, 1)
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 18
+text = "phyCORE-AM62x"
+
 [node name="HealthContainer" type="VBoxContainer" parent="StatsPanel/MarginContainer/StatsContainer"]
 layout_mode = 2
 mouse_filter = 2

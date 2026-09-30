@@ -38,6 +38,10 @@ var zone_time: float = 0.0  # Seconds spent spawning in the current zone (drives
 var wave_in_progress: bool = false
 var next_action: String = "none"  # Used to track what should happen after timer
 
+# WaveGroups with one_shot that already spawned something during the current
+# zone visit (used as a set; cleared by set_zone())
+var _spent_one_shot_groups: Dictionary = {}
+
 # Keep track of recent spawn positions to avoid overlap
 var recent_spawn_positions = []
 var max_recent_positions = 5  # How many recent positions to remember
@@ -120,6 +124,7 @@ func set_zone(new_zone: ZoneDefinitionScript) -> void:
 	current_wave_index = starting_wave if is_first_zone else 0
 	zone_time = 0.0
 	wave_in_progress = false  # Reset the wave progress for the new zone
+	_spent_one_shot_groups.clear()  # New zone visit: one-shot groups may spawn again
 	_clear_recent_spawn_positions()  # Clear spawn positions when changing zones
 
 	if debug_mode:
@@ -148,8 +153,15 @@ func get_ramp_level() -> int:
 func get_delay_multiplier() -> float:
 	return zone.get_delay_multiplier(get_ramp_level()) if zone else 1.0
 
+# scene_override groups spawn exactly `count` instances (no ramp bonus)
 func get_effective_count(group: WaveGroupScript) -> int:
+	if group.scene_override:
+		return group.count
 	return group.count + get_effective_count_bonus()
+
+# True for a one_shot group that already spawned during this zone visit
+func is_group_spent(group: WaveGroupScript) -> bool:
+	return group.one_shot and _spent_one_shot_groups.has(group)
 
 func _scaled_delay(base_delay: float) -> float:
 	return base_delay * get_delay_multiplier()
@@ -220,6 +232,11 @@ func spawn_formation_group() -> void:
 	if wave_data == null:
 		return
 	
+	# Skip one-shot groups already spawned during this zone visit
+	while current_group_index < wave_data.groups.size() \
+			and is_group_spent(wave_data.groups[current_group_index]):
+		current_group_index += 1
+
 	# Check if we've completed all groups in this wave
 	if current_group_index >= wave_data.groups.size():
 		complete_wave()
@@ -270,13 +287,29 @@ func spawn_enemy_in_group() -> void:
 		spawn_position_type = String(group.spawn_positions[randi() % group.spawn_positions.size()])
 	var spawn_position = _get_spawn_position(spawn_position_type)
 	
-	# Create the formation using formation manager
-	if formation_manager:
+	var spawned_any := false
+	if group.scene_override:
+		# A single instance of a specific scene (formation is ignored)
+		var spawn_manager = get_parent()
+		spawned_any = spawn_manager.spawn_scene(group.scene_override, spawn_position) != null
+		if debug_mode:
+			print("WaveManager: scene_override %s spawned: %s" % [group.scene_override.resource_path, spawned_any])
+	elif formation_manager:
+		# Create the formation using formation manager
+		var spawn_func := Callable(get_parent(), "spawn_obstacle")
+		if group.formation_scene:
+			# Every member is formation_scene (bind() would append the scene
+			# after the position, so wrap the call instead)
+			var spawn_manager = get_parent()
+			var member_scene: PackedScene = group.formation_scene
+			spawn_func = func(pos: Vector2) -> Node2D:
+				return spawn_manager.spawn_scene(member_scene, pos)
 		var formation_objects = formation_manager.create_formation(
 			group.formation,
 			spawn_position,
-			Callable(get_parent(), "spawn_obstacle")
+			spawn_func
 		)
+		spawned_any = formation_objects.size() > 0
 		
 		if debug_mode:
 			if formation_objects.size() > 0:
@@ -285,6 +318,9 @@ func spawn_enemy_in_group() -> void:
 				push_warning("WaveManager: Formation creation failed - no objects returned")
 	else:
 		push_warning("WaveManager: Cannot create formation - formation_manager is null")
+
+	if spawned_any and group.one_shot:
+		_spent_one_shot_groups[group] = true
 	
 	enemies_spawned_in_group += 1
 	

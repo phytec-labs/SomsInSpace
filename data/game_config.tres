@@ -7,8 +7,13 @@
 [ext_resource type="Resource" path="res://data/zones/upper_atmosphere.tres" id="5_775ok"]
 [ext_resource type="Resource" path="res://data/zones/space.tres" id="6_llujv"]
 [ext_resource type="Resource" path="res://data/zones/orbit.tres" id="7_orbit"]
+[ext_resource type="Script" path="res://scripts/data/ship_definition.gd" id="8_shipdef"]
+[ext_resource type="Resource" path="res://data/ships/phycore_am62x.tres" id="9_am62x"]
+[ext_resource type="Resource" path="res://data/ships/phycore_imx8mp.tres" id="10_imx8mp"]
+[ext_resource type="Resource" path="res://data/ships/phycore_imx93.tres" id="11_imx93"]
 
 [resource]
 script = ExtResource("1_lytdd")
 zones = Array[ExtResource("2_3pit6")]([ExtResource("3_ank8f"), ExtResource("4_54jad"), ExtResource("5_775ok"), ExtResource("6_llujv"), ExtResource("7_orbit")])
 progress_bar_max_height = 13500
+ships = Array[ExtResource("8_shipdef")]([ExtResource("9_am62x"), ExtResource("10_imx8mp"), ExtResource("11_imx93")])

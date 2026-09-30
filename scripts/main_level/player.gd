@@ -1,6 +1,10 @@
 # player.gd
 extends CharacterBody2D
 
+# Preloaded (not referenced by class_name) so this works even before the
+# editor has rebuilt the global class cache.
+const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
+
 # Export variables
 @export var speed: float = 300.0
 @export var touch_offset: float = 100.0
@@ -59,6 +63,17 @@ var weapon_tier: int = 1
 ## Angled tier-3 shots; falls back to projectile_scene.
 @export var spread_projectile_scene: PackedScene
 
+# Selected ship (see apply_ship)
+var ship_definition: ShipDefinitionScript = null
+## Multiplies the damage of every projectile this ship fires.
+var damage_scale: float = 1.0
+# tier_fire_cooldowns as authored, before the ship's fire_cooldown_scale
+var _base_tier_fire_cooldowns: Array[float] = []
+
+# External velocity (e.g. an enemy tractor beam) for the current physics
+# frame; see add_external_velocity()
+var _external_velocity: Vector2 = Vector2.ZERO
+
 const UPGRADE_FLASH_COLOR := Color(1, 0.5, 1)  # Pink (tier 2)
 const MAX_TIER_FLASH_COLOR := Color(0.4, 1, 1)  # Cyan (tier 3)
 
@@ -84,9 +99,46 @@ func _ready() -> void:
 
 	add_to_group("player")
 
+	if _base_tier_fire_cooldowns.is_empty():
+		_base_tier_fire_cooldowns = tier_fire_cooldowns.duplicate()
+
 	set_weapon_tier(weapon_tier, false)
 
 	disable_movement()
+
+# Applies a ShipDefinition: sprite texture/tint, speed, fire cooldowns and
+# projectile damage. Idempotent (cooldowns are scaled from the authored
+# values, not the current ones). Health is applied by main_level.gd.
+func apply_ship(def: ShipDefinitionScript) -> void:
+	if def == null:
+		return
+	ship_definition = def
+	if def.texture and ship_sprite:
+		ship_sprite.texture = def.texture
+	if ship_sprite:
+		ship_sprite.modulate = def.tint
+	speed = def.speed
+	damage_scale = def.damage_scale
+
+	if _base_tier_fire_cooldowns.is_empty():
+		_base_tier_fire_cooldowns = tier_fire_cooldowns.duplicate()
+	var scaled: Array[float] = []
+	for cooldown in _base_tier_fire_cooldowns:
+		scaled.append(cooldown * def.fire_cooldown_scale)
+	tier_fire_cooldowns = scaled
+	# Refresh fire_cooldown for the current tier (no flash / signal)
+	set_weapon_tier(weapon_tier, false)
+
+# Contract for enemies (e.g. a tractor beam): adds `v` (px/s) on top of the
+# input movement for the player's next physics step only (calls in the same
+# frame accumulate; the sum is cleared after each step). Call it every
+# physics frame the pull should last. Dropped while the ship can't move
+# (countdown, dead, victory); nothing runs while the tree is paused.
+func add_external_velocity(v: Vector2) -> void:
+	_external_velocity += v
+
+func is_alive() -> bool:
+	return not is_dead
 
 func _process(delta: float) -> void:
 	if is_blinking:
@@ -147,6 +199,7 @@ func reset_input_state() -> void:
 	is_firing = false
 	is_touch_active = false
 	target_position = position
+	_external_velocity = Vector2.ZERO
 	left_thruster.emitting = false
 	right_thruster.emitting = false
 	up_thruster.emitting = false
@@ -220,6 +273,7 @@ func update_target_position(input_position: Vector2) -> void:
 
 func _physics_process(delta: float) -> void:
 	if not can_move:
+		_external_velocity = Vector2.ZERO
 		return
 
 	var movement: Vector2 = Vector2.ZERO
@@ -244,7 +298,13 @@ func _physics_process(delta: float) -> void:
 	# Update thrusters based on movement
 	update_thrusters(velocity)
 
+	# External pull (tractor beam etc.) is added for this frame only and kept
+	# out of `velocity` afterwards, so the input smoothing never inherits it
+	var input_velocity := velocity
+	velocity += _external_velocity
+	_external_velocity = Vector2.ZERO
 	move_and_slide()
+	velocity = input_velocity
 	constrain_to_viewport()
 
 	previous_velocity = velocity
@@ -367,6 +427,12 @@ func fire_projectile() -> void:
 func _spawn_projectile(scene: PackedScene, gunpoint: Node2D, direction: Vector2 = Vector2.UP) -> void:
 	var parent = get_tree().current_scene if get_tree().current_scene else get_parent()
 	var projectile = ObjectPool.acquire(scene, parent)
+	# Damage is set on every spawn from the scene's authored value (kept as
+	# meta on first use; pooled instances keep their last damage, so the
+	# current value must never be scaled again)
+	if not projectile.has_meta("base_damage"):
+		projectile.set_meta("base_damage", projectile.damage)
+	projectile.damage = float(projectile.get_meta("base_damage")) * damage_scale
 	projectile.initialize(gunpoint.global_position, direction)
 
 func _on_fire_cooldown_timeout() -> void:
@@ -395,3 +461,4 @@ func die() -> void:
 	# Stop movement
 	can_move = false
 	velocity = Vector2.ZERO
+	_external_velocity = Vector2.ZERO

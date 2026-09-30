@@ -11,6 +11,7 @@ signal pause_requested
 @onready var health_bar = $StatsPanel/MarginContainer/StatsContainer/HealthContainer/HealthBar
 @onready var height_label = $StatsPanel/MarginContainer/StatsContainer/HeightContainer/HeightLabel
 @onready var points_label = $StatsPanel/MarginContainer/StatsContainer/PointsContainer/PointsLabel
+@onready var ship_name_label: Label = $StatsPanel/MarginContainer/StatsContainer/ShipNameLabel
 @onready var zone_marker = $ZoneProgressContainer/ZoneIndicator/ZoneMarker
 @onready var zone_progress_container: Control = $ZoneProgressContainer
 @onready var pause_button: Button = $PauseButton
@@ -67,6 +68,7 @@ var zone_positions = {}
 # Cached layout / last displayed values (to skip redundant UI updates)
 var _zone_container_width: float = 0.0
 var _health_fill_style: StyleBoxFlat
+var _max_health: float = 100.0
 var _last_health: float = NAN
 var _last_health_int: int = -1
 var _last_height: float = 0.0
@@ -88,6 +90,7 @@ func _ready() -> void:
 	pause_button.visible = false
 
 	# Set initial UI state
+	set_ship_name("")
 	update_health(100)
 	update_height(0)
 	update_points(0)
@@ -126,24 +129,39 @@ func _input(event: InputEvent) -> void:
 func set_pause_button_visible(value: bool) -> void:
 	pause_button.visible = value
 
-func update_health(value: float) -> void:
+# Health range of the selected ship (the bar and "%" label are relative to it)
+func set_max_health(max_value: float) -> void:
+	_max_health = maxf(max_value, 0.001)
+	health_bar.max_value = _max_health
+	_last_health = NAN  # Force a redraw with the new range
+
+# `max_value` (optional) also updates the range, as set_max_health()
+func update_health(value: float, max_value: float = -1.0) -> void:
+	if max_value > 0.0 and max_value != _max_health:
+		set_max_health(max_value)
 	if value == _last_health:
 		return
 	_last_health = value
 
-	var health_percent = int(value)
+	var percent: float = clampf(value / _max_health * 100.0, 0.0, 100.0)
+	var health_percent := int(ceilf(percent)) if percent > 0.0 and percent < 1.0 else int(percent)
 	if health_percent != _last_health_int:
 		_last_health_int = health_percent
 		health_label.text = "♥ Health: " + str(health_percent) + "%"
 	health_bar.value = value
 
-	# Update health bar color based on value
-	if value > 60:
+	# Update health bar color based on the percentage left
+	if percent > 60:
 		_health_fill_style.bg_color = Color(0.2, 0.8, 0.2) # Green
-	elif value > 30:
+	elif percent > 30:
 		_health_fill_style.bg_color = Color(0.9, 0.7, 0.1) # Yellow
 	else:
 		_health_fill_style.bg_color = Color(0.9, 0.2, 0.2) # Red
+
+# Selected ship's name, shown at the top of the stats panel
+func set_ship_name(ship_name: String) -> void:
+	ship_name_label.text = ship_name
+	ship_name_label.visible = not ship_name.is_empty()
 
 func update_height(value: float) -> void:
 	_last_height = value

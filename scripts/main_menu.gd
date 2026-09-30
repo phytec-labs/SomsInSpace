@@ -5,6 +5,7 @@ extends Control
 @onready var background_music = $BackgroundMusic
 @onready var menu_ui = $MainMenuUi
 @onready var credits_panel = $MainMenuCredits
+@onready var ship_select = $ShipSelectUi
 
 func _ready() -> void:
 	# A finished run's idle pooled nodes (obstacles, shots, explosions, boss)
@@ -24,6 +25,10 @@ func _ready() -> void:
 	if credits_panel:
 		credits_panel.back_pressed.connect(_on_credits_back_pressed)
 
+	# Ship select ("Start Game" -> choose a SoM -> LAUNCH)
+	ship_select.launch_requested.connect(_on_ship_launch_requested)
+	ship_select.back_requested.connect(_on_ship_select_back)
+
 func configure_input() -> void:
 	# Set mouse mode to visible to ensure proper mouse/touch handling
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
@@ -31,7 +36,7 @@ func configure_input() -> void:
 func _on_menu_item_selected(item: String) -> void:
 	match item:
 		"Start Game":
-			start_game()
+			show_ship_select()
 		"Credits":
 			show_credits()
 		"Quit":
@@ -39,6 +44,19 @@ func _on_menu_item_selected(item: String) -> void:
 
 func start_game() -> void:
 	get_tree().change_scene_to_file("res://scenes/main_level.tscn")
+
+func show_ship_select() -> void:
+	menu_ui.hide()
+	ship_select.open()
+
+func _on_ship_launch_requested(index: int) -> void:
+	GameSession.select_ship(index)
+	start_game()
+
+# BACK, ui_cancel or the ship select's idle timeout
+func _on_ship_select_back() -> void:
+	ship_select.hide()
+	menu_ui.show()
 
 func show_credits() -> void:
 	menu_ui.hide()

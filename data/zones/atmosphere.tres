@@ -10,10 +10,12 @@
 [ext_resource type="Script" path="res://scripts/data/zone_definition.gd" id="8_x8ob2"]
 [ext_resource type="Script" path="res://scripts/data/wave_definition.gd" id="9_20ipa"]
 [ext_resource type="Script" path="res://scripts/data/wave_group.gd" id="10_ow4rb"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/drone_obstacle.tscn" id="20_drone"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/blimp_obstacle.tscn" id="21_blimp"]
 
 [sub_resource type="Resource" id="Resource_h1qr7"]
 script = ExtResource("1_xuwny")
-allowed_formations = Array[int]([0, 1, 2, 4])
+allowed_formations = Array[int]([0, 1, 2, 4, 7])
 min_spread = 80.0
 max_spread = 150.0
 min_objects = 3
@@ -31,10 +33,17 @@ script = ExtResource("10_ow4rb")
 enemy_delay = 0.2
 spawn_positions = Array[StringName]([&"left", &"right"])
 
+[sub_resource type="Resource" id="Resource_swarm_at"]
+script = ExtResource("10_ow4rb")
+formation = 7
+delay = 1.5
+enemy_delay = 0.5
+formation_scene = ExtResource("20_drone")
+
 [sub_resource type="Resource" id="Resource_h3yp1"]
 script = ExtResource("9_20ipa")
 name = "Atmosphere Introduction"
-groups = Array[ExtResource("10_ow4rb")]([SubResource("Resource_8ra31"), SubResource("Resource_ddxkt")])
+groups = Array[ExtResource("10_ow4rb")]([SubResource("Resource_8ra31"), SubResource("Resource_ddxkt"), SubResource("Resource_swarm_at")])
 
 [sub_resource type="Resource" id="Resource_orqid"]
 script = ExtResource("10_ow4rb")
@@ -54,10 +63,16 @@ formation = 1
 delay = 1.5
 enemy_delay = 0.2
 
+[sub_resource type="Resource" id="Resource_blimp_at"]
+script = ExtResource("10_ow4rb")
+enemy_delay = 1.0
+scene_override = ExtResource("21_blimp")
+one_shot = true
+
 [sub_resource type="Resource" id="Resource_g6gk7"]
 script = ExtResource("9_20ipa")
 name = "Atmosphere Challenge"
-groups = Array[ExtResource("10_ow4rb")]([SubResource("Resource_orqid"), SubResource("Resource_6v61t"), SubResource("Resource_u1quh")])
+groups = Array[ExtResource("10_ow4rb")]([SubResource("Resource_orqid"), SubResource("Resource_6v61t"), SubResource("Resource_u1quh"), SubResource("Resource_blimp_at")])
 
 [resource]
 script = ExtResource("8_x8ob2")

@@ -12,6 +12,8 @@
 [ext_resource type="Script" path="res://scripts/data/zone_definition.gd" id="10_3mac4"]
 [ext_resource type="Script" path="res://scripts/data/wave_definition.gd" id="11_yifx7"]
 [ext_resource type="Script" path="res://scripts/data/wave_group.gd" id="12_4f71x"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/ufo_obstacle.tscn" id="22_ufo"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/asteroid_obstacle.tscn" id="23_asteroid"]
 
 [sub_resource type="Resource" id="Resource_de37l"]
 script = ExtResource("1_g408x")
@@ -60,10 +62,15 @@ formation = 1
 enemy_delay = 0.15
 spawn_positions = Array[StringName]([&"right"])
 
+[sub_resource type="Resource" id="Resource_ufo_ua"]
+script = ExtResource("12_4f71x")
+enemy_delay = 0.5
+scene_override = ExtResource("22_ufo")
+
 [sub_resource type="Resource" id="Resource_qn555"]
 script = ExtResource("11_yifx7")
 name = "Upper Atmosphere Battle"
-groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_y2vnn"), SubResource("Resource_s7ljn"), SubResource("Resource_tbhq3")])
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_y2vnn"), SubResource("Resource_s7ljn"), SubResource("Resource_tbhq3"), SubResource("Resource_ufo_ua")])
 completion_delay = 1.5
 
 [resource]
@@ -73,7 +80,7 @@ display_name = "Upper Atmosphere"
 short_name = "Upper Atm."
 start_height = 5000
 spawns_weapon_upgrade = true
-obstacle_scenes = Array[PackedScene]([ExtResource("2_twsbg"), ExtResource("3_33nra"), ExtResource("4_574ry"), ExtResource("5_81i2r"), ExtResource("6_xlduk"), ExtResource("7_rd6pr"), ExtResource("8_ewvk7"), ExtResource("9_mthro")])
+obstacle_scenes = Array[PackedScene]([ExtResource("2_twsbg"), ExtResource("3_33nra"), ExtResource("4_574ry"), ExtResource("5_81i2r"), ExtResource("6_xlduk"), ExtResource("7_rd6pr"), ExtResource("8_ewvk7"), ExtResource("9_mthro"), ExtResource("23_asteroid")])
 waves = Array[ExtResource("11_yifx7")]([SubResource("Resource_q34x6"), SubResource("Resource_qn555")])
 formation_settings = SubResource("Resource_de37l")
 background_color = Color(0.117647, 0.152941, 0.14902, 1)

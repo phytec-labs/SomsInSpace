@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/obstacles/mine_obstacle.gd" id="1_mine"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_mine"]
+radius = 16.0
+
+[node name="Mine" type="Area2D"]
+collision_layer = 2
+script = ExtResource("1_mine")
+points = -25
+damage = 35.0
+base_speed = 60.0
+health = 8.0
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+
+[node name="Body" type="Polygon2D" parent="Sprite2D"]
+color = Color(0.3, 0.3, 0.33, 1)
+polygon = PackedVector2Array(-7, -17, 7, -17, 17, -7, 17, 7, 7, 17, -7, 17, -17, 7, -17, -7)
+
+[node name="Light" type="Polygon2D" parent="Sprite2D"]
+color = Color(1, 0.15, 0.1, 1)
+polygon = PackedVector2Array(-3, -6, 3, -6, 6, -3, 6, 3, 3, 6, -3, 6, -6, 3, -6, -3)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_mine")

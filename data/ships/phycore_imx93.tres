@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ShipDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ship_definition.gd" id="1_ship"]
+[ext_resource type="Texture2D" uid="uid://bikfkvgj1jug6" path="res://sprites/player_ship_body2.png" id="2_tex"]
+
+; PLACEHOLDER_ART: texture is the shared player_ship_body2.png with a heavy tint.
+; Swap for a distinct 1024x1536 ship sprite (see docs/ART_SWAP_TRACKER.md) and
+; set tint back to Color(1, 1, 1, 1).
+[resource]
+script = ExtResource("1_ship")
+id = &"phycore_imx93"
+display_name = "phyCORE-i.MX 93"
+tagline = "Light and fast"
+description = "Quick and rapid-firing, but fragile."
+texture = ExtResource("2_tex")
+tint = Color(0.35, 1, 0.4, 1)
+max_health = 70.0
+speed = 380.0
+fire_cooldown_scale = 0.8
+damage_scale = 0.85

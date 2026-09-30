@@ -1,9 +1,11 @@
 # game_config.gd
-# Top-level game tuning: scroll speed, countdown and the ordered zone list.
+# Top-level game tuning: scroll speed, countdown, the ordered zone list and
+# the selectable ships.
 class_name GameConfig
 extends Resource
 
 const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
+const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 
 ## Zones ordered by ascending start_height (the first should start at 0).
 @export var zones: Array[ZoneDefinitionScript] = []
@@ -20,6 +22,8 @@ const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
 ## Optional rule: a damaging hit (obstacle contact or enemy shot) also drops
 ## the player's weapon one tier (min tier 1).
 @export var lose_weapon_tier_on_hit: bool = false
+## Selectable player ships, in ship select order (the first is the default).
+@export var ships: Array[ShipDefinitionScript] = []
 
 # Returns the highest zone whose start_height is <= height (or the first zone)
 func get_zone_for_height(height: float) -> ZoneDefinitionScript:

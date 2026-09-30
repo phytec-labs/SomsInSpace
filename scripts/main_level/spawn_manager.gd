@@ -148,8 +148,13 @@ func get_collectible_spawn_position() -> Vector2:
 
 	return Vector2(x_pos, y_pos)
 
-# Spawn a collectible
+# Spawn a collectible at a random position above the screen
 func spawn_collectible() -> Node2D:
+	return spawn_collectible_at(get_collectible_spawn_position())
+
+# Spawn a (pooled) energy collectible at spawn_position, in this manager's
+# coordinates (e.g. an enemy's `position` when it drops loot on death)
+func spawn_collectible_at(spawn_position: Vector2) -> Node2D:
 	if not energy_collectible_scene:
 		return null
 
@@ -160,8 +165,6 @@ func spawn_collectible() -> Node2D:
 		collectible.screen_exited.connect(_on_object_exited.bind(collectible))
 		collectible.object_collected.connect(_on_object_exited.bind(collectible))
 
-	# Use the collectible-specific spawn position
-	var spawn_position = get_collectible_spawn_position()
 	collectible.initialize(spawn_position)
 	_live_objects[collectible] = true
 
@@ -182,11 +185,17 @@ func spawn_obstacle(spawn_position: Vector2) -> Node2D:
 	# Select a random obstacle type for this zone
 	return _spawn_capped_obstacle(scenes[randi() % scenes.size()], spawn_position)
 
-# Spawn a specific obstacle scene (e.g. minions summoned by a boss). Same rules
-# as spawn_obstacle(): respects max_active_obstacles (returns null at the cap)
-# and gets a random speed multiplier and movement pattern.
-func spawn_minion(scene: PackedScene, spawn_position: Vector2) -> Node2D:
+# Spawn a specific obstacle scene (wave groups with scene_override /
+# formation_scene, splitting asteroids, ...). Same rules as spawn_obstacle():
+# respects max_active_obstacles (returns null at the cap) and gets a random
+# speed multiplier and movement pattern (obstacles with their own movement
+# ignore or override these). spawn_position is in this manager's coordinates.
+func spawn_scene(scene: PackedScene, spawn_position: Vector2) -> Node2D:
 	return _spawn_capped_obstacle(scene, spawn_position)
+
+# Minions summoned by the boss (same as spawn_scene())
+func spawn_minion(scene: PackedScene, spawn_position: Vector2) -> Node2D:
+	return spawn_scene(scene, spawn_position)
 
 # Spawn a boss: not subject to max_active_obstacles and never culled for
 # leaving the screen (only its destroyed signal returns it to the pool).
@@ -228,7 +237,7 @@ func _prune_freed() -> void:
 			if not is_instance_valid(key):
 				dict.erase(key)
 
-# Shared path of spawn_obstacle() / spawn_minion()
+# Shared path of spawn_obstacle() / spawn_scene() / spawn_minion()
 func _spawn_capped_obstacle(scene: PackedScene, spawn_position: Vector2) -> Node2D:
 	if not scene or _is_at_obstacle_cap():
 		return null

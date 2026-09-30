@@ -15,6 +15,7 @@ enum FormationType {
 	WAVE,         # Wave/sine pattern
 	CIRCLE,       # Circle/arc formation
 	RANDOM,       # Random cluster within bounds
+	SWARM,        # Loose cluster; wide sine sway, members jitter (FormationSettings "Swarm")
 }
 
 # Formation definitions - store standard parameters for each formation
@@ -39,6 +40,10 @@ var formation_definitions = {
 	},
 	FormationType.RANDOM: {
 		"object_count": 6,
+	},
+	# Member count comes from FormationSettings.swarm_min/max_objects
+	FormationType.SWARM: {
+		"object_count": 8,
 	}
 }
 
@@ -47,7 +52,8 @@ var default_formation_speeds = {
 	"linear": 1.0,
 	"sine": 0.8,
 	"zigzag": 0.9,
-	"spiral": 0.7
+	"spiral": 0.7,
+	"swarm": 1.0  # SWARM formations only (not in formation_patterns)
 }
 
 # Current zone's formation tuning (FormationSettings, from the zone's
@@ -85,6 +91,8 @@ func _process(delta: float) -> void:
 			var member = formation.objects[i]
 			if not is_instance_valid(member) or not member.is_active or member.formation_id != formation_id:
 				formation.objects.remove_at(i)
+				if formation.has("jitter"):
+					formation.jitter.erase(member)
 
 		# If no objects left, remove the formation
 		if formation.objects.is_empty():
@@ -160,10 +168,22 @@ func _process(delta: float) -> void:
 				pattern_offset.x = cos(formation.rotation) * formation.amplitude
 				pattern_offset.y = sin(formation.rotation) * formation.amplitude * 0.5
 
+			"swarm":
+				# Wide sine sway of the whole swarm; members add their own
+				# jitter below
+				pattern_offset.x = sin(formation.pattern_time * formation.frequency) * formation.amplitude
+
 		# Update all objects in this formation with the new positions
+		var jitter: Dictionary = formation.get("jitter", {})
 		for obj in formation.objects:
 			if is_instance_valid(obj) and obj.is_active and obj.formation_id == formation_id:
-				obj.global_position = formation.base_position + obj.formation_offset + pattern_offset
+				var member_position = formation.base_position + obj.formation_offset + pattern_offset
+				if jitter.has(obj):
+					# Small per-member orbit around its offset: [phase, angular speed]
+					var j: Vector2 = jitter[obj]
+					var a = formation.pattern_time * j.y + j.x
+					member_position += Vector2(cos(a), sin(a * 1.3)) * formation.jitter_radius
+				obj.global_position = member_position
 
 # Creates a specific formation type at the given position
 func create_formation(formation_type: FormationType, base_position: Vector2, spawn_func: Callable) -> Array:
@@ -177,34 +197,56 @@ func create_formation(formation_type: FormationType, base_position: Vector2, spa
 	var formation_id = current_formation_id
 
 	# Determine number of objects in this formation instance
-	var object_count = rng.randi_range(
-		min(formation_def.object_count, settings.min_objects),
-		min(formation_def.object_count, settings.max_objects)
-	)
+	var object_count: int
+	if formation_type == FormationType.SWARM:
+		object_count = rng.randi_range(settings.swarm_min_objects,
+			maxi(settings.swarm_min_objects, settings.swarm_max_objects))
+		# Keep the whole sway on screen
+		var width = _get_viewport_rect().size.x
+		var margin = minf(settings.swarm_sine_amplitude + settings.swarm_radius, width / 2.0)
+		base_position.x = clampf(base_position.x, margin, width - margin)
+	else:
+		object_count = rng.randi_range(
+			min(formation_def.object_count, settings.min_objects),
+			min(formation_def.object_count, settings.max_objects)
+		)
 
 	# Determine spread for this formation
 	var spread = rng.randf_range(settings.min_spread, settings.max_spread)
 
+	if formation_type == FormationType.SWARM:
+		spread = settings.swarm_radius
+
 	# Create the formation objects
 	var formation_objects = []
+	# Members that actually joined the formation (obstacles that fly on their
+	# own, e.g. the UFO, decline set_formation_data and keep formation_id -1)
+	var members = []
 
 	for i in range(object_count):
 		# Get position offset for this object in the formation
 		var offset = get_formation_position(formation_type, i, object_count, spread)
 		var spawn_position = base_position + offset
 
-		# Spawn the actual object
+		# Spawn the actual object. null = obstacle cap reached (or nothing to
+		# spawn): the rest of the formation would be null too, so stop here
 		var object = spawn_func.call(spawn_position)
+		if object == null:
+			break
 		if object:
 			# Set formation data if the object supports it
 			if object.has_method("set_formation_data"):
 				object.set_formation_data(formation_id, offset)
 			formation_objects.append(object)
+			if object.get("formation_id") == formation_id:
+				members.append(object)
 
 	# Store information about this formation
-	if not formation_objects.is_empty():
+	if not members.is_empty():
 		# Select a pattern for the formation
 		var pattern = formation_patterns[rng.randi() % formation_patterns.size()]
+		if formation_type == FormationType.SWARM:
+			pattern = "swarm"
 		var speed_multiplier = default_formation_speeds[pattern]
 
 		# Assign appropriate pattern attributes based on pattern type
@@ -219,11 +261,15 @@ func create_formation(formation_type: FormationType, base_position: Vector2, spa
 		amplitude *= settings.pattern_amplitude_scale
 		frequency *= settings.pattern_frequency_scale
 
+		if pattern == "swarm":
+			amplitude = settings.swarm_sine_amplitude
+			frequency = settings.swarm_sine_frequency
+
 		active_formations[formation_id] = {
 			"type": formation_type,
 			"base_position": base_position,
-			"objects": formation_objects,
-			"speed": formation_objects[0].base_speed * formation_objects[0].speed_multiplier * speed_multiplier,
+			"objects": members,
+			"speed": members[0].base_speed * members[0].speed_multiplier * speed_multiplier,
 			"pattern": pattern,  # Formation movement pattern
 			"pattern_time": 0.0,
 			"amplitude": amplitude,
@@ -233,8 +279,18 @@ func create_formation(formation_type: FormationType, base_position: Vector2, spa
 			"center_pull_strength": 0.5 if _is_side_spawn(base_position) else 0.0
 		}
 
+		if pattern == "swarm":
+			# Per-member jitter: Vector2(phase, angular speed), keyed by member
+			var jitter := {}
+			var variation = settings.swarm_jitter_speed_variation
+			for obj in members:
+				jitter[obj] = Vector2(rng.randf() * TAU,
+					settings.swarm_jitter_speed * rng.randf_range(1.0 - variation, 1.0 + variation))
+			active_formations[formation_id]["jitter"] = jitter
+			active_formations[formation_id]["jitter_radius"] = settings.swarm_jitter_radius
+
 		# Set all objects to use the formation's movement rather than their own
-		for obj in formation_objects:
+		for obj in members:
 			if obj.has_method("set_use_formation_movement"):
 				obj.set_use_formation_movement(true)
 
@@ -281,6 +337,13 @@ func get_formation_position(formation_type: FormationType, index: int, count: in
 			var x_pos = cos(angle) * spread
 			var y_pos = sin(angle) * spread
 			return Vector2(x_pos, y_pos)
+
+		FormationType.SWARM:
+			# Golden-angle scatter within `spread` (the swarm radius):
+			# deterministic, evenly filled, no overlap checks needed
+			var angle = index * 2.39996
+			var radius = spread * sqrt((index + 0.5) / float(count))
+			return Vector2(cos(angle) * radius, sin(angle) * radius * 0.7)
 
 		FormationType.RANDOM:
 			var temp_rng = RandomNumberGenerator.new()

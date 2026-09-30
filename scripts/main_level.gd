@@ -43,7 +43,9 @@ var current_zone: String = ""
 var current_zone_def: ZoneDefinitionScript
 
 # Boss fight (zone with a boss_scene)
-const VICTORY_BONUS_PER_HEALTH: int = 10
+# Victory bonus per percent of max health left (full health = +1000 for
+# every ship, whatever its max_health)
+const VICTORY_BONUS_PER_HEALTH_PERCENT: int = 10
 const VICTORY_SCREEN_DELAY: float = 2.5
 var boss: Node2D = null
 var victory_bonus: int = 0
@@ -69,6 +71,7 @@ func _ready() -> void:
 	scroll_speed = config.scroll_speed
 	countdown_time = config.countdown_time
 	game_hud.configure(config)
+	_apply_selected_ship()
 	spawn_manager.configure(config)
 	wave_manager = spawn_manager.get("wave_manager")
 	_update_zone(0)
@@ -101,6 +104,18 @@ func _ready() -> void:
 		game_hud.update_weapon(player.weapon_tier)
 
 	update_all_displays()
+
+# Ship chosen on the ship select screen (GameSession autoload): player stats
+# and sprite, health, HUD ship name
+func _apply_selected_ship() -> void:
+	var ship = GameSession.selected_ship
+	if ship == null:
+		return
+	player.apply_ship(ship)
+	max_health = ship.max_health
+	current_health = max_health
+	game_hud.set_max_health(max_health)
+	game_hud.set_ship_name(ship.display_name)
 
 func connect_game_objects() -> void:
 	# We'll connect signals from spawn manager
@@ -223,9 +238,21 @@ func update_health(amount: float) -> void:
 	update_health_display()
 
 	# Every damaging hit goes through here (obstacle contact via
-	# _on_object_hit, enemy shots call update_health directly)
+	# _on_object_hit, enemy shots call update_health directly); continuous
+	# drains use apply_drain() instead
 	if amount < 0.0 and config.lose_weapon_tier_on_hit and current_health > 0:
 		_drop_weapon_tier()
+
+# Continuous damage from a hazard the player escapes by moving (e.g. the UFO
+# tractor beam): call every frame it lasts with the per-second rate and the
+# frame delta. Unlike update_health() hits it never costs a weapon tier
+# (GameConfig.lose_weapon_tier_on_hit) and neither starts nor is blocked by
+# the damage blink. Game over is detected by process_game() as usual.
+func apply_drain(amount_per_second: float, delta: float) -> void:
+	if current_state != GameState.PLAYING or amount_per_second <= 0.0 or delta <= 0.0:
+		return
+	current_health = clampf(current_health - amount_per_second * delta, 0.0, max_health)
+	update_health_display()
 
 # Optional rule (GameConfig.lose_weapon_tier_on_hit): a hit costs one tier
 func _drop_weapon_tier() -> void:
@@ -405,13 +432,19 @@ func _on_boss_defeated() -> void:
 	game_hud.hide_boss_bar()
 	show_message("ORBIT REACHED!")
 
-	victory_bonus = int(current_health) * VICTORY_BONUS_PER_HEALTH
+	victory_bonus = _health_percent() * VICTORY_BONUS_PER_HEALTH_PERCENT
 	update_points(victory_bonus)
 
 	# Let the boss death sequence play out before the results screen. The
 	# timeout is connected to a method (rather than awaited) so nothing
 	# resumes if the level is freed during the wait.
 	get_tree().create_timer(VICTORY_SCREEN_DELAY).timeout.connect(_show_victory_screen)
+
+# Health left as a whole percentage of the ship's max_health (0..100)
+func _health_percent() -> int:
+	if max_health <= 0.0:
+		return 0
+	return int(round(current_health / max_health * 100.0))
 
 func _show_victory_screen() -> void:
 	if not is_inside_tree() or current_state != GameState.VICTORY:

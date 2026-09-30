@@ -7,10 +7,11 @@
 [ext_resource type="Script" path="res://scripts/data/zone_definition.gd" id="5_thaql"]
 [ext_resource type="Script" path="res://scripts/data/wave_definition.gd" id="6_1hby0"]
 [ext_resource type="Script" path="res://scripts/data/wave_group.gd" id="7_diwyf"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/drone_obstacle.tscn" id="20_drone"]
 
 [sub_resource type="Resource" id="Resource_672sh"]
 script = ExtResource("1_0stj1")
-allowed_formations = Array[int]([0, 1, 3])
+allowed_formations = Array[int]([0, 1, 3, 7])
 
 [sub_resource type="Resource" id="Resource_a76yq"]
 script = ExtResource("7_diwyf")
@@ -38,10 +39,17 @@ formation = 1
 delay = 1.5
 enemy_delay = 0.3
 
+[sub_resource type="Resource" id="Resource_swarm_gr"]
+script = ExtResource("7_diwyf")
+formation = 7
+delay = 1.5
+enemy_delay = 0.5
+formation_scene = ExtResource("20_drone")
+
 [sub_resource type="Resource" id="Resource_0u8y8"]
 script = ExtResource("6_1hby0")
 name = "Ground Easy"
-groups = Array[ExtResource("7_diwyf")]([SubResource("Resource_ss5l1"), SubResource("Resource_0b482")])
+groups = Array[ExtResource("7_diwyf")]([SubResource("Resource_ss5l1"), SubResource("Resource_0b482"), SubResource("Resource_swarm_gr")])
 completion_delay = 2.5
 
 [resource]

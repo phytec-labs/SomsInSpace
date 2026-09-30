@@ -1,0 +1,39 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/obstacles/blimp_obstacle.gd" id="1_blimp"]
+[ext_resource type="Texture2D" uid="uid://bvpj0pvgpk50q" path="res://sprites/balloon_5.png" id="2_tex"]
+[ext_resource type="PackedScene" uid="uid://ck2emogghwdgk" path="res://scenes/effects/enemy_projectile_2.tscn" id="3_proj"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_blimp"]
+radius = 42.0
+height = 120.0
+
+[node name="Blimp" type="Area2D"]
+collision_layer = 2
+script = ExtResource("1_blimp")
+points = -150
+damage = 25.0
+base_speed = 25.0
+health = 80.0
+projectile_scene = ExtResource("3_proj")
+projectile_speed = 200.0
+accuracy = 0.9
+max_aim_angle = 45.0
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+self_modulate = Color(0.55, 0.12, 0.12, 1)
+position = Vector2(0, 25)
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_blimp")
+
+[node name="GunPoint1" type="Marker2D" parent="."]
+position = Vector2(-30, 85)
+
+[node name="GunPoint2" type="Marker2D" parent="."]
+position = Vector2(0, 90)
+
+[node name="GunPoint3" type="Marker2D" parent="."]
+position = Vector2(30, 85)
