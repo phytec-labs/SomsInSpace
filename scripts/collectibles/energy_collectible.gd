@@ -8,27 +8,18 @@ class_name EnergyCollectible
 @export var fall_speed: float = 100.0  # Speed at which collectible falls
 @export var collect_sound: AudioStream = preload("res://audio/retro-coin-1.mp3")
 @export var sound_pitch_variation: float = 0.1
-var audio_player: AudioStreamPlayer2D
 
-var base_scale: float
+var base_scale: float = -1.0  # Captured on first spawn; scale.x is animated
 var time_alive: float = 0.0
 
 func _ready() -> void:
 	super._ready()
-
-	# Initialize audio player
-	audio_player = AudioStreamPlayer2D.new()
-	audio_player.name = "CollectAudioPlayer"
-	add_child(audio_player)
 
 	# Try to load a default sound if none is assigned
 	if not collect_sound:
 		# Try to load a default sound (adjust the path to your actual audio file)
 		if ResourceLoader.exists("res://audio/collect.mp3"):
 			collect_sound = load("res://audio/collect.mp3")
-
-	if collect_sound:
-		audio_player.stream = collect_sound
 
 func _process(delta: float) -> void:
 	if is_active:
@@ -43,26 +34,29 @@ func _process(delta: float) -> void:
 		# Check if off-screen
 		check_if_offscreen()
 
-# Override initialize to add some debugging
+# Reset per-spawn state (collectibles are reused from the spawn manager's pool)
 func initialize(spawn_position: Vector2) -> void:
-	base_scale = scale.x
+	if base_scale < 0.0:
+		base_scale = scale.x
+	scale.x = base_scale
+	time_alive = 0.0
 	super.initialize(spawn_position)
 
 func handle_player_collision() -> void:
-	# Play collect sound before being destroyed
-	if audio_player and audio_player.stream:
-		# Detach the audio player so it continues playing after the collectible is gone
-		remove_child(audio_player)
-		get_parent().add_child(audio_player)
+	if is_being_collected:
+		return
 
-		# Position at the collectible's last position
-		audio_player.global_position = global_position
-
+	# Play collect sound on a one-shot player owned by the current scene, so it
+	# keeps playing after this collectible is deactivated or reused
+	if collect_sound:
+		var audio_player = AudioStreamPlayer2D.new()
+		audio_player.stream = collect_sound
 		# Add pitch variation for more natural sound
 		audio_player.pitch_scale = 1.0 + randf_range(-sound_pitch_variation, sound_pitch_variation)
-		audio_player.play()
-
-		# Set up auto-deletion after playing
 		audio_player.finished.connect(audio_player.queue_free)
+		var scene = get_tree().current_scene
+		(scene if scene else get_parent()).add_child(audio_player)
+		audio_player.global_position = global_position
+		audio_player.play()
 
 	super.handle_player_collision()

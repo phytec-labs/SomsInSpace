@@ -1,6 +1,15 @@
 # level.gd
 extends Node2D
 
+# Preloaded (not referenced by class_name) so this works even before the
+# editor has rebuilt the global class cache.
+const GameConfigScript := preload("res://scripts/data/game_config.gd")
+const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
+const EXPLOSION_SCENE := preload("res://scenes/effects/explosion.tscn")
+
+## All zone / pacing tuning (see res://data/game_config.tres)
+@export var config: GameConfigScript
+
 # Node references
 @onready var player: CharacterBody2D = $Player
 @onready var spawn_manager: Node2D = $SpawnManager
@@ -10,6 +19,7 @@ extends Node2D
 @onready var countdown_label: Label = $UI/CountdownLabel
 @onready var game_over_screen: Control = $UI/GameOverScreen
 @onready var game_hud = $UI/GameHUDUi
+@onready var pause_menu: Control = $UI/PauseMenu
 
 # Game States
 enum GameState {COUNTDOWN, PLAYING, PAUSED, GAME_OVER}
@@ -17,8 +27,7 @@ var current_state: GameState = GameState.COUNTDOWN
 
 # Height tracking
 var height_score: float = 0.0
-@export var base_player_speed: float = 100.0
-var scroll_speed: float = base_player_speed
+var scroll_speed: float = 100.0  # From config.scroll_speed
 
 # Player stats
 var max_health: float = 100.0
@@ -26,11 +35,12 @@ var current_health: float = max_health
 var points: int = 0  # New variable to track points
 
 # Countdown
-var countdown_time: float = 3.0
+var countdown_time: float = 3.0  # From config.countdown_time
 var current_countdown: float = 0.0
 
-# Zone tracking
-var current_zone: String = "ground"
+# Zone tracking (current_zone is the zone id, e.g. "ground")
+var current_zone: String = ""
+var current_zone_def: ZoneDefinitionScript
 
 # Weapon upgrade variables
 @export var weapon_upgrade_scene: PackedScene
@@ -40,6 +50,16 @@ var upgrade_spawned: bool = false
 func _ready() -> void:
 	print("Main Level Connected joypads: ", Input.get_connected_joypads())
 	add_to_group("level")
+
+	# Apply config and hand it to the systems that need it
+	if not config:
+		push_error("MainLevel: no GameConfig assigned")
+		config = GameConfigScript.new()
+	scroll_speed = config.scroll_speed
+	countdown_time = config.countdown_time
+	game_hud.configure(config)
+	spawn_manager.configure(config)
+	_update_zone(0)
 
 	#Start background music
 	if background_music:
@@ -56,6 +76,12 @@ func _ready() -> void:
 	connect_game_objects()
 	$UI/GameOverScreen.retry_pressed.connect(_on_game_over_retry)
 	$UI/GameOverScreen.main_menu_pressed.connect(_on_game_over_main_menu)
+
+	# Pause menu / HUD pause button
+	pause_menu.resume_pressed.connect(resume_game)
+	pause_menu.main_menu_pressed.connect(_on_pause_main_menu)
+	game_hud.pause_requested.connect(pause_game)
+	game_hud.set_pause_button_visible(false)
 
 	# Add GameHud to the "hud" group so it can be found by collectibles
 	if game_hud:
@@ -81,8 +107,49 @@ func _process(delta: float) -> void:
 			process_countdown(delta)
 		GameState.PLAYING:
 			process_game(delta)
+		GameState.PAUSED:
+			pass  # Tree is paused; _process doesn't run in this state
 		GameState.GAME_OVER:
 			pass
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Escape pauses during play. While paused this node doesn't process
+	# input; the pause menu (PROCESS_MODE_ALWAYS) handles ui_cancel to resume.
+	if event.is_action_pressed("ui_cancel") and current_state == GameState.PLAYING:
+		get_viewport().set_input_as_handled()
+		pause_game()
+
+func _exit_tree() -> void:
+	# Never leave the tree paused when this level goes away (scene change,
+	# reload, quit), so the next scene isn't born paused.
+	get_tree().paused = false
+
+func pause_game() -> void:
+	# Only pause during active play (not countdown or game over)
+	if current_state != GameState.PLAYING:
+		return
+	current_state = GameState.PAUSED
+	game_hud.set_pause_button_visible(false)
+	get_tree().paused = true
+	pause_menu.show()
+
+func resume_game() -> void:
+	if current_state != GameState.PAUSED:
+		return
+	pause_menu.hide()
+	current_state = GameState.PLAYING
+	# Clear any touch/fire state the player latched before the pause; the
+	# matching release events were delivered while the player was paused.
+	player.reset_input_state()
+	get_tree().paused = false
+	game_hud.set_pause_button_visible(true)
+
+func _on_pause_main_menu() -> void:
+	if current_state != GameState.PAUSED:
+		return
+	# Unpause BEFORE changing scene so the main menu isn't born paused
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
 func process_countdown(delta: float) -> void:
 	current_countdown -= delta
@@ -137,7 +204,7 @@ func _on_object_collected(object: Node2D) -> void:
 
 func _on_object_hit(object: Node2D) -> void:
 	if object is Obstacle:
-		if not player.is_blinking:
+		if not player.is_blinking and not player.is_dead:
 			update_health(-object.damage)
 			player.start_blink()  # Start the blink effect)
 
@@ -160,6 +227,7 @@ func update_countdown_display() -> void:
 func start_game() -> void:
 	countdown_label.visible = false
 	current_state = GameState.PLAYING
+	game_hud.set_pause_button_visible(true)
 	player.enable_movement()
 	spawn_manager.start_spawning()
 	cloud_manager.start_spawning()
@@ -170,6 +238,7 @@ func start_game() -> void:
 
 func game_over() -> void:
 	current_state = GameState.GAME_OVER
+	game_hud.set_pause_button_visible(false)
 
 	# Create player explosion before hiding the player
 	create_player_explosion()
@@ -192,52 +261,47 @@ func game_over() -> void:
 		game_over_screen.show()
 
 func create_player_explosion() -> void:
-	# Define the explosion scene - same as enemies use
-	var explosion_scene = preload("res://scenes/effects/explosion.tscn")
+	# Same (pooled) explosion scene the enemies use
+	var explosion = ObjectPool.acquire(EXPLOSION_SCENE, self)
+	explosion.global_position = player.global_position
 
-	# Create the explosion
-	if explosion_scene:
-		var explosion = explosion_scene.instantiate()
-		add_child(explosion)
-		explosion.global_position = player.global_position
-
-		# Make explosion bigger for player (type 2 = LARGE)
-		explosion.set_explosion_type(2)
-		explosion.start()
+	# Make explosion bigger for player (type 2 = LARGE)
+	explosion.set_explosion_type(2)
+	explosion.start()
 
 func update_spawn_difficulty(height: int) -> void:
-	# Use a dictionary for zone thresholds
-	var zone_thresholds = {
-		"ground": 0,
-		"atmosphere": 3000,
-		"upper_atmosphere": 10000,
-		"space": 30000
-	}
-
-	# Check if we should spawn the weapon upgrade at the atmosphere level
-	if current_zone == "atmosphere" and not upgrade_spawned:
+	# Spawn the weapon upgrade (once per run) in the zone that asks for it
+	if current_zone_def and current_zone_def.spawns_weapon_upgrade and not upgrade_spawned:
 		spawn_weapon_upgrade()
 
-	# Determine new zone
-	var new_zone = "ground"
-	for zone in zone_thresholds:
-		if height >= zone_thresholds[zone]:
-			new_zone = zone
+	_update_zone(height)
 
-	# Only update if the zone has changed
-	if new_zone != current_zone:
-		current_zone = new_zone
+# Switch every manager to the zone for `height` (no-op if unchanged)
+func _update_zone(height: float) -> void:
+	var zone: ZoneDefinitionScript = config.get_zone_for_height(height)
+	if zone == null or zone == current_zone_def:
+		return
+	current_zone_def = zone
+	current_zone = String(zone.id)
 
-		# Update all managers at once
-		spawn_manager.set_spawn_zone(new_zone)
-		atmosphere_manager.set_zone(new_zone)
-		cloud_manager.set_zone(new_zone)
+	# Update all managers at once
+	spawn_manager.set_spawn_zone(zone)
+	atmosphere_manager.set_zone(current_zone)
+	cloud_manager.set_zone(current_zone)
+	cloud_manager.set_clouds_enabled(zone.has_clouds)
 
 func _on_game_over_retry() -> void:
+	# Only reachable from the game over screen, never while paused
+	if current_state != GameState.GAME_OVER:
+		return
+	get_tree().paused = false
 	# Reload the current scene
 	get_tree().reload_current_scene()
 
 func _on_game_over_main_menu() -> void:
+	if current_state != GameState.GAME_OVER:
+		return
+	get_tree().paused = false
 	# Transition to main menu scene
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 

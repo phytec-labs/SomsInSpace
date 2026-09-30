@@ -22,7 +22,10 @@ signal screen_exited
 var is_active: bool = false
 var is_being_collected: bool = false  # Prevent multiple collisions during collection
 var has_exited_screen: bool = false
-var destroy_points = abs(points)
+var has_entered_screen: bool = false  # Objects spawned off-screen only count as "exited" once they've been on-screen
+# Animation the sprite starts with (autoplay, else the scene's current one);
+# replayed on every spawn so reused objects don't resume e.g. "attack"
+var _spawn_animation: StringName = &""
 
 func _ready() -> void:
 	# Set up collision properties
@@ -43,6 +46,9 @@ func _ready() -> void:
 	# Configure animated sprite if it exists
 	if animated_sprite:
 		animated_sprite.speed_scale = animation_speed
+		_spawn_animation = StringName(animated_sprite.autoplay)
+		if _spawn_animation == &"":
+			_spawn_animation = animated_sprite.animation
 
 func _process(delta: float) -> void:
 	if is_active:
@@ -57,12 +63,19 @@ func check_if_offscreen() -> void:
 	var viewport_rect = get_viewport_rect()
 	var margin = 100.0
 
-	# Check if object has moved completely off screen
-	if (position.y > viewport_rect.size.y + margin or  # Below screen
+	# Objects only ever travel downward, so passing the bottom edge always
+	# counts as exiting. The other edges only count once the object has been
+	# within the play area, so objects spawned beyond the side/top edges are
+	# not culled before they fly in.
+	var below_screen = position.y > viewport_rect.size.y + margin
+	var outside = (below_screen or
 		position.y < -margin * 2 or                   # Far above screen
 		position.x > viewport_rect.size.x + margin or  # Right of screen
-		position.x < -margin):                        # Left of screen
+		position.x < -margin)                         # Left of screen
 
+	if not outside:
+		has_entered_screen = true
+	elif below_screen or has_entered_screen:
 		has_exited_screen = true  # Set flag to prevent repeated signals
 		emit_signal("screen_exited")
 
@@ -70,7 +83,8 @@ func initialize(spawn_position: Vector2) -> void:
 	position = spawn_position
 	is_active = true
 	is_being_collected = false
-	has_exited_screen = false  # Reset the flag when reusing objects
+	has_exited_screen = false  # Reset the flags when reusing objects
+	has_entered_screen = false
 	show()
 
 	# Handle visuals
@@ -78,7 +92,11 @@ func initialize(spawn_position: Vector2) -> void:
 		sprite.show()
 	if animated_sprite:
 		animated_sprite.show()
-		animated_sprite.play()
+		if _spawn_animation != &"" and animated_sprite.sprite_frames \
+				and animated_sprite.sprite_frames.has_animation(_spawn_animation):
+			animated_sprite.play(_spawn_animation)
+		else:
+			animated_sprite.play()
 
 	# Enable collisions
 	if collision_shape:

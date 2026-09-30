@@ -50,7 +50,8 @@ class Cloud extends Sprite2D:
 var available_clouds: Array[Cloud] = []
 var active_clouds: Array[Cloud] = []
 var is_spawning: bool = false
-var current_zone: String = "ground"
+var current_zone: String = "ground"  # Informational; see set_clouds_enabled()
+var clouds_enabled: bool = true  # From ZoneDefinition.has_clouds (ground starts with clouds)
 var height_score: float = 0.0
 
 # Cloud textures
@@ -195,11 +196,15 @@ func recycle_cloud(cloud: Cloud) -> void:
 	available_clouds.append(cloud)
 
 func should_spawn_clouds() -> bool:
-	return current_zone in ["ground", "atmosphere"]
+	return clouds_enabled
 
 func set_zone(zone: String) -> void:
 	current_zone = zone
-	
+
+# Called by main_level.gd with the active ZoneDefinition's has_clouds flag
+func set_clouds_enabled(enabled: bool) -> void:
+	clouds_enabled = enabled
+
 	# If we're leaving the cloud zones, stop spawning new clouds
 	# but let existing clouds continue until they move off screen
 	if not should_spawn_clouds():

@@ -3,6 +3,11 @@ extends Node2D
 
 signal object_spawned(game_object)
 
+const GameConfigScript := preload("res://scripts/data/game_config.gd")
+const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
+
+const MOVEMENT_PATTERNS: Array[String] = ["linear", "sine", "zigzag"]
+
 # Node references
 @onready var formation_manager = $FormationManager
 @onready var wave_manager = $WaveManager
@@ -15,14 +20,6 @@ signal object_spawned(game_object)
 @export_range(0.0, 1.0) var initial_collectible_chance: float = 0.7  # Higher chance for collectibles
 
 @export var energy_collectible_scene: PackedScene
-# Keep obstacle scenes for backward compatibility and direct spawning
-@export var obstacle_scenes: Array[PackedScene] = []
-
-@export_group("Obstacle Scenes by Zone")
-@export var ground_obstacle_scenes: Array[PackedScene] = []
-@export var atmosphere_obstacle_scenes: Array[PackedScene] = []
-@export var upper_atmosphere_obstacle_scenes: Array[PackedScene] = []
-@export var space_obstacle_scenes: Array[PackedScene] = []
 
 # Enemy-specific properties
 @export_group("Enemy Settings")
@@ -32,13 +29,17 @@ signal object_spawned(game_object)
 # Game state variables
 var current_collectible_time: float
 var current_collectible_chance: float
-var current_zone: String = "ground"
+var config: GameConfigScript
+var current_zone: ZoneDefinitionScript  # Obstacle scenes etc. come from here
 var is_spawning: bool = false
 var rng = RandomNumberGenerator.new()
 
 # Object pools
 var obstacle_pool = {}
 var collectible_pool = []
+# Every obstacle instance this manager created (active or pooled), used to
+# count active obstacles for GameConfig.max_active_obstacles
+var _obstacle_instances: Array[Node2D] = []
 
 func _ready() -> void:
 	rng.randomize()
@@ -59,19 +60,20 @@ func _ready() -> void:
 	if not wave_manager:
 		push_error("SpawnManager: WaveManager not found!")
 
-	# Initialize object pools
+# Called by main_level.gd with the GameConfig before spawning starts.
+# main_level then selects the starting zone via set_spawn_zone().
+func configure(game_config: GameConfigScript) -> void:
+	config = game_config
 	initialize_obstacle_pools()
 
 func initialize_obstacle_pools() -> void:
-	# Create pools for each obstacle type to improve performance
-	for scene_array in [obstacle_scenes, ground_obstacle_scenes, atmosphere_obstacle_scenes,
-						upper_atmosphere_obstacle_scenes, space_obstacle_scenes]:
-		for i in range(scene_array.size()):
-			var scene = scene_array[i]
-			if scene:
-				var scene_path = scene.resource_path
-				if not obstacle_pool.has(scene_path):
-					obstacle_pool[scene_path] = []
+	# Create pools for each obstacle type used by any zone
+	if not config:
+		return
+	for zone in config.zones:
+		for scene in zone.obstacle_scenes:
+			if scene and not obstacle_pool.has(scene.resource_path):
+				obstacle_pool[scene.resource_path] = []
 
 # Start spawning objects
 func start_spawning() -> void:
@@ -96,10 +98,12 @@ func stop_spawning() -> void:
 	
 	print("SpawnManager stopped spawning")
 
-# Set the current zone to adjust spawn behavior
-func set_spawn_zone(zone: String) -> void:
+# Set the current zone (a ZoneDefinition) to adjust spawn behavior
+func set_spawn_zone(zone: ZoneDefinitionScript) -> void:
+	if zone == null:
+		return
 	current_zone = zone
-	print("SpawnManager zone set to: ", zone)
+	print("SpawnManager zone set to: ", zone.id)
 
 	# Update formation manager
 	if formation_manager:
@@ -109,20 +113,9 @@ func set_spawn_zone(zone: String) -> void:
 	if wave_manager:
 		wave_manager.set_zone(zone)
 
-	# Adjust collectible spawn time based on zone
-	match zone:
-		"ground":
-			current_collectible_time = base_collectible_time
-			current_collectible_chance = initial_collectible_chance
-		"atmosphere":
-			current_collectible_time = base_collectible_time * 0.8
-			current_collectible_chance = initial_collectible_chance * 0.9
-		"upper_atmosphere":
-			current_collectible_time = base_collectible_time * 0.7
-			current_collectible_chance = initial_collectible_chance * 0.8
-		"space":
-			current_collectible_time = base_collectible_time * 0.6
-			current_collectible_chance = initial_collectible_chance * 0.7
+	# Adjust collectible spawn time / chance based on zone
+	current_collectible_time = base_collectible_time * zone.collectible_time_scale
+	current_collectible_chance = initial_collectible_chance * zone.collectible_chance_scale
 
 	# Ensure we don't go below minimum time
 	current_collectible_time = max(current_collectible_time, min_collectible_time)
@@ -130,17 +123,9 @@ func set_spawn_zone(zone: String) -> void:
 
 # Get appropriate obstacle scenes for current zone
 func get_obstacle_scenes_for_zone() -> Array[PackedScene]:
-	match current_zone:
-		"ground":
-			return ground_obstacle_scenes if not ground_obstacle_scenes.is_empty() else [obstacle_scenes[0]] if not obstacle_scenes.is_empty() else []
-		"atmosphere":
-			return atmosphere_obstacle_scenes if not atmosphere_obstacle_scenes.is_empty() else obstacle_scenes
-		"upper_atmosphere":
-			return upper_atmosphere_obstacle_scenes if not upper_atmosphere_obstacle_scenes.is_empty() else obstacle_scenes
-		"space":
-			return space_obstacle_scenes if not space_obstacle_scenes.is_empty() else obstacle_scenes
-		_:
-			return obstacle_scenes if not obstacle_scenes.is_empty() else []
+	if current_zone == null:
+		return []
+	return current_zone.obstacle_scenes
 
 # Collectible timer callback - handles ONLY collectibles now
 func _on_collectible_timer_timeout() -> void:
@@ -176,12 +161,16 @@ func spawn_collectible() -> Node2D:
 		return null
 
 	# Get collectible from pool or create new
-	var collectible = null
-	if not collectible_pool.is_empty():
-		collectible = collectible_pool.pop_back()
-	else:
+	var collectible = _take_reusable(collectible_pool)
+	if not collectible:
 		collectible = energy_collectible_scene.instantiate()
 		add_child(collectible)
+
+	# Return it to the pool once it leaves the screen or is collected
+	if not collectible.has_meta("_spawn_pool_connected"):
+		collectible.set_meta("_spawn_pool_connected", true)
+		collectible.screen_exited.connect(_on_object_exited.bind(collectible))
+		collectible.object_collected.connect(_on_object_exited.bind(collectible))
 
 	# Use the collectible-specific spawn position
 	var spawn_position = get_collectible_spawn_position()
@@ -192,13 +181,19 @@ func spawn_collectible() -> Node2D:
 
 # This function is called by the wave manager to spawn obstacles in formations
 func spawn_obstacle(spawn_position: Vector2) -> Node2D:
-	var obstacle_scenes = get_obstacle_scenes_for_zone()
-	if obstacle_scenes.is_empty():
+	var scenes = get_obstacle_scenes_for_zone()
+	if scenes.is_empty():
 		push_warning("No obstacle scenes available for the current zone!")
 		return null
 
+	# Safety valve: skip this spawn while too many obstacles are alive
+	# (FormationManager / WaveManager tolerate a null here)
+	if config and config.max_active_obstacles > 0 \
+			and get_active_obstacle_count() >= config.max_active_obstacles:
+		return null
+
 	# Select a random obstacle type for this zone
-	var selected_scene = obstacle_scenes[randi() % obstacle_scenes.size()]
+	var selected_scene = scenes[randi() % scenes.size()]
 	if not selected_scene:
 		return null
 
@@ -207,6 +202,7 @@ func spawn_obstacle(spawn_position: Vector2) -> Node2D:
 	if not obstacle:
 		obstacle = selected_scene.instantiate()
 		add_child(obstacle)
+		_obstacle_instances.append(obstacle)
 
 	# Set random speed multiplier if the obstacle supports it
 	if obstacle.has_method("set_speed_multiplier"):
@@ -215,14 +211,8 @@ func spawn_obstacle(spawn_position: Vector2) -> Node2D:
 
 	# Set random movement pattern if the obstacle supports it
 	if obstacle.has_method("set_movement_pattern"):
-		var patterns = ["linear", "sine", "zigzag"]
-		var weights = [0.5, 0.3, 0.2] # Higher weight = more common
-
-		# Adjust pattern weights based on zone
-		if current_zone == "upper_atmosphere":
-			weights = [0.3, 0.4, 0.3]
-		elif current_zone == "space":
-			weights = [0.2, 0.4, 0.4]
+		var patterns = MOVEMENT_PATTERNS
+		var weights = current_zone.get_pattern_weights() # Higher weight = more common
 
 		var total_weight = 0.0
 		for w in weights:
@@ -243,33 +233,72 @@ func spawn_obstacle(spawn_position: Vector2) -> Node2D:
 	# Initialize the obstacle
 	obstacle.initialize(spawn_position)
 
-	# Connect signals if not already connected
-	if not obstacle.is_connected("screen_exited", Callable(self, "_on_object_exited")):
+	# Return it to the pool once it leaves the screen or is destroyed
+	# (connected once per instance; reused instances keep their connections)
+	if not obstacle.has_meta("_spawn_pool_connected"):
+		obstacle.set_meta("_spawn_pool_connected", true)
 		obstacle.screen_exited.connect(_on_object_exited.bind(obstacle))
+		if obstacle.has_signal("destroyed"):
+			obstacle.destroyed.connect(_on_object_exited.bind(obstacle))
 
 	emit_signal("object_spawned", obstacle)
 	return obstacle
+
+# Obstacles currently alive (is_active is cleared by deactivate(), which every
+# destroy / exit / return-to-pool path goes through)
+func get_active_obstacle_count() -> int:
+	var count := 0
+	for i in range(_obstacle_instances.size() - 1, -1, -1):
+		var obstacle = _obstacle_instances[i]
+		if not is_instance_valid(obstacle):
+			_obstacle_instances.remove_at(i)
+		elif obstacle.is_active:
+			count += 1
+	return count
 
 # Object exited screen callback
 func _on_object_exited(object: Node2D) -> void:
 	return_to_pool(object)
 
 # Object pool management
+# Pooled objects are not reused until POOL_REUSE_DELAY_FRAMES frames after they
+# were returned, so systems that still hold a reference (e.g. the formation
+# manager, which drops inactive members during its own _process) let go first.
+const POOL_REUSE_DELAY_FRAMES: int = 2
+
 func get_from_pool(scene_path: String) -> Node2D:
-	if obstacle_pool.has(scene_path) and not obstacle_pool[scene_path].is_empty():
-		var obj = obstacle_pool[scene_path].pop_back()
-		return obj
+	if obstacle_pool.has(scene_path):
+		return _take_reusable(obstacle_pool[scene_path])
+	return null
+
+func _take_reusable(pool: Array) -> Node2D:
+	var current_frame = Engine.get_process_frames()
+	for i in range(pool.size() - 1, -1, -1):
+		var obj = pool[i]
+		if not is_instance_valid(obj):
+			pool.remove_at(i)
+			continue
+		if current_frame - int(obj.get_meta("_pooled_frame", 0)) >= POOL_REUSE_DELAY_FRAMES:
+			pool.remove_at(i)
+			return obj
 	return null
 
 func return_to_pool(object: Node2D) -> void:
-	# Handle collectibles
+	var pool = null
 	if object is EnergyCollectible:
-		object.deactivate()
-		collectible_pool.append(object)
+		# Handle collectibles
+		pool = collectible_pool
+	else:
+		# Handle obstacles
+		var scene_path = object.scene_file_path
+		if scene_path and obstacle_pool.has(scene_path):
+			pool = obstacle_pool[scene_path]
+
+	if pool == null:
 		return
-		
-	# Handle obstacles
-	var scene_path = object.scene_file_path
-	if scene_path and obstacle_pool.has(scene_path):
-		object.deactivate()
-		obstacle_pool[scene_path].append(object)
+
+	object.deactivate()
+	# Guard against double returns (e.g. destroyed and exited in the same frame)
+	if not pool.has(object):
+		object.set_meta("_pooled_frame", Engine.get_process_frames())
+		pool.append(object)

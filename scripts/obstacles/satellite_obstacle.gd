@@ -12,10 +12,12 @@ func _ready() -> void:
 	damage = 25.0
 	base_speed = 40.0
 	movement_pattern = "linear"
-	
+
+# Re-rolled on every spawn (including reuse from the pool)
+func _randomize_on_spawn() -> void:
 	# Satellites almost always rotate
 	rotation_speed = randf_range(min_rotation_speed, max_rotation_speed)
 	rotation_speed *= -1 if randf() < 0.5 else 1  # Random direction
-	
+
 	# Random initial rotation
 	rotation_degrees = randf_range(0, 360)

@@ -2,6 +2,10 @@
 extends GameObject
 class_name Obstacle
 
+# Emitted once when the obstacle is destroyed (shot down or rammed by the
+# player), so the spawner can return it to its pool.
+signal destroyed
+
 # Base obstacle properties
 @export var damage: float = 10.0
 @export var base_speed: float = 100.0
@@ -47,7 +51,11 @@ var rng = RandomNumberGenerator.new()
 var gun_points = []
 
 var shoot_audio_player: AudioStreamPlayer2D
-var explosion_audio_player: AudioStreamPlayer2D
+
+# Configured values captured on the first spawn (after subclass _ready() and
+# scene overrides have been applied) so pooled instances can be reset.
+var max_health: float = -1.0
+var _base_rotation: float = 0.0
 
 # Optional rotation
 @export var rotation_speed: float = 0.0  # Degrees per second
@@ -66,23 +74,19 @@ func _ready() -> void:
 		if points == 0:
 			points = -1
 	
-	# Initialize with randomized cooldown
-	shoot_cooldown = max(1.0, 2.0 + rng.randf_range(-cooldown_variation, cooldown_variation))
+	# Remember the scene-configured rotation (e.g. planes/aliens face down)
+	_base_rotation = rotation
 
-	# Initialize audio players
-	# Shooting sound player
+	# Initialize with randomized cooldown
+	_reset_shoot_cooldown()
+
+	# Shooting sound player (the explosion sound uses a one-shot player created
+	# on demand, see _play_explosion_sound())
 	shoot_audio_player = AudioStreamPlayer2D.new()
 	shoot_audio_player.name = "ShootAudioPlayer"
 	add_child(shoot_audio_player)
 	if shoot_sound:
 		shoot_audio_player.stream = shoot_sound
-
-	# Explosion sound player
-	explosion_audio_player = AudioStreamPlayer2D.new()
-	explosion_audio_player.name = "ExplosionAudioPlayer"
-	add_child(explosion_audio_player)
-	if explosion_sound:
-		explosion_audio_player.stream = explosion_sound
 
 	# Find all gun point nodes
 	for child in get_children():
@@ -108,18 +112,13 @@ func _process(delta: float) -> void:
 		# Still update rotation if set
 		if rotation_speed != 0:
 			rotation_degrees += rotation_speed * delta
-			
-		 # Handle shooting if enabled
-		if can_shoot and projectile_scene:
-			time_since_last_shot += delta
-			if time_since_last_shot >= shoot_cooldown:
-				# Random chance to shoot
-				if rng.randf() < shoot_chance:
-					shoot()
-					time_since_last_shot = 0.0
-					# Randomize next cooldown
-					shoot_cooldown = max(0.5, shoot_cooldown + rng.randf_range(-cooldown_variation, cooldown_variation))
 
+		_process_shooting(delta)
+
+		# Formations only move downward; release members once they pass the
+		# bottom of the screen (side edges are ignored because formation
+		# patterns can swing members briefly past them)
+		_check_formation_offscreen()
 		return
 
 	# Rest of the original movement code for non-formation objects
@@ -175,16 +174,7 @@ func _process(delta: float) -> void:
 		if movement_pattern != "sine" or move_toward_center:
 			position.x += velocity.x * delta
 
-	# Handle shooting if enabled
-	if can_shoot and projectile_scene:
-		time_since_last_shot += delta
-		if time_since_last_shot >= shoot_cooldown:
-			# Random chance to shoot
-			if rng.randf() < shoot_chance:
-				shoot()
-				time_since_last_shot = 0.0
-				# Randomize next cooldown
-				shoot_cooldown = max(0.5, shoot_cooldown + rng.randf_range(-cooldown_variation, cooldown_variation))
+	_process_shooting(delta)
 
 	# Apply rotation if set
 	if rotation_speed != 0:
@@ -193,13 +183,54 @@ func _process(delta: float) -> void:
 	# Check if off-screen
 	check_if_offscreen()
 
+func _process_shooting(delta: float) -> void:
+	if not (can_shoot and projectile_scene):
+		return
+
+	time_since_last_shot += delta
+	if time_since_last_shot >= shoot_cooldown:
+		# Random chance to shoot
+		if rng.randf() < shoot_chance:
+			shoot()
+			time_since_last_shot = 0.0
+			# Randomize next cooldown
+			shoot_cooldown = max(0.5, shoot_cooldown + rng.randf_range(-cooldown_variation, cooldown_variation))
+
+func _reset_shoot_cooldown() -> void:
+	shoot_cooldown = max(1.0, 2.0 + rng.randf_range(-cooldown_variation, cooldown_variation))
+
+func _check_formation_offscreen() -> void:
+	if has_exited_screen:
+		return
+	if position.y > get_viewport_rect().size.y + 100.0:
+		has_exited_screen = true
+		emit_signal("screen_exited")
+
 func set_use_formation_movement(value: bool) -> void:
 	use_formation_movement = value
 
+# Called on every spawn, including when reused from the spawn manager's pool.
+# Note: the formation manager calls set_formation_data() and
+# set_use_formation_movement(true) AFTER this, so resetting formation state
+# here is safe.
 func initialize(spawn_position: Vector2) -> void:
 	super.initialize(spawn_position)
 	initial_x = spawn_position.x
 	pattern_time = 0.0
+
+	# Restore health (captured lazily on first spawn so subclass _ready()
+	# changes and scene overrides of the exported value are respected)
+	if max_health < 0.0:
+		max_health = health
+	health = max_health
+
+	# Reset shooting state
+	time_since_last_shot = 0.0
+	_reset_shoot_cooldown()
+
+	# Reset orientation, then let subclasses re-roll per-spawn variation
+	rotation = _base_rotation
+	_randomize_on_spawn()
 
 	# Get viewport center
 	viewport_center_x = get_viewport_rect().size.x / 2.0
@@ -214,9 +245,16 @@ func initialize(spawn_position: Vector2) -> void:
 		move_toward_center = false
 
 	# Reset formation variables
-	if not is_formation_member:
-		formation_id = -1
-		formation_offset = Vector2.ZERO
+	is_formation_member = false
+	use_formation_movement = false
+	formation_id = -1
+	formation_offset = Vector2.ZERO
+	formation_local_position = Vector2.ZERO
+
+# Hook for per-spawn randomization (size, spin, ...). Called from initialize()
+# after state has been reset; override in subclasses.
+func _randomize_on_spawn() -> void:
+	pass
 
 func set_movement_pattern(pattern: String) -> void:
 	movement_pattern = pattern
@@ -235,17 +273,11 @@ func set_formation_data(form_id: int, form_offset: Vector2) -> void:
 	# Store local offset for patterns that might later be applied to the formation as a whole
 	formation_local_position = formation_offset
 
-func check_if_offscreen() -> void:
-	var viewport_rect = get_viewport_rect()
-	var margin = 100.0  # Margin beyond screen edges
-
-	if (position.y > viewport_rect.size.y + margin or
-		position.y < -margin * 2 or
-		position.x > viewport_rect.size.x + margin or
-		position.x < -margin):
-		emit_signal("screen_exited")
-
 func take_damage(damage: float) -> void:
+	# Ignore hits after death (e.g. several projectiles in the same frame)
+	if not is_active:
+		return
+
 	health -= damage
 
 	if health <= 0:
@@ -261,6 +293,7 @@ func take_damage(damage: float) -> void:
 
 		# Deactivate the obstacle
 		deactivate()
+		emit_signal("destroyed")
 
 func create_explosion() -> void:
 	# Hide the sprite immediately
@@ -269,27 +302,13 @@ func create_explosion() -> void:
 	if animated_sprite:
 		animated_sprite.visible = false
 
-	# Play explosion sound if available
-	if explosion_audio_player and explosion_audio_player.stream:
-		# Detach the audio player so it continues playing after the obstacle is gone
-		remove_child(explosion_audio_player)
-		get_parent().add_child(explosion_audio_player)
+	_play_explosion_sound()
 
-		# Position at the obstacle's last position
-		explosion_audio_player.global_position = global_position
+	var effects_parent = _get_effects_parent()
 
-		# Add pitch variation for more natural sound
-		explosion_audio_player.pitch_scale = 1.0 + randf_range(-sound_pitch_variation, sound_pitch_variation)
-		explosion_audio_player.play()
-
-		# Set up auto-deletion after playing
-		explosion_audio_player.finished.connect(explosion_audio_player.queue_free)
-
-	# Instantiate explosion if we have a scene
+	# Get a (pooled) explosion if we have a scene
 	if explosion_scene:
-		var explosion = explosion_scene.instantiate()
-		# Add to the parent so it persists after obstacle is gone
-		get_parent().add_child(explosion)
+		var explosion = ObjectPool.acquire(explosion_scene, effects_parent)
 		explosion.global_position = global_position
 
 		# Set explosion type and start it
@@ -298,7 +317,7 @@ func create_explosion() -> void:
 	else:
 		# Fallback if no explosion scene - create a simple particle effect
 		var particles = CPUParticles2D.new()
-		get_parent().add_child(particles)
+		effects_parent.add_child(particles)
 		particles.global_position = global_position
 		particles.amount = 20
 		particles.lifetime = 0.5
@@ -320,8 +339,29 @@ func create_explosion() -> void:
 		timer.timeout.connect(func(): particles.queue_free())
 		timer.start()
 
+# Plays the explosion sound on a one-shot player owned by the current scene,
+# so it keeps playing after this obstacle is deactivated or reused
+func _play_explosion_sound() -> void:
+	if not explosion_sound:
+		return
+
+	var audio_player = AudioStreamPlayer2D.new()
+	audio_player.stream = explosion_sound
+	# Add pitch variation for more natural sound
+	audio_player.pitch_scale = 1.0 + randf_range(-sound_pitch_variation, sound_pitch_variation)
+	audio_player.finished.connect(audio_player.queue_free)
+	_get_effects_parent().add_child(audio_player)
+	audio_player.global_position = global_position
+	audio_player.play()
+
+# Projectiles, explosions and sounds live under the current scene
+func _get_effects_parent() -> Node:
+	var scene = get_tree().current_scene
+	return scene if scene else get_parent()
+
 func handle_player_collision() -> void:
-	if is_being_collected:
+	# Already destroyed (e.g. shot down in the same frame as the collision)
+	if is_being_collected or not is_active:
 		return
 
 	is_being_collected = true
@@ -337,35 +377,38 @@ func handle_player_collision() -> void:
 
 	# Finally deactivate the object
 	deactivate()
+	emit_signal("destroyed")
 
 func shoot() -> void:
 	if not projectile_scene or not is_active:
 		return
-		
-	# Choose which gun point to use (if there are multiple)
-	var gun_point = gun_points[rng.randi() % gun_points.size()]
-	
-	# Create projectile
-	var projectile = projectile_scene.instantiate()
-	get_tree().current_scene.add_child(projectile)
-	
-	# Calculate global spawn position
-	var spawn_position = gun_point.global_position
-	
+
+	for gun_point in _select_gun_points():
+		_fire_from(gun_point)
+
+	# Randomize next cooldown
+	shoot_cooldown = max(0.5, 2.0 + rng.randf_range(-cooldown_variation, cooldown_variation))
+
+# Which gun points fire this volley. Base: one random gun point.
+func _select_gun_points() -> Array:
+	return [gun_points[rng.randi() % gun_points.size()]]
+
+# Direction for a shot fired from from_position, before accuracy jitter.
+# Base: aim at the player, clamped to max_aim_angle from straight down.
+func _aim_direction(from_position: Vector2) -> Vector2:
 	# Default direction is straight down
 	var direction = Vector2.DOWN
-	
-	# Find the player
+
 	var player = get_tree().get_first_node_in_group("player")
 	if player:
 		# Calculate direction to player
-		var player_direction = (player.global_position - spawn_position).normalized()
-		
+		var player_direction = (player.global_position - from_position).normalized()
+
 		# Limit the angle to max_aim_angle from straight down
 		var down_angle = Vector2.DOWN.angle()
 		var player_angle = player_direction.angle()
 		var angle_diff = rad_to_deg(absf(wrapf(player_angle - down_angle, -PI, PI)))
-		
+
 		if angle_diff <= max_aim_angle:
 			# Player is within aiming cone, use player direction
 			direction = player_direction
@@ -374,22 +417,29 @@ func shoot() -> void:
 			var sign_diff = sign(wrapf(player_angle - down_angle, -PI, PI))
 			var clamped_angle = down_angle + sign_diff * deg_to_rad(max_aim_angle)
 			direction = Vector2.from_angle(clamped_angle)
-	
-	# Apply accuracy variation
+
+	return direction
+
+# Random deviation based on accuracy (1.0 = perfect)
+func _apply_accuracy(direction: Vector2) -> Vector2:
 	if accuracy < 1.0:
 		var max_deviation = (1.0 - accuracy) * PI * 0.5  # Scale to reasonable range
 		var deviation = rng.randf_range(-max_deviation, max_deviation)
 		direction = direction.rotated(deviation)
-	
-	# Initialize the projectile
+	return direction
+
+# Spawn one (pooled) projectile from gun_point and play the shoot sound
+func _fire_from(gun_point: Node2D) -> void:
+	var projectile = ObjectPool.acquire(projectile_scene, _get_effects_parent())
+
+	var spawn_position = gun_point.global_position
+	var direction = _apply_accuracy(_aim_direction(spawn_position))
+
 	if projectile.has_method("initialize"):
 		projectile.initialize(spawn_position, direction)
-		
+
 	# Play shoot sound if available
 	if shoot_audio_player and shoot_audio_player.stream:
 		# Add pitch variation for more natural sound
 		shoot_audio_player.pitch_scale = 1.0 + randf_range(-sound_pitch_variation, sound_pitch_variation)
 		shoot_audio_player.play()
-		
-	# Randomize next cooldown
-	shoot_cooldown = max(0.5, 2.0 + rng.randf_range(-cooldown_variation, cooldown_variation))

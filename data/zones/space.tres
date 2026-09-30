@@ -1,0 +1,93 @@
+[gd_resource type="Resource" script_class="ZoneDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/formation_settings.gd" id="1_6r6mx"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/alien_obstacle_1.tscn" id="2_3vwhx"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/meteor_obstacle_3.tscn" id="3_eihpu"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/meteor_obstacle_4.tscn" id="4_sr2vb"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/satellite_obstacle_1.tscn" id="5_lo01d"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/satellite_obstacle_2.tscn" id="6_q2d6g"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/satellite_obstacle_3.tscn" id="7_og3ht"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/satellite_obstacle_4.tscn" id="8_oxerb"]
+[ext_resource type="Script" path="res://scripts/data/zone_definition.gd" id="9_4x6s5"]
+[ext_resource type="Script" path="res://scripts/data/wave_definition.gd" id="10_5xua0"]
+[ext_resource type="Script" path="res://scripts/data/wave_group.gd" id="11_0eb4s"]
+
+[sub_resource type="Resource" id="Resource_ex2uy"]
+script = ExtResource("1_6r6mx")
+allowed_formations = Array[int]([2, 5, 3, 6])
+min_spread = 100.0
+max_spread = 150.0
+min_objects = 7
+max_objects = 10
+pattern_amplitude_scale = 1.5
+pattern_frequency_scale = 1.2
+
+[sub_resource type="Resource" id="Resource_u01y1"]
+script = ExtResource("11_0eb4s")
+formation = 5
+delay = 0.0
+enemy_delay = 0.1
+
+[sub_resource type="Resource" id="Resource_crwq2"]
+script = ExtResource("11_0eb4s")
+formation = 2
+delay = 1.5
+enemy_delay = 0.1
+spawn_positions = Array[StringName]([&"left", &"right"])
+
+[sub_resource type="Resource" id="Resource_3hho5"]
+script = ExtResource("11_0eb4s")
+formation = 3
+count = 2
+enemy_delay = 0.1
+
+[sub_resource type="Resource" id="Resource_uv3g6"]
+script = ExtResource("10_5xua0")
+name = "Space Assault"
+groups = Array[ExtResource("11_0eb4s")]([SubResource("Resource_u01y1"), SubResource("Resource_crwq2"), SubResource("Resource_3hho5")])
+completion_delay = 1.0
+
+[sub_resource type="Resource" id="Resource_2gaia"]
+script = ExtResource("11_0eb4s")
+formation = 5
+delay = 0.0
+enemy_delay = 0.08
+
+[sub_resource type="Resource" id="Resource_c0147"]
+script = ExtResource("11_0eb4s")
+formation = 1
+delay = 0.5
+enemy_delay = 0.08
+spawn_positions = Array[StringName]([&"left"])
+
+[sub_resource type="Resource" id="Resource_t23d4"]
+script = ExtResource("11_0eb4s")
+formation = 1
+delay = 0.5
+enemy_delay = 0.08
+spawn_positions = Array[StringName]([&"right"])
+
+[sub_resource type="Resource" id="Resource_usd0g"]
+script = ExtResource("11_0eb4s")
+formation = 2
+enemy_delay = 0.05
+
+[sub_resource type="Resource" id="Resource_af74q"]
+script = ExtResource("10_5xua0")
+name = "Space Final"
+groups = Array[ExtResource("11_0eb4s")]([SubResource("Resource_2gaia"), SubResource("Resource_c0147"), SubResource("Resource_t23d4"), SubResource("Resource_usd0g")])
+completion_delay = 1.0
+
+[resource]
+script = ExtResource("9_4x6s5")
+id = &"space"
+display_name = "Space"
+start_height = 30000
+obstacle_scenes = Array[PackedScene]([ExtResource("2_3vwhx"), ExtResource("3_eihpu"), ExtResource("4_sr2vb"), ExtResource("5_lo01d"), ExtResource("6_q2d6g"), ExtResource("7_og3ht"), ExtResource("8_oxerb")])
+waves = Array[ExtResource("10_5xua0")]([SubResource("Resource_uv3g6"), SubResource("Resource_af74q")])
+formation_settings = SubResource("Resource_ex2uy")
+collectible_time_scale = 0.6
+collectible_chance_scale = 0.7
+pattern_weight_linear = 0.2
+pattern_weight_sine = 0.4
+pattern_weight_zigzag = 0.4

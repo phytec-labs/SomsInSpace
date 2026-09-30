@@ -74,10 +74,12 @@ anchor_bottom = 1.0
 offset_top = -144.0
 offset_right = 148.0
 grow_vertical = 0
+mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="StatsPanel"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
@@ -85,10 +87,12 @@ theme_override_constants/margin_bottom = 8
 
 [node name="StatsContainer" type="VBoxContainer" parent="StatsPanel/MarginContainer"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 10
 
 [node name="HealthContainer" type="VBoxContainer" parent="StatsPanel/MarginContainer/StatsContainer"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 2
 
 [node name="HealthLabel" type="Label" parent="StatsPanel/MarginContainer/StatsContainer/HealthContainer"]
@@ -100,6 +104,7 @@ text = "♥ Health: 100%"
 [node name="HealthBar" type="ProgressBar" parent="StatsPanel/MarginContainer/StatsContainer/HealthContainer"]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
+mouse_filter = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_health_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_health_fill")
 value = 100.0
@@ -107,6 +112,7 @@ show_percentage = false
 
 [node name="HeightContainer" type="HBoxContainer" parent="StatsPanel/MarginContainer/StatsContainer"]
 layout_mode = 2
+mouse_filter = 2
 
 [node name="HeightLabel" type="Label" parent="StatsPanel/MarginContainer/StatsContainer/HeightContainer"]
 layout_mode = 2
@@ -116,6 +122,7 @@ text = "⬆ Height: 0 m"
 
 [node name="PointsContainer" type="HBoxContainer" parent="StatsPanel/MarginContainer/StatsContainer"]
 layout_mode = 2
+mouse_filter = 2
 
 [node name="PointsLabel" type="Label" parent="StatsPanel/MarginContainer/StatsContainer/PointsContainer"]
 layout_mode = 2
@@ -134,14 +141,17 @@ offset_top = -46.0
 offset_right = 158.0
 grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 2
 theme_override_constants/separation = 3
 
 [node name="ZoneBackground" type="PanelContainer" parent="ZoneProgressContainer"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_zone_progress")
 
 [node name="MarginContainer" type="MarginContainer" parent="ZoneProgressContainer/ZoneBackground"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/margin_left = 4
 theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 4
@@ -149,6 +159,7 @@ theme_override_constants/margin_bottom = 4
 
 [node name="ZoneLabels" type="HBoxContainer" parent="ZoneProgressContainer/ZoneBackground/MarginContainer"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 0
 alignment = 1
 
@@ -208,6 +219,7 @@ horizontal_alignment = 1
 [node name="ZoneIndicator" type="Control" parent="ZoneProgressContainer"]
 custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
+mouse_filter = 2
 
 [node name="ZoneMarker" type="Polygon2D" parent="ZoneProgressContainer/ZoneIndicator"]
 visible = false
@@ -225,10 +237,12 @@ offset_left = -148.0
 offset_top = -144.0
 grow_horizontal = 0
 grow_vertical = 0
+mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="WeaponsPanel"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
@@ -236,6 +250,7 @@ theme_override_constants/margin_bottom = 8
 
 [node name="WeaponsContainer" type="VBoxContainer" parent="WeaponsPanel/MarginContainer"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 10
 
 [node name="WeaponLabel" type="Label" parent="WeaponsPanel/MarginContainer/WeaponsContainer"]
@@ -249,10 +264,12 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 size_flags_horizontal = 4
+mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_weapon_slot")
 
 [node name="WeaponSprite" type="TextureRect" parent="WeaponsPanel/MarginContainer/WeaponsContainer/WeaponSlot"]
 layout_mode = 2
+mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
@@ -275,6 +292,7 @@ offset_right = 20.0
 offset_bottom = 20.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="MarginContainer" type="MarginContainer" parent="MessageControl"]
 layout_mode = 1
@@ -289,9 +307,29 @@ offset_right = 71.0
 offset_bottom = 20.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="Label" type="Label" parent="MessageControl/MarginContainer"]
 visible = false
 layout_mode = 2
 text = "Upgrade Collected"
 label_settings = ExtResource("3_ynucu")
+
+[node name="PauseButton" type="Button" parent="."]
+visible = false
+custom_minimum_size = Vector2(72, 72)
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -88.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 88.0
+grow_horizontal = 0
+focus_mode = 0
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 48
+theme_override_styles/hover = SubResource("StyleBoxFlat_panel")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_panel")
+theme_override_styles/normal = SubResource("StyleBoxFlat_panel")
+text = "II"

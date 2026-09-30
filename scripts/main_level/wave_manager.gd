@@ -1,7 +1,20 @@
 # wave_manager.gd
+# Plays the current zone's waves (ZoneDefinition.waves) in order, looping.
+# The longer the player stays in a zone, the higher the ramp level: delays get
+# shorter and groups get extra formations (see ZoneDefinition "Difficulty Ramp").
+# The Resources are never modified; effective values are computed per level.
 extends Node2D
 
-signal wave_started(wave_data)
+const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
+const WaveDefinitionScript := preload("res://scripts/data/wave_definition.gd")
+const WaveGroupScript := preload("res://scripts/data/wave_group.gd")
+
+# Timer.wait_time must be > 0 (setting 0 is rejected with an error and the
+# previous value is kept), so zero/negative delays are clamped to this.
+const MIN_TIMER_WAIT: float = 0.05
+
+# ramp_level: difficulty level (time spent in the zone) when the wave started
+signal wave_started(wave: WaveDefinitionScript, wave_index: int, ramp_level: int)
 signal wave_completed
 signal all_waves_completed
 
@@ -17,245 +30,18 @@ signal all_waves_completed
 @export var debug_mode: bool = false  # Enable detailed debug logs
 
 # Wave progression
+var zone: ZoneDefinitionScript  # Current zone (set via set_zone())
 var current_wave_index: int = 0
 var current_group_index: int = 0
 var enemies_spawned_in_group: int = 0
+var zone_time: float = 0.0  # Seconds spent spawning in the current zone (drives the ramp)
 var wave_in_progress: bool = false
-var current_zone: String = "ground"
 var next_action: String = "none"  # Used to track what should happen after timer
 
 # Keep track of recent spawn positions to avoid overlap
 var recent_spawn_positions = []
 var max_recent_positions = 5  # How many recent positions to remember
 var min_spawn_distance = 150.0  # Minimum distance between spawn positions
-
-# Wave definitions
-# Each wave contains multiple groups
-# Each group contains a formation type and count
-var waves = {
-	"ground": [
-		{
-			"name": "Ground Tutorial",
-			"groups": [
-				{
-					"formation": "line",
-					"count": 1,
-					"delay": 1.0,
-					"enemy_delay": 0.5,
-					"spawn_positions": ["top"]
-				},
-				{
-					"formation": "line",
-					"count": 2,
-					"delay": 2.0,
-					"enemy_delay": 0.5,
-					"spawn_positions": ["top"]
-				}
-			],
-			"completion_delay": 3.0
-		},
-		{
-			"name": "Ground Easy",
-			"groups": [
-				{
-					"formation": "line",
-					"count": 3,
-					"delay": 0.8,
-					"enemy_delay": 0.4,
-					"spawn_positions": ["top"]
-				},
-				{
-					"formation": "v_shape",
-					"count": 1,
-					"delay": 1.5,
-					"enemy_delay": 0.3,
-					"spawn_positions": ["top"]
-				}
-			],
-			"completion_delay": 2.5
-		}
-	],
-	"atmosphere": [
-		{
-			"name": "Atmosphere Introduction",
-			"groups": [
-				{
-					"formation": "v_shape",
-					"count": 2,
-					"delay": 0.8,
-					"enemy_delay": 0.3,
-					"spawn_positions": ["top"]
-				},
-				{
-					"formation": "line",
-					"count": 1,
-					"delay": 1.0,
-					"enemy_delay": 0.2,
-					"spawn_positions": ["left", "right"]
-				}
-			],
-			"completion_delay": 2.0
-		},
-		{
-			"name": "Atmosphere Challenge",
-			"groups": [
-				{
-					"formation": "line",
-					"count": 1,
-					"delay": 0.5,
-					"enemy_delay": 0.3,
-					"spawn_positions": ["left"]
-				},
-				{
-					"formation": "line",
-					"count": 1,
-					"delay": 0.5,
-					"enemy_delay": 0.3,
-					"spawn_positions": ["right"]
-				},
-				{
-					"formation": "v_shape",
-					"count": 1,
-					"delay": 1.5,
-					"enemy_delay": 0.2,
-					"spawn_positions": ["top"]
-				}
-			],
-			"completion_delay": 2.0
-		}
-	],
-	"upper_atmosphere": [
-		{
-			"name": "Upper Atmosphere Intro",
-			"groups": [
-				{
-					"formation": "v_shape",
-					"count": 1,
-					"delay": 0.0,
-					"enemy_delay": 0.2,
-					"spawn_positions": ["left", "right"]
-				},
-				{
-					"formation": "diagonal",
-					"count": 2,
-					"delay": 1.0,
-					"enemy_delay": 0.15,
-					"spawn_positions": ["top"]
-				}
-			],
-			"completion_delay": 1.5
-		},
-		{
-			"name": "Upper Atmosphere Battle",
-			"groups": [
-				{
-					"formation": "square",
-					"count": 1,
-					"delay": 0.0,
-					"enemy_delay": 0.2,
-					"spawn_positions": ["top"]
-				},
-				{
-					"formation": "v_shape",
-					"count": 1,
-					"delay": 1.0,
-					"enemy_delay": 0.15,
-					"spawn_positions": ["left"]
-				},
-				{
-					"formation": "v_shape",
-					"count": 1,
-					"delay": 1.0,
-					"enemy_delay": 0.15,
-					"spawn_positions": ["right"]
-				}
-			],
-			"completion_delay": 1.5
-		}
-	],
-	"space": [
-		{
-			"name": "Space Assault",
-			"groups": [
-				{
-					"formation": "circle",
-					"count": 1,
-					"delay": 0.0,
-					"enemy_delay": 0.1,
-					"spawn_positions": ["top"]
-				},
-				{
-					"formation": "square",
-					"count": 1,
-					"delay": 1.5,
-					"enemy_delay": 0.1,
-					"spawn_positions": ["left", "right"]
-				},
-				{
-					"formation": "diagonal",
-					"count": 2,
-					"delay": 1.0,
-					"enemy_delay": 0.1,
-					"spawn_positions": ["top"]
-				}
-			],
-			"completion_delay": 1.0
-		},
-		{
-			"name": "Space Final",
-			"groups": [
-				{
-					"formation": "circle",
-					"count": 1,
-					"delay": 0.0,
-					"enemy_delay": 0.08,
-					"spawn_positions": ["top"]
-				},
-				{
-					"formation": "v_shape",
-					"count": 1,
-					"delay": 0.5,
-					"enemy_delay": 0.08,
-					"spawn_positions": ["left"]
-				},
-				{
-					"formation": "v_shape",
-					"count": 1,
-					"delay": 0.5,
-					"enemy_delay": 0.08,
-					"spawn_positions": ["right"]
-				},
-				{
-					"formation": "square",
-					"count": 1,
-					"delay": 1.0,
-					"enemy_delay": 0.05,
-					"spawn_positions": ["top"]
-				}
-			],
-			"completion_delay": 1.0
-		}
-	]
-}
-
-# Formation type mapping
-var formation_type_map = {
-	"line": 0,      # LINE in FormationType enum
-	"v_shape": 1,   # V_SHAPE in FormationType enum
-	"square": 2,    # SQUARE in FormationType enum
-	"diagonal": 3,  # DIAGONAL in FormationType enum
-	"wave": 4,      # WAVE in FormationType enum
-	"circle": 5,    # CIRCLE in FormationType enum
-	"random": 6     # RANDOM in FormationType enum
-}
-
-# Spawn position map (these will be used to generate positions)
-var spawn_position_map = {
-	"top": Callable(self, "_get_top_spawn_position"),
-	"left": Callable(self, "_get_left_spawn_position"),
-	"right": Callable(self, "_get_right_spawn_position"),
-	"bottom": Callable(self, "_get_bottom_spawn_position")
-}
 
 func _ready() -> void:
 	# Verify formation manager reference
@@ -272,7 +58,6 @@ func _ready() -> void:
 		if wave_timer.timeout.is_connected(_on_wave_timer_timeout):
 			wave_timer.timeout.disconnect(_on_wave_timer_timeout)
 		wave_timer.timeout.connect(_on_wave_timer_timeout)
-		#print("WaveManager: WaveTimer connected")
 	
 	if not enemy_timer:
 		push_error("WaveManager: EnemyTimer node not found!")
@@ -281,34 +66,13 @@ func _ready() -> void:
 		if enemy_timer.timeout.is_connected(_on_enemy_timer_timeout):
 			enemy_timer.timeout.disconnect(_on_enemy_timer_timeout)
 		enemy_timer.timeout.connect(_on_enemy_timer_timeout)
-		#print("WaveManager: EnemyTimer connected")
 	
 	# Initialize with first wave
 	current_wave_index = starting_wave
 	
-	# Log available waves
-	if debug_mode:
-		for zone in waves.keys():
-			print("WaveManager: Zone " + zone + " has " + str(waves[zone].size()) + " waves")
-	
 	# Start spawning if active is set
 	if active:
 		start_spawning()
-
-# Called every frame. Add process code to handle wave progression
-func _process(delta: float) -> void:
-	# Check if any timers have been stopped unexpectedly
-	if next_action == "wait_for_next_group" and not wave_timer.is_stopped() and not wave_timer.time_left > 0:
-		if debug_mode:
-			print("WaveManager: Wave timer got stuck, restarting next group...")
-		wave_timer.stop()
-		spawn_formation_group()
-	
-	elif next_action == "wait_for_next_enemy" and not enemy_timer.is_stopped() and not enemy_timer.time_left > 0:
-		if debug_mode:
-			print("WaveManager: Enemy timer got stuck, restarting enemy spawn...")
-		enemy_timer.stop()
-		spawn_enemy_in_group()
 
 # Public methods
 func start_spawning() -> void:
@@ -317,13 +81,13 @@ func start_spawning() -> void:
 	
 	active = true
 	wave_in_progress = false
+	zone_time = 0.0
 	current_group_index = 0
 	enemies_spawned_in_group = 0
 	next_action = "start_wave"
 	
 	# Start first wave after a short delay
-	wave_timer.wait_time = 1.0
-	wave_timer.start()
+	_start_timer(wave_timer, 1.0)
 
 func stop_spawning() -> void:
 	active = false
@@ -332,20 +96,58 @@ func stop_spawning() -> void:
 	wave_timer.stop()
 	enemy_timer.stop()
 
-func set_zone(zone: String) -> void:
-	# Update the zone and reset wave index
-	if zone != current_zone:
-		current_zone = zone
-		current_wave_index = 0
-		wave_in_progress = false  # Reset the wave progress for the new zone
-		_clear_recent_spawn_positions()  # Clear spawn positions when changing zones
-		
-		# If currently spawning, restart with new zone waves
-		if active:
-			next_action = "start_wave"
-			wave_timer.stop()  # Ensure any running timer is stopped
-			wave_timer.wait_time = 1.0
-			wave_timer.start()
+# Switch to a new zone (ZoneDefinition): restart from its first wave, ramp level 0
+func set_zone(new_zone: ZoneDefinitionScript) -> void:
+	if new_zone == null or new_zone == zone:
+		return
+	var is_first_zone := zone == null
+	zone = new_zone
+	# The very first zone honours starting_wave; later zones start at wave 0
+	current_wave_index = starting_wave if is_first_zone else 0
+	zone_time = 0.0
+	wave_in_progress = false  # Reset the wave progress for the new zone
+	_clear_recent_spawn_positions()  # Clear spawn positions when changing zones
+
+	if debug_mode:
+		print("WaveManager: Zone " + String(zone.id) + " has " + str(zone.waves.size()) + " waves")
+	
+	# If currently spawning, restart with new zone waves
+	if active:
+		next_action = "start_wave"
+		wave_timer.stop()  # Ensure any running timer is stopped
+		_start_timer(wave_timer, 1.0)
+
+func _process(delta: float) -> void:
+	# The tree pause stops _process, so paused time doesn't count
+	if active:
+		zone_time += delta
+
+# Difficulty ramp: effective values for the current ramp level
+func get_ramp_level() -> int:
+	return zone.get_ramp_level(zone_time) if zone else 0
+
+func get_delay_multiplier() -> float:
+	return zone.get_delay_multiplier(get_ramp_level()) if zone else 1.0
+
+func get_effective_count(group: WaveGroupScript) -> int:
+	return group.count + get_effective_count_bonus()
+
+func _scaled_delay(base_delay: float) -> float:
+	return base_delay * get_delay_multiplier()
+
+func _start_timer(timer: Timer, wait: float) -> void:
+	timer.wait_time = maxf(wait, MIN_TIMER_WAIT)
+	timer.start()
+
+# Current wave, or null (with a warning) if the zone/wave index is invalid
+func _get_current_wave() -> WaveDefinitionScript:
+	if zone == null or zone.waves.is_empty():
+		push_warning("WaveManager: No waves defined for zone: " + (String(zone.id) if zone else "<none>"))
+		return null
+	if current_wave_index < 0 or current_wave_index >= zone.waves.size():
+		push_warning("WaveManager: Invalid wave index " + str(current_wave_index) + " for zone " + String(zone.id))
+		return null
+	return zone.waves[current_wave_index]
 
 # Wave control methods
 func start_wave() -> void:
@@ -359,31 +161,35 @@ func start_wave() -> void:
 			print("WaveManager: Cannot start wave - wave already in progress")
 		return
 	
-	if not waves.has(current_zone):
-		push_warning("WaveManager: No waves defined for zone: " + current_zone)
-		return
-		
-	if waves[current_zone].size() == 0:
-		push_warning("WaveManager: Zone " + current_zone + " has no waves defined")
+	if zone == null or zone.waves.is_empty():
+		push_warning("WaveManager: No waves defined for zone: " + (String(zone.id) if zone else "<none>"))
 		return
 	
 	# Wrap around if we've gone past the end and looping is enabled
-	if current_wave_index >= waves[current_zone].size():
+	if current_wave_index >= zone.waves.size():
 		if loop_waves:
 			current_wave_index = 0
+			if debug_mode:
+				print("WaveManager: Zone %s wrapped at ramp level %d (delay x%.2f, +%d per group)" % [
+					zone.id, get_ramp_level(), get_delay_multiplier(), get_effective_count_bonus()])
 		else:
 			emit_signal("all_waves_completed")
 			return
 	
 	# Get current wave data
-	var wave_data = waves[current_zone][current_wave_index]
+	var wave_data := _get_current_wave()
+	if wave_data == null:
+		return
 	wave_in_progress = true
 	current_group_index = 0
 	enemies_spawned_in_group = 0
 	
 	# Start the first group in the wave
-	emit_signal("wave_started", wave_data)
+	wave_started.emit(wave_data, current_wave_index, get_ramp_level())
 	spawn_formation_group()
+
+func get_effective_count_bonus() -> int:
+	return zone.get_count_bonus(get_ramp_level()) if zone else 0
 
 func spawn_formation_group() -> void:
 	if not wave_in_progress:
@@ -391,17 +197,9 @@ func spawn_formation_group() -> void:
 			print("WaveManager: Cannot spawn formation group - wave not in progress")
 		return
 	
-	# Validate that we have waves for this zone
-	if not waves.has(current_zone):
-		push_warning("WaveManager: No waves defined for zone: " + current_zone)
+	var wave_data := _get_current_wave()
+	if wave_data == null:
 		return
-	
-	# Validate that the wave index is valid
-	if current_wave_index >= waves[current_zone].size():
-		push_warning("WaveManager: Invalid wave index " + str(current_wave_index) + " for zone " + current_zone)
-		return
-		
-	var wave_data = waves[current_zone][current_wave_index]
 	
 	# Check if we've completed all groups in this wave
 	if current_group_index >= wave_data.groups.size():
@@ -409,16 +207,16 @@ func spawn_formation_group() -> void:
 		return
 	
 	# Get current group data
-	var group = wave_data.groups[current_group_index]
+	var group: WaveGroupScript = wave_data.groups[current_group_index]
 	enemies_spawned_in_group = 0
 	
 	# Start spawning enemies in this group
+	var enemy_delay := _scaled_delay(group.enemy_delay)
 	next_action = "wait_for_next_enemy"
-	enemy_timer.wait_time = group.enemy_delay
-	enemy_timer.start()
+	_start_timer(enemy_timer, enemy_delay)
 	
 	if debug_mode:
-		print("WaveManager: First enemy will spawn in " + str(group.enemy_delay) + " seconds")
+		print("WaveManager: First enemy will spawn in " + str(enemy_delay) + " seconds")
 
 func spawn_enemy_in_group() -> void:
 	if not wave_in_progress:
@@ -427,39 +225,36 @@ func spawn_enemy_in_group() -> void:
 		return
 	
 	# Additional validations
-	if not waves.has(current_zone) or current_wave_index >= waves[current_zone].size():
-		push_warning("WaveManager: Invalid wave data access attempt")
+	var wave_data := _get_current_wave()
+	if wave_data == null:
 		return
-		
-	var wave_data = waves[current_zone][current_wave_index]
 	
 	if current_group_index >= wave_data.groups.size():
 		push_warning("WaveManager: Invalid group index: " + str(current_group_index))
 		return
 		
-	var group = wave_data.groups[current_group_index]
+	var group: WaveGroupScript = wave_data.groups[current_group_index]
+	var group_count := get_effective_count(group)
 	
 	# Check if we've spawned all enemies in this group
-	if enemies_spawned_in_group >= group.count:
+	if enemies_spawned_in_group >= group_count:
 		# Move to next group after delay
 		current_group_index += 1
 		next_action = "wait_for_next_group"
 		wave_timer.stop() # Ensure timer is stopped before starting again
-		wave_timer.wait_time = group.delay
-		wave_timer.start()
+		_start_timer(wave_timer, _scaled_delay(group.delay))
 		return
 	
-	# Spawn a formation based on the group definition
-	var formation_type_enum = formation_type_map[group.formation]
-	
 	# Get a random spawn position from the allowed positions for this group
-	var spawn_position_type = group.spawn_positions[randi() % group.spawn_positions.size()]
+	var spawn_position_type := "top"
+	if not group.spawn_positions.is_empty():
+		spawn_position_type = String(group.spawn_positions[randi() % group.spawn_positions.size()])
 	var spawn_position = _get_spawn_position(spawn_position_type)
 	
 	# Create the formation using formation manager
 	if formation_manager:
 		var formation_objects = formation_manager.create_formation(
-			formation_type_enum,
+			group.formation,
 			spawn_position,
 			Callable(get_parent(), "spawn_obstacle")
 		)
@@ -475,11 +270,10 @@ func spawn_enemy_in_group() -> void:
 	enemies_spawned_in_group += 1
 	
 	# Continue spawning if more enemies in this group
-	if enemies_spawned_in_group < group.count:
+	if enemies_spawned_in_group < group_count:
 		next_action = "wait_for_next_enemy"
 		enemy_timer.stop() # Ensure timer is stopped before starting again
-		enemy_timer.wait_time = group.enemy_delay
-		enemy_timer.start()
+		_start_timer(enemy_timer, _scaled_delay(group.enemy_delay))
 	else:
 		# We need to explicitly check for moving to the next group
 		# This duplication is intentional for robustness
@@ -490,28 +284,25 @@ func spawn_enemy_in_group() -> void:
 			complete_wave()
 		else:
 			# Set up for next group
-			var delay = group.delay
 			next_action = "wait_for_next_group"
 			wave_timer.stop() # Ensure timer is stopped before starting again
-			wave_timer.wait_time = delay
-			wave_timer.start()
+			_start_timer(wave_timer, _scaled_delay(group.delay))
 
 func complete_wave() -> void:
 	# Wave completed, prepare for next wave
 	wave_in_progress = false
 	
 	# Ensure we've got valid data
-	if not waves.has(current_zone) or current_wave_index >= waves[current_zone].size():
-		push_warning("WaveManager: Cannot complete wave - invalid zone or wave index")
+	var wave_data := _get_current_wave()
+	if wave_data == null:
 		# Reset to a valid state
 		current_wave_index = 0
 		next_action = "start_wave"
-		wave_timer.wait_time = 2.0
-		wave_timer.start()
+		_start_timer(wave_timer, 2.0)
 		return
 	
 	# Get completion delay before incrementing wave index
-	var completion_delay = waves[current_zone][current_wave_index].completion_delay
+	var completion_delay := _scaled_delay(wave_data.completion_delay)
 	
 	# Increment wave index
 	current_wave_index += 1
@@ -522,8 +313,7 @@ func complete_wave() -> void:
 	# Start next wave after completion delay
 	next_action = "start_wave"
 	wave_timer.stop() # Ensure timer is stopped before starting again
-	wave_timer.wait_time = completion_delay
-	wave_timer.start()
+	_start_timer(wave_timer, completion_delay)
 
 # Timer callbacks
 func _on_wave_timer_timeout() -> void:
@@ -548,8 +338,6 @@ func _on_enemy_timer_timeout() -> void:
 
 # Spawn position generation methods
 func _get_spawn_position(position_type: String) -> Vector2:
-	var viewport_rect = get_viewport().get_visible_rect()
-	
 	match position_type:
 		"top":
 			return _get_top_spawn_position()

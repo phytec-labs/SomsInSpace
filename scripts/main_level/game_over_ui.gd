@@ -15,17 +15,14 @@ signal main_menu_pressed
 @onready var scoreboard_container = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreboardContainer
 @onready var scoreboard_list = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreboardContainer/ScoreboardList
 
-var buttons: Array[Button]
-var current_selection: int = 0
+# Preloaded (rather than relying on the global class_name cache) so the
+# script resolves even when .godot/ has not been regenerated.
+const MenuButtonGroupScript := preload("res://scripts/ui/menu_button_group.gd")
+
+var menu_group: MenuButtonGroupScript
 var current_final_height: float = 0
 var current_final_score: int = 0
 var scoreboard_manager = null
-
-# Style variables
-var normal_style: StyleBoxFlat
-var highlighted_style: StyleBoxFlat
-var normal_color = Color(1, 1, 1)  # White
-var highlighted_color = Color(1, 1, 0)  # Yellow
 
 # UI States
 enum UIState { SCORE_INPUT, SCOREBOARD_VIEW }
@@ -43,20 +40,18 @@ func _ready():
 	scoreboard_manager = get_node("/root/ScoreboardManager")
 	assert(scoreboard_manager != null, "ScoreboardManager singleton not found")
 	
-	# Initialize buttons array
-	buttons = [retry_button, main_menu_button]
-
-	# Get styles from the first button
-	normal_style = retry_button.get_theme_stylebox("normal")
-	highlighted_style = retry_button.get_theme_stylebox("hover")
-
-	# Connect signals
-	for button in buttons:
-		# Disable default focus styling
-		button.focus_mode = Control.FOCUS_NONE
-		button.mouse_entered.connect(_on_button_hover.bind(buttons.find(button)))
-		button.mouse_exited.connect(_on_button_mouse_exit)
-		button.pressed.connect(_on_button_pressed.bind(button))
+	# Button navigation/highlight/touch. Only active in SCOREBOARD_VIEW
+	# (see set_ui_state); also accepts the move_up/move_down actions.
+	menu_group = MenuButtonGroupScript.new()
+	menu_group.name = "MenuButtonGroup"
+	menu_group.use_move_actions = true
+	# Touch activates on release (inside the same button) so one tap fires
+	# exactly once and the rest of the gesture can't leak into the next scene.
+	menu_group.activate_touch_on_release = true
+	menu_group.enabled = false
+	add_child(menu_group)
+	menu_group.setup([retry_button, main_menu_button])
+	menu_group.button_activated.connect(_on_button_activated)
 	
 	# Connect submit button
 	submit_button.pressed.connect(_on_submit_button_pressed)
@@ -85,56 +80,7 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 
-	# Normal button navigation in scoreboard state
-	if current_state == UIState.SCOREBOARD_VIEW:
-		if event.is_action_pressed("ui_down") or event.is_action_pressed("move_down"):
-			move_selection(1)
-		elif event.is_action_pressed("ui_up") or event.is_action_pressed("move_up"):
-			move_selection(-1)
-		elif event.is_action_pressed("ui_accept"):
-			select_current_item()
-
-		# Add touch input handling
-		if event is InputEventScreenTouch and event.pressed:
-			_handle_touch(event.position)
-
-func _handle_touch(position: Vector2) -> void:
-	if current_state == UIState.SCOREBOARD_VIEW:
-		for i in range(buttons.size()):
-			if buttons[i].get_global_rect().has_point(position):
-				current_selection = i
-				update_selection()
-				select_current_item()
-				break
-
-func move_selection(direction: int) -> void:
-	if buttons.is_empty() or current_state != UIState.SCOREBOARD_VIEW:
-		return
-
-	current_selection = (current_selection + direction) % buttons.size()
-	if current_selection < 0:
-		current_selection = buttons.size() - 1
-	update_selection()
-
-func update_selection() -> void:
-	if buttons.is_empty() or current_state != UIState.SCOREBOARD_VIEW:
-		return
-
-	for i in range(buttons.size()):
-		var button = buttons[i]
-		if i == current_selection:
-			button.add_theme_stylebox_override("normal", highlighted_style)
-			button.add_theme_color_override("font_color", highlighted_color)
-		else:
-			button.add_theme_stylebox_override("normal", normal_style)
-			button.add_theme_color_override("font_color", normal_color)
-
-func select_current_item() -> void:
-	if buttons.is_empty() or current_state != UIState.SCOREBOARD_VIEW:
-		return
-
-	var selected_button = buttons[current_selection]
-	_on_button_pressed(selected_button)
+	# Button navigation in SCOREBOARD_VIEW is handled by menu_group
 
 func set_final_height(height: float) -> void:
 	current_final_height = height
@@ -146,21 +92,12 @@ func set_final_score(score: int) -> void:
 	if score_label:
 		score_label.text = scoreboard_manager.format_points(score)
 
-func _on_button_pressed(button: Button) -> void:
+func _on_button_activated(_index: int, button: Button) -> void:
 	match button:
 		retry_button:
 			retry_pressed.emit()
 		main_menu_button:
 			main_menu_pressed.emit()
-
-func _on_button_hover(index: int) -> void:
-	if current_state == UIState.SCOREBOARD_VIEW:
-		current_selection = index
-		update_selection()
-
-func _on_button_mouse_exit() -> void:
-	# Keep the button highlighted when mouse exits
-	pass
 
 func _on_visibility_changed() -> void:
 	if visible:
@@ -286,6 +223,8 @@ func create_scoreboard_row(rank: String, name: String, height: String, points: S
 
 func set_ui_state(state: UIState) -> void:
 	current_state = state
+	# Keyboard/touch/hover navigation only in the scoreboard view
+	menu_group.enabled = state == UIState.SCOREBOARD_VIEW
 	
 	match state:
 		UIState.SCORE_INPUT:
@@ -307,5 +246,4 @@ func set_ui_state(state: UIState) -> void:
 				name_input.release_focus()
 			
 			# Reset current selection to first button
-			current_selection = 0
-			update_selection()
+			menu_group.select(0)

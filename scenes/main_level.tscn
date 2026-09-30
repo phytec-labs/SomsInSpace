@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3 uid="uid://c44fdprcw28qb"]
+[gd_scene load_steps=15 format=3 uid="uid://c44fdprcw28qb"]
 
 [ext_resource type="Script" uid="uid://bhlqnycgu75if" path="res://scripts/main_level.gd" id="1_qefxu"]
 [ext_resource type="PackedScene" uid="uid://u6mrrbgifign" path="res://scenes/collectibles/weapon_expansion.tscn" id="2_dj36a"]
@@ -12,28 +12,12 @@
 [ext_resource type="PackedScene" uid="uid://c12tn2cqydmqf" path="res://scenes/misc/cloud_manager.tscn" id="10_cvtml"]
 [ext_resource type="PackedScene" uid="uid://k67em33ijj21" path="res://scenes/misc/spawn_manager.tscn" id="11_8o16g"]
 [ext_resource type="PackedScene" uid="uid://5tcbqrpdutal" path="res://scenes/collectibles/energy_collectible_1.tscn" id="12_02t4n"]
-[ext_resource type="PackedScene" uid="uid://dasb4akorj1ja" path="res://scenes/obstacles/balloon_obstacle_1.tscn" id="13_u7fd4"]
-[ext_resource type="PackedScene" uid="uid://cbwma0mc4x48l" path="res://scenes/obstacles/balloon_obstacle_2.tscn" id="14_rqe2e"]
-[ext_resource type="PackedScene" uid="uid://bg2b5qeqf850i" path="res://scenes/obstacles/plane_obstacle_1.tscn" id="15_6klri"]
-[ext_resource type="PackedScene" uid="uid://bgt3hut4n1s6s" path="res://scenes/obstacles/balloon_obstacle_3.tscn" id="16_h0woa"]
-[ext_resource type="PackedScene" uid="uid://dqbhroc77uwm8" path="res://scenes/obstacles/balloon_obstacle_4.tscn" id="17_qckc1"]
-[ext_resource type="PackedScene" uid="uid://d2t24ncmceeqe" path="res://scenes/obstacles/balloon_obstacle_5.tscn" id="18_bcsbj"]
-[ext_resource type="PackedScene" uid="uid://cx8j6r8jv1uwr" path="res://scenes/obstacles/jet_obstacle_1.tscn" id="19_2moha"]
-[ext_resource type="PackedScene" uid="uid://dagaluwq68hy7" path="res://scenes/obstacles/jet_obstacle_2.tscn" id="20_1hgxo"]
-[ext_resource type="PackedScene" uid="uid://clcvwnh2fqud7" path="res://scenes/obstacles/jet_obstacle_8.tscn" id="21_m05hr"]
-[ext_resource type="PackedScene" uid="uid://wfuu71tid6aw" path="res://scenes/obstacles/jet_obstacle_9.tscn" id="22_mnewx"]
-[ext_resource type="PackedScene" uid="uid://ccofur7yq33i7" path="res://scenes/obstacles/meteor_obstacle_1.tscn" id="23_461y5"]
-[ext_resource type="PackedScene" uid="uid://s4nml6qlsigi" path="res://scenes/obstacles/meteor_obstacle_2.tscn" id="24_xy4cp"]
-[ext_resource type="PackedScene" uid="uid://dan3irwnoxqa7" path="res://scenes/obstacles/satellite_obstacle_1.tscn" id="25_qr1i5"]
-[ext_resource type="PackedScene" uid="uid://qqlunmposxs2" path="res://scenes/obstacles/satellite_obstacle_2.tscn" id="26_h76ce"]
-[ext_resource type="PackedScene" uid="uid://dxkq5s3j6xsfg" path="res://scenes/obstacles/alien_obstacle_1.tscn" id="27_tqmqp"]
-[ext_resource type="PackedScene" uid="uid://csk7ybavygcdg" path="res://scenes/obstacles/meteor_obstacle_3.tscn" id="28_vdbsc"]
-[ext_resource type="PackedScene" uid="uid://vlx6s2thvjcc" path="res://scenes/obstacles/meteor_obstacle_4.tscn" id="29_lhfwq"]
-[ext_resource type="PackedScene" uid="uid://ba8reufw3w68b" path="res://scenes/obstacles/satellite_obstacle_3.tscn" id="30_vw6dw"]
-[ext_resource type="PackedScene" uid="uid://b4glwvolc38lf" path="res://scenes/obstacles/satellite_obstacle_4.tscn" id="31_sgj5e"]
+[ext_resource type="PackedScene" uid="uid://dp4egacasmpjp" path="res://scenes/ui/pause_menu_ui.tscn" id="32_pause"]
+[ext_resource type="Resource" path="res://data/game_config.tres" id="33_config"]
 
 [node name="MainLevel" type="Node2D"]
 script = ExtResource("1_qefxu")
+config = ExtResource("33_config")
 weapon_upgrade_scene = ExtResource("2_dj36a")
 
 [node name="Player" parent="." instance=ExtResource("3_2cqd5")]
@@ -69,6 +53,8 @@ vertical_alignment = 1
 
 [node name="GameOverScreen" parent="UI" instance=ExtResource("7_5n61e")]
 
+[node name="PauseMenu" parent="UI" instance=ExtResource("32_pause")]
+
 [node name="LaunchPad" parent="." instance=ExtResource("8_atjli")]
 z_index = -1
 position = Vector2(360, 844)
@@ -87,7 +73,3 @@ max_clouds = 6
 
 [node name="SpawnManager" parent="." instance=ExtResource("11_8o16g")]
 energy_collectible_scene = ExtResource("12_02t4n")
-ground_obstacle_scenes = Array[PackedScene]([ExtResource("13_u7fd4"), ExtResource("14_rqe2e"), ExtResource("15_6klri")])
-atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("16_h0woa"), ExtResource("17_qckc1"), ExtResource("18_bcsbj"), ExtResource("19_2moha"), ExtResource("20_1hgxo"), ExtResource("15_6klri")])
-upper_atmosphere_obstacle_scenes = Array[PackedScene]([ExtResource("19_2moha"), ExtResource("20_1hgxo"), ExtResource("21_m05hr"), ExtResource("22_mnewx"), ExtResource("23_461y5"), ExtResource("24_xy4cp"), ExtResource("25_qr1i5"), ExtResource("26_h76ce")])
-space_obstacle_scenes = Array[PackedScene]([ExtResource("27_tqmqp"), ExtResource("28_vdbsc"), ExtResource("29_lhfwq"), ExtResource("25_qr1i5"), ExtResource("26_h76ce"), ExtResource("30_vw6dw"), ExtResource("31_sgj5e")])

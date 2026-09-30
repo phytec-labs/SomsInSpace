@@ -1,5 +1,8 @@
 # formation_manager.gd
+class_name FormationManager
 extends Node2D
+
+const FormationSettingsScript := preload("res://scripts/data/formation_settings.gd")
 
 signal formation_created(formation_objects)
 
@@ -47,39 +50,9 @@ var default_formation_speeds = {
 	"spiral": 0.7
 }
 
-# Zone-specific formation settings
-var zone_formation_settings = {
-	"ground": {
-		"allowed_formations": [FormationType.LINE, FormationType.V_SHAPE, FormationType.DIAGONAL],
-		"min_spread": 50.0,
-		"max_spread": 80.0,
-		"min_objects": 2,
-		"max_objects": 4
-	},
-	"atmosphere": {
-		"allowed_formations": [FormationType.LINE, FormationType.V_SHAPE, FormationType.SQUARE, FormationType.WAVE],
-		"min_spread": 80.0,
-		"max_spread": 150.0,
-		"min_objects": 3,
-		"max_objects": 5
-	},
-	"upper_atmosphere": {
-		"allowed_formations": [FormationType.V_SHAPE, FormationType.SQUARE, FormationType.CIRCLE, FormationType.WAVE],
-		"min_spread": 80.0,
-		"max_spread": 125.0,
-		"min_objects": 4,
-		"max_objects": 7
-	},
-	"space": {
-		"allowed_formations": [FormationType.SQUARE, FormationType.CIRCLE, FormationType.DIAGONAL, FormationType.RANDOM],
-		"min_spread": 100.0,
-		"max_spread": 150.0,
-		"min_objects": 7,
-		"max_objects": 10
-	}
-}
-
-var current_zone = "ground"
+# Current zone's formation tuning (FormationSettings, from the zone's
+# ZoneDefinition; see set_zone())
+var settings: FormationSettingsScript
 var current_formation_id: int = 0  # Used to generate unique IDs for formations
 var active_formations: Dictionary = {}  # Track active formations by ID
 var rng = RandomNumberGenerator.new()
@@ -87,20 +60,12 @@ var rng = RandomNumberGenerator.new()
 func _ready() -> void:
 	rng.randomize()
 
-# Sets the current zone to adjust formation settings
-func set_zone(zone: String) -> void:
-	if zone_formation_settings.has(zone):
-		current_zone = zone
-
-# Creates a random formation type valid for the current zone
-func create_random_formation(base_position: Vector2, spawn_func: Callable) -> Array:
-	var zone_settings = zone_formation_settings[current_zone]
-
-	# Select random formation type from allowed types
-	var formation_types = zone_settings.allowed_formations
-	var formation_type = formation_types[rng.randi() % formation_types.size()]
-
-	return create_formation(formation_type, base_position, spawn_func)
+# Sets the current zone (a ZoneDefinition) to adjust formation settings
+func set_zone(zone: Resource) -> void:
+	if zone and zone.formation_settings:
+		settings = zone.formation_settings
+	else:
+		push_warning("FormationManager: zone has no FormationSettings; keeping previous settings")
 
 # Add a new method to update all formations
 func _process(delta: float) -> void:
@@ -115,7 +80,10 @@ func _process(delta: float) -> void:
 
 		# Remove any objects that are no longer in the scene
 		for i in range(formation.objects.size() - 1, -1, -1):
-			if not is_instance_valid(formation.objects[i]) or not formation.objects[i].is_active:
+			# A pooled obstacle may have been reused by a newer formation; it
+			# then belongs to that formation only
+			var member = formation.objects[i]
+			if not is_instance_valid(member) or not member.is_active or member.formation_id != formation_id:
 				formation.objects.remove_at(i)
 
 		# If no objects left, remove the formation
@@ -194,13 +162,15 @@ func _process(delta: float) -> void:
 
 		# Update all objects in this formation with the new positions
 		for obj in formation.objects:
-			if is_instance_valid(obj) and obj.is_active:
+			if is_instance_valid(obj) and obj.is_active and obj.formation_id == formation_id:
 				obj.global_position = formation.base_position + obj.formation_offset + pattern_offset
 
 # Creates a specific formation type at the given position
 func create_formation(formation_type: FormationType, base_position: Vector2, spawn_func: Callable) -> Array:
 	var formation_def = formation_definitions[formation_type]
-	var zone_settings = zone_formation_settings[current_zone]
+	if settings == null:
+		push_warning("FormationManager: no FormationSettings set; call set_zone() first")
+		return []
 
 	# Generate a unique formation ID
 	current_formation_id += 1
@@ -208,12 +178,12 @@ func create_formation(formation_type: FormationType, base_position: Vector2, spa
 
 	# Determine number of objects in this formation instance
 	var object_count = rng.randi_range(
-		min(formation_def.object_count, zone_settings.min_objects),
-		min(formation_def.object_count, zone_settings.max_objects)
+		min(formation_def.object_count, settings.min_objects),
+		min(formation_def.object_count, settings.max_objects)
 	)
 
 	# Determine spread for this formation
-	var spread = rng.randf_range(zone_settings.min_spread, zone_settings.max_spread)
+	var spread = rng.randf_range(settings.min_spread, settings.max_spread)
 
 	# Create the formation objects
 	var formation_objects = []
@@ -245,10 +215,9 @@ func create_formation(formation_type: FormationType, base_position: Vector2, spa
 		elif pattern == "spiral":
 			frequency = 0.2
 
-		# Different patterns for different zones
-		if current_zone == "upper_atmosphere" or current_zone == "space":
-			amplitude *= 1.5
-			frequency *= 1.2
+		# Zone-specific pattern scaling
+		amplitude *= settings.pattern_amplitude_scale
+		frequency *= settings.pattern_frequency_scale
 
 		active_formations[formation_id] = {
 			"type": formation_type,
@@ -324,44 +293,6 @@ func get_formation_position(formation_type: FormationType, index: int, count: in
 			# Default to LINE if unknown type
 			var x_pos = (index - (count - 1) / 2.0) * spread
 			return Vector2(x_pos, 0)
-
-# Generate a spawn position based on viewport and zone
-func generate_spawn_position(viewport_size: Vector2) -> Vector2:
-	var zone_settings = zone_formation_settings[current_zone]
-	var max_spread = zone_settings.max_spread
-
-	# If viewport_size was passed as zero, get it from the viewport
-	if viewport_size.x <= 0 or viewport_size.y <= 0:
-		viewport_size = _get_viewport_rect().size
-
-	# Get formation size from zone settings
-	var formation_size = zone_settings.max_spread
-	# Default to spawning at top with enough distance based on formation size
-	var x_pos = rng.randf_range(max_spread, viewport_size.x - max_spread)
-	var y_pos = -(formation_size + 100.0) # Adjust based on formation size
-
-	# In higher zones, enemies can come from sides or bottom too
-	if current_zone == "upper_atmosphere" or current_zone == "space":
-		var spawn_side = rng.randi() % 4 # 0=top, 1=right, 2=bottom, 3=left
-
-		match spawn_side:
-			0: # Top
-				x_pos = rng.randf_range(max_spread, viewport_size.x - max_spread)
-				y_pos = -(formation_size + 100.0)
-			1: # Right
-				x_pos = viewport_size.x + (formation_size + 100.0)
-				# Ensure enemies spawn near or above the top of the screen
-				y_pos = rng.randf_range(-50.0, 150.0)
-			2: # Bottom (only in space zone)
-				if current_zone == "space":
-					x_pos = rng.randf_range(max_spread, viewport_size.x - max_spread)
-					y_pos = viewport_size.y + (formation_size + 100.0)
-			3: # Left
-				x_pos = -(formation_size + 100.0)
-				# Ensure enemies spawn near or above the top of the screen
-				y_pos = rng.randf_range(-50.0, 150.0)
-
-	return Vector2(x_pos, y_pos)
 
 func _is_side_spawn(position: Vector2) -> bool:
 	var viewport_rect = _get_viewport_rect()

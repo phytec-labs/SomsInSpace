@@ -122,8 +122,26 @@ func update_sprite_visibility(visible: bool) -> void:
 	if ship_sprite:
 		ship_sprite.visible = visible
 
-# Simplified input handling
-func _input(event: InputEvent) -> void:
+# Clears latched touch/fire state (e.g. on resume from pause, where the
+# matching release events were delivered while the player was paused) so the
+# ship never keeps firing or chasing an old touch point. Main thrusters are
+# left as they are; directional thrusters stop until the ship moves again.
+func reset_input_state() -> void:
+	is_firing = false
+	is_touch_active = false
+	target_position = position
+	left_thruster.emitting = false
+	right_thruster.emitting = false
+	up_thruster.emitting = false
+	down_thruster.emitting = false
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_UNPAUSED and is_node_ready():
+		reset_input_state()
+
+# Gameplay input. Uses _unhandled_input so taps consumed by the GUI (HUD pause
+# button, pause menu, game over screen) never move the ship or fire.
+func _unhandled_input(event: InputEvent) -> void:
 	if not can_move:
 		return
 
@@ -286,23 +304,17 @@ func fire_projectile() -> void:
 		return
 	
 	# Always fire from center gunpoint
-	var center_projectile = projectile_scene.instantiate()
-	get_parent().add_child(center_projectile)
-	center_projectile.initialize(center_gunpoint.global_position, Vector2.UP)
-	
+	_spawn_projectile(projectile_scene, center_gunpoint)
+
 	# Fire from side gunpoints if weapon is upgraded
 	if weapon_upgraded:
 		var side_projectile_scene = upgraded_projectile_scene if upgraded_projectile_scene else projectile_scene
-		
+
 		if left_gunpoint:
-			var left_projectile = side_projectile_scene.instantiate()
-			get_parent().add_child(left_projectile)
-			left_projectile.initialize(left_gunpoint.global_position, Vector2.UP)
-			
+			_spawn_projectile(side_projectile_scene, left_gunpoint)
+
 		if right_gunpoint:
-			var right_projectile = side_projectile_scene.instantiate()
-			get_parent().add_child(right_projectile)
-			right_projectile.initialize(right_gunpoint.global_position, Vector2.UP)
+			_spawn_projectile(side_projectile_scene, right_gunpoint)
 
 	# Play firing sound
 	if fire_audio_player and fire_audio_player.stream:
@@ -312,6 +324,12 @@ func fire_projectile() -> void:
 	# Start cooldown using the direct time tracking approach
 	can_fire = false
 	cooldown_time_remaining = fire_cooldown
+
+# Get a pooled projectile under the current scene and launch it from gunpoint
+func _spawn_projectile(scene: PackedScene, gunpoint: Node2D) -> void:
+	var parent = get_tree().current_scene if get_tree().current_scene else get_parent()
+	var projectile = ObjectPool.acquire(scene, parent)
+	projectile.initialize(gunpoint.global_position, Vector2.UP)
 
 func _on_fire_cooldown_timeout() -> void:
 	can_fire = true
