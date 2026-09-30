@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://ci76j6nnodhti"]
+[gd_scene load_steps=15 format=3 uid="uid://ci76j6nnodhti"]
 
 [ext_resource type="Script" uid="uid://dai1tjcw2bc2v" path="res://scripts/main_level/game_hud.gd" id="1_3c41i"]
 [ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="2_y6bie"]
@@ -91,6 +91,14 @@ anti_aliasing = false
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_combo_fill"]
 bg_color = Color(1, 1, 1, 1)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_shield_bg"]
+bg_color = Color(0.1, 0.2, 0.25, 0.7)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_shield_fill"]
+bg_color = Color(0.4, 1, 1, 1)
 anti_aliasing = false
 
 [node name="GameHudUi" type="CanvasLayer"]
@@ -191,6 +199,35 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_combo_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_combo_fill")
+max_value = 1.0
+step = 0.0
+value = 1.0
+show_percentage = false
+
+[node name="ShieldBox" type="VBoxContainer" parent="StatsPanel/MarginContainer/StatsContainer/PointsContainer"]
+visible = false
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 1
+
+[node name="ShieldLabel" type="Label" parent="StatsPanel/MarginContainer/StatsContainer/PointsContainer/ShieldBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 18
+text = "SHIELD"
+horizontal_alignment = 1
+
+[node name="ShieldBar" type="ProgressBar" parent="StatsPanel/MarginContainer/StatsContainer/PointsContainer/ShieldBox"]
+custom_minimum_size = Vector2(0, 3)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_shield_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_shield_fill")
 max_value = 1.0
 step = 0.0
 value = 1.0

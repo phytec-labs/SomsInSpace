@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://c44fdprcw28qb"]
+[gd_scene load_steps=15 format=3 uid="uid://c44fdprcw28qb"]
 
 [ext_resource type="Script" uid="uid://bhlqnycgu75if" path="res://scripts/main_level.gd" id="1_qefxu"]
 [ext_resource type="PackedScene" uid="uid://u6mrrbgifign" path="res://scenes/collectibles/weapon_expansion.tscn" id="2_dj36a"]
@@ -11,7 +11,6 @@
 [ext_resource type="PackedScene" uid="uid://0hhpf3eh3k0u" path="res://scenes/misc/atmosphere_manager.tscn" id="9_c88u2"]
 [ext_resource type="PackedScene" uid="uid://c12tn2cqydmqf" path="res://scenes/misc/cloud_manager.tscn" id="10_cvtml"]
 [ext_resource type="PackedScene" uid="uid://k67em33ijj21" path="res://scenes/misc/spawn_manager.tscn" id="11_8o16g"]
-[ext_resource type="PackedScene" uid="uid://5tcbqrpdutal" path="res://scenes/collectibles/energy_collectible_1.tscn" id="12_02t4n"]
 [ext_resource type="PackedScene" uid="uid://dp4egacasmpjp" path="res://scenes/ui/pause_menu_ui.tscn" id="32_pause"]
 [ext_resource type="Resource" path="res://data/game_config.tres" id="33_config"]
 [ext_resource type="Script" path="res://scripts/effects/juice_camera_shake.gd" id="34_camera"]
@@ -74,4 +73,3 @@ max_cloud_speed = 70.0
 max_clouds = 6
 
 [node name="SpawnManager" parent="." instance=ExtResource("11_8o16g")]
-energy_collectible_scene = ExtResource("12_02t4n")

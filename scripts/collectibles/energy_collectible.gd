@@ -12,6 +12,11 @@ class_name EnergyCollectible
 var base_scale: float = -1.0  # Captured on first spawn; scale.x is animated
 var time_alive: float = 0.0
 
+# Kind of pickup, read by main_level.gd (effect on collect) and the
+# SpawnManager (on-screen limits): energy, health, shield, bomb, weapon
+func get_pickup_type() -> StringName:
+	return &"energy"
+
 func _ready() -> void:
 	super._ready()
 

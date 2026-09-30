@@ -28,6 +28,14 @@ var selected_ship: ShipDefinitionScript:
 
 var _selected_ship: ShipDefinitionScript = null
 
+## Attract mode: the running level is a self-playing demo (set by the main
+## menu's idle timeout, cleared by AttractMode when the demo ends). The level
+## is driven by AttractAutopilot and never reaches its results screen.
+var demo_mode: bool = false
+## Set when a visitor touches the screen during the demo: the main menu opens
+## straight on ship select (and clears the flag).
+var open_ship_select_on_menu: bool = false
+
 
 func get_ships() -> Array:
 	return GAME_CONFIG.ships

@@ -48,6 +48,10 @@ var move_toward_center: bool = false
 var center_pull_strength: float = 0.5  # How strongly to pull toward the center (0.5 = gentle, 2.0 = aggressive)
 
 var use_formation_movement: bool = false  # Flag to indicate if object uses formation-based movement
+# Set by bomb_kill() (screen-clear bomb) just before the lethal damage:
+# subclasses that spawn pieces on death (AsteroidObstacle) skip them. Loot
+# drops (BlimpObstacle) are NOT affected. Reset to false on every spawn.
+var suppress_splits: bool = false
 # Set by FormationManager when the wave group runs a fire pattern (VOLLEY /
 # RIPPLE / NONE): the per-frame shooting dice are skipped and the formation
 # calls shoot() itself. Reset to false on every spawn.
@@ -274,6 +278,7 @@ func initialize(spawn_position: Vector2) -> void:
 	is_formation_member = false
 	use_formation_movement = false
 	fire_controlled = false
+	suppress_splits = false
 	formation_id = -1
 	formation_offset = Vector2.ZERO
 	formation_local_position = Vector2.ZERO
@@ -318,6 +323,14 @@ func take_damage(damage: float) -> void:
 		# Deactivate the obstacle
 		deactivate()
 		emit_signal("destroyed")
+
+# Screen-clear bomb (main_level.gd detonate_bomb()): lethal damage through
+# take_damage() (normal kill points / combo / loot), but no split pieces
+func bomb_kill(amount: float = 9999.0) -> void:
+	if not is_active:
+		return
+	suppress_splits = true
+	take_damage(amount)
 
 # Kill points (obstacle points are negative; the player earns abs(points))
 # through the level's combo multiplier. Call while still active, before

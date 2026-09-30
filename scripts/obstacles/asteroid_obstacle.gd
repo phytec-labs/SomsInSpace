@@ -2,7 +2,8 @@
 # Splitting asteroid. size_level 3 (large) -> 2 -> 1 (small). When shot down
 # with size_level > 1 it breaks into split_count pieces of size_level - 1
 # (spawned through SpawnManager.spawn_scene(), so they respect the obstacle
-# cap) that fly apart horizontally. Ramming it does not split it.
+# cap) that fly apart horizontally. Ramming it or bombing it (bomb_kill(),
+# suppress_splits) does not split it.
 #
 # Per-size stats live in the exported arrays below (index = size_level - 1).
 # initialize() resets size_level to the scene's value and applies the size;
@@ -82,7 +83,7 @@ func take_damage(amount: float) -> void:
 	var split_position = position
 	var spawn_manager = get_tree().get_first_node_in_group("spawn_manager")
 	super.take_damage(amount)
-	if not is_active and level_before > 1 and spawn_manager and _scene:
+	if not is_active and level_before > 1 and spawn_manager and _scene and not suppress_splits:
 		# Deferred: we are usually inside a physics callback (projectile hit),
 		# and this node is being returned to the pool (it may even be reused
 		# as one of the pieces, so everything is passed by value)

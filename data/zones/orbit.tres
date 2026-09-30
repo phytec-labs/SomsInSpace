@@ -19,3 +19,7 @@ background_color = Color(0.05, 0.05, 0.1, 1)
 star_visibility = 1.0
 collectible_time_scale = 0.6
 collectible_chance_scale = 0.7
+pickup_weight_energy = 60.0
+pickup_weight_health = 30.0
+pickup_weight_shield = 10.0
+pickup_weight_bomb = 0.0

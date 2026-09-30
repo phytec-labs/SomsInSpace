@@ -265,3 +265,55 @@ AFTER_DELAY value is given.
 | 5 Jet Pincer | 3 × jet_8 V `pincer_left` (no mirror) VOLLEY 2.0, AFTER_DELAY 0 → 3 × jet_9 V `pincer_left` force_mirror VOLLEY 2.0, AFTER_DELAY 1.5 → 8 × drone SWARM `loop_left` (380 px/s), beat 0.8 | 1.5 |
 
 Orbit has no waves: the boss fight plays alone.
+
+## Pickups
+
+Collectibles are not part of the wave data: the SpawnManager's collectible
+timer (base 5 s x the zone's `collectible_time_scale`, spawn chance 0.7 x
+`collectible_chance_scale`) spawns one pickup at a random x above the screen,
+and `spawn_collectible()` rolls which one from the zone's pickup table.
+
+| Pickup | Scene | Points | Effect |
+|---|---|---|---|
+| Energy | `energy_collectible_1.tscn` | 1 | Points only |
+| Health cell | `health_pickup.tscn` | 10 | `level.heal(GameConfig.health_pickup_amount)` = +25, clamped to the ship's max health, green "+25" popup |
+| Shield bubble | `shield_pickup.tscn` | 10 | `player.activate_shield(GameConfig.shield_duration)` = 8 s. Absorbs enemy shots, mine blasts and all contact: no health loss, no blink, no weapon tier loss, combo kept; each absorbed hit pops the ring, the shield keeps going. It is an offensive window: see "Shield rams" below. The UFO beam still drains at `shield_drain_factor` (0.5x). Ring blinks in the last 2 s; re-collecting refreshes to the full 8 s; it ends at game over and when the victory docking starts. HUD: cyan "SHIELD" + timer bar next to the combo |
+| Screen-clear bomb | `bomb_pickup.tscn` | 25 | Fires on pickup: "BOMB!", 0.25 s white flash, big shake; every active non-boss obstacle on screen (incl. blimp, UFO, mines, minions) is killed through `Obstacle.bomb_kill()` (9999 damage: normal kill points, combo rises as usual, blimp loot drops, but asteroids do NOT split: `suppress_splits`), the boss takes `GameConfig.bomb_boss_damage` (150), enemy projectiles on screen (group `enemy_projectile`) are removed |
+
+Weights per zone (`ZoneDefinition.pickup_weight_energy / _health / _shield /
+_bomb`, group "Pickup Weights"; relative, they need not sum to 100):
+
+| Zone | Energy | Health | Shield | Bomb |
+|---|---|---|---|---|
+| ground | 100 | 0 | 0 | 0 |
+| atmosphere | 70 | 15 | 10 | 5 |
+| upper_atmosphere | 60 | 20 | 12 | 8 |
+| space | 55 | 20 | 15 | 10 |
+| orbit | 60 | 30 | 10 | 0 (no bombs in the boss fight) |
+
+Shield rams (`main_level.gd` `_on_shielded_contact()`): while shielded,
+ramming an ordinary obstacle destroys it (as any ram does) AND awards its kill
+points through `award_kill_points()`, so the combo multiplier applies and
+rises: 8 s of shield is a fun offensive window, not just a free pass. The
+boss and the blimp survive contact as usual; each shielded contact hit (their
+`contact_hit_interval`, 0.5 s) deals `GameConfig.shield_ram_damage` (40) to
+them instead of hurting the player. A mine blast is simply absorbed.
+
+Attract-mode demo: the autopilot chases energy, health and shield pickups
+but never a bomb (it steers around it), so the demo screen never empties.
+
+Guarantees (`SpawnManager.roll_pickup_kind()`): at most one shield and one
+bomb on screen at a time, and no health cell while the player is at full
+health; a roll that breaks one becomes energy.
+
+Drops (bypass the table and its limits, via
+`SpawnManager.spawn_collectible_at(position, scene)`): the blimp drops one
+energy + one health cell (`collectible_drops`, `health_drops`); the boss drops
+one health cell below itself when it enters phase 2 and phase 3
+(`main_level.gd` `_on_boss_phase_changed`).
+
+The pickup scenes and values live in `data/game_config.tres` (group
+"Pickups": `energy_collectible_scene`, `health_pickup_scene`,
+`shield_pickup_scene`, `bomb_pickup_scene`, `health_pickup_amount`,
+`shield_duration`, `shield_drain_factor`, `bomb_boss_damage`); the
+SpawnManager copies the scenes in `configure()`.

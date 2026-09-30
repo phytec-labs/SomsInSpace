@@ -4,6 +4,25 @@ Written 2026-09-30 after the refresh phases 1-4 (commits b903dae, 91e2a28, 119a6
 Everything here is sized against what the project already uses, so each item drops
 into the existing obstacle, collectible, or HUD systems without new plumbing.
 
+## Done
+
+Built since this list was written (code complete; most still run on stand-in
+art, see `docs/ART_SWAP_TRACKER.md`), so the tables below are the remaining
+backlog:
+
+- Ship select ("Choose your SoM", three ships with their own stats): wishlist #2, code
+  done, ship art still needed
+- New enemies: drone swarm, blimp mini-boss, UFO with tractor beam, splitting asteroid,
+  space mine: wishlist #5, code done, art still needed
+- Victory docking with a PHYTEC station (mock built from primitives): wishlist #4, code
+  done, art still needed
+- Pickups: health cell, shield bubble, screen-clear bomb, weighted per zone: wishlist #7,
+  code done, icons and shield ring art still needed (weapon tier icons still open)
+- Juice: screen shake, floating score popups, combo multiplier, near-miss graze bonus
+- Wave rework: choreographed formations, spawn telegraphs, richer bullet patterns (fire
+  patterns), more waves per zone
+- Attract-mode demo that plays itself from the main menu until someone touches the screen
+
 ## How art plugs in today
 
 - **Enemies** are one transparent PNG each, drawn large and scaled down in the scene.
@@ -26,33 +45,33 @@ into the existing obstacle, collectible, or HUD systems without new plumbing.
 
 ## Wishlist, ordered by fun per effort
 
-| # | Feature it unlocks | What to make | Spec |
-|---|---|---|---|
-| 1 | Real boss instead of a tinted alien | Mothership sheet: idle, attack, hurt, death | Grid sheet, 6 to 8 frames per animation, ~512x384 per frame, facing down, transparent |
-| 2 | "Choose your SoM" ship select on the main menu, each ship with its own speed, fire rate, and health | 3 ship sprites (e.g. phyCORE-AM62x, i.MX 8M, i.MX 93) plus a small name badge each | 1024x1536 each, facing up, engine at bottom center, same silhouette scale as the current ship |
-| 3 | Zone parallax backgrounds so the climb feels like travel | Ground skyline or launch site, aurora band for upper atmosphere, Earth horizon curve for space, a space station for orbit | 720 px wide strips, horizontally tileable where they scroll, transparent above the horizon, 1 to 3 layers per zone |
-| 4 | Victory moment: dock with a PHYTEC station | Station sprite and a short docking clamp animation | ~800x600 station, 4 to 6 frame clamp sheet |
-| 5 | New enemy types. Ground: drone swarm that flocks. Atmosphere: blimp mini-boss with turrets. Space: UFO with a tractor beam, splitting asteroid, blinking space mine | One PNG per enemy, sheets for the UFO beam and mine blink; asteroid in 3 sizes | 256 to 512 px, facing down; beam as a vertical strip ~64x400; mine 2 to 4 blink frames |
-| 6 | Damage states on enemies and the player | Smoke or crack overlay frames | 2 to 3 frames per enemy family, same canvas size as the enemy |
-| 7 | New pickups: shield bubble, screen-clear bomb, health cell; distinct icons for weapon tiers 2 and 3 | 5 pickup icons and a shield ring sprite | Icons 256x256 in a consistent style; shield ring ~300x300 with soft alpha edge |
-| 8 | HUD polish: pause, heart, threat skull, three weapon tier icons | 6 icons | 128x128, one color plus alpha so code can tint them |
-| 9 | Menu title | Game logo | ~600x200 transparent, plus a version with the PHYTEC mark for the kiosk |
-| 10 | Sound and music | Boss loop, victory jingle, game-over sting, menu blip, power-up, player hit, boss roar and hit, warning klaxon, tier-3 shot | OGG for loops, MP3 or OGG for one-shots, 1 to 3 s each |
+| # | Feature it unlocks | What to make | Spec | Status |
+|---|---|---|---|---|
+| 1 | Real boss instead of a tinted alien | Mothership sheet: idle, attack, hurt, death | Grid sheet, 6 to 8 frames per animation, ~512x384 per frame, facing down, transparent | open (boss uses the tinted alien) |
+| 2 | "Choose your SoM" ship select on the main menu, each ship with its own speed, fire rate, and health | 3 ship sprites (e.g. phyCORE-AM62x, i.MX 8M, i.MX 93) plus a small name badge each | 1024x1536 each, facing up, engine at bottom center, same silhouette scale as the current ship | code done, art needed |
+| 3 | Zone parallax backgrounds so the climb feels like travel | Ground skyline or launch site, aurora band for upper atmosphere, Earth horizon curve for space, a space station for orbit | 720 px wide strips, horizontally tileable where they scroll, transparent above the horizon, 1 to 3 layers per zone | open |
+| 4 | Victory moment: dock with a PHYTEC station | Station sprite and a short docking clamp animation | ~800x600 station, 4 to 6 frame clamp sheet | code done (primitive mock), art needed |
+| 5 | New enemy types. Ground: drone swarm that flocks. Atmosphere: blimp mini-boss with turrets. Space: UFO with a tractor beam, splitting asteroid, blinking space mine | One PNG per enemy, sheets for the UFO beam and mine blink; asteroid in 3 sizes | 256 to 512 px, facing down; beam as a vertical strip ~64x400; mine 2 to 4 blink frames | code done, art needed |
+| 6 | Damage states on enemies and the player | Smoke or crack overlay frames | 2 to 3 frames per enemy family, same canvas size as the enemy | open |
+| 7 | New pickups: shield bubble, screen-clear bomb, health cell; distinct icons for weapon tiers 2 and 3 | 5 pickup icons and a shield ring sprite | Icons 256x256 in a consistent style; shield ring ~300x300 with soft alpha edge | code done for shield / bomb / health, art needed; weapon tier icons open |
+| 8 | HUD polish: pause, heart, threat skull, three weapon tier icons | 6 icons | 128x128, one color plus alpha so code can tint them | open |
+| 9 | Menu title | Game logo | ~600x200 transparent, plus a version with the PHYTEC mark for the kiosk | open |
+| 10 | Sound and music | Boss loop, victory jingle, game-over sting, menu blip, power-up, player hit, boss roar and hit, warning klaxon, tier-3 shot | OGG for loops, MP3 or OGG for one-shots, 1 to 3 s each | open |
 
 Items 1 through 4 change how the game feels at a booth. Item 2 turns the demo into
 a PHYTEC product story: pick your module, see its stats, fly it.
 
 ## Fun that needs no new art (code only)
 
-- Screen shake and hit-stop on kills
-- Floating score popups
-- Combo multiplier for kill streaks
-- Near-miss bonus points for grazing bullets
+- Screen shake on kills (done); hit-stop (open)
+- Floating score popups (done)
+- Combo multiplier for kill streaks (done)
+- Near-miss bonus points for grazing bullets (done)
 - Chained explosions when enemies die close together
-- Richer enemy bullet patterns (rings, spirals, aimed bursts)
-- More wave and formation definitions per zone (all data in `data/zones/*.tres`)
+- Richer enemy bullet patterns (rings, spirals, aimed bursts) (partly done: volley / ripple fire patterns, boss volleys)
+- More wave and formation definitions per zone (all data in `data/zones/*.tres`) (done: wave rework)
 - Ship banking when moving sideways
-- Attract-mode demo that plays itself on the main menu until someone touches the screen
+- Attract-mode demo that plays itself on the main menu until someone touches the screen (done)
 
 ## Still to verify on the device
 

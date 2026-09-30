@@ -34,6 +34,9 @@ func _ready() -> void:
 	energy_value = 25.0  # Informational only: the level never applies energy_value
 	points = 10  # More points than regular collectible (awarded by main_level)
 
+func get_pickup_type() -> StringName:
+	return &"weapon"
+
 func _process(delta: float) -> void:
 	if not is_active:
 		return

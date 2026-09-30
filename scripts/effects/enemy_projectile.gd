@@ -18,7 +18,12 @@ var _grazed: bool = false
 # Player hurtbox (CollisionArea, layer 1) | player GrazeArea (layer 16)
 const PLAYER_MASK := 1 | 16
 
+# Every enemy projectile (any scene using this script) is in this group; the
+# screen-clear bomb (main_level.gd detonate_bomb()) removes those on screen
+const GROUP := &"enemy_projectile"
+
 func _ready() -> void:
+	add_to_group(GROUP)
 	# Set collision to look for player
 	collision_layer = 4  # Layer for enemy projectiles
 	collision_mask = PLAYER_MASK  # Player hurtbox + graze sensor
@@ -87,17 +92,23 @@ func _on_area_entered(area: Area2D) -> void:
 			("is_dead" in player and player.is_dead)
 
 		if not invulnerable:
-			# Update player health and trigger hit animation
+			# Update player health and trigger hit animation (a shielded
+			# player's hit is absorbed inside update_health: no damage)
 			var level = get_tree().get_first_node_in_group("level")
 			if level and level.has_method("update_health"):
 				level.update_health(-damage)
 
-			# Start player blinking (invulnerability)
-			if player.has_method("start_blink"):
+			# Start player blinking (invulnerability), unless the shield took it
+			var shielded = player.has_method("is_shielded") and player.is_shielded()
+			if not shielded and player.has_method("start_blink"):
 				player.start_blink()
 
 		# Destroy the projectile
 		_despawn()
+
+# Remove this shot now (screen-clear bomb); no-op if already despawned
+func clear() -> void:
+	_despawn()
 
 func _despawn() -> void:
 	if not is_active:

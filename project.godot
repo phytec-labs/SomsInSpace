@@ -26,6 +26,7 @@ config/icon="res://icon.svg"
 ScoreboardManager="*res://scripts/scoreboard_manager.gd"
 ObjectPool="*res://scripts/object_pool.gd"
 GameSession="*res://scripts/game_session.gd"
+AttractMode="*res://scripts/attract_mode.gd"
 
 [display]
 

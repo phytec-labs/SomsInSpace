@@ -3,7 +3,8 @@
 # gentle side-to-side drift and fires aimed shots from its three gondola
 # turret mounts (GunPoint1..3, left/center/right), one mount per shot in a
 # ping-pong cycle. Survives ramming (the player takes contact damage, rate
-# limited like the boss) and drops one energy collectible when shot down.
+# limited like the boss) and drops one energy collectible plus one health cell
+# when shot down.
 #
 # Spawned once per atmosphere visit by a one_shot WaveGroup with
 # scene_override (see data/zones/atmosphere.tres). Pause-safe: all timing is
@@ -31,6 +32,8 @@ class_name BlimpObstacle
 @export var contact_hit_interval: float = 0.5
 ## Energy collectibles dropped when shot down
 @export var collectible_drops: int = 1
+## Health cells dropped when shot down (in addition to the energy)
+@export var health_drops: int = 1
 
 var _shot_timer: float = 0.0
 var _gun_step: int = 0
@@ -126,3 +129,10 @@ func take_damage(amount: float) -> void:
 		for i in range(collectible_drops):
 			var offset = Vector2((float(i) - float(collectible_drops - 1) / 2.0) * 40.0, 0.0)
 			spawn_manager.spawn_collectible_at.call_deferred(drop_position + offset)
+		# Plus health cells (next to the energy, slightly lower)
+		if health_drops > 0 and spawn_manager.has_method("get_pickup_scene"):
+			var health_scene: PackedScene = spawn_manager.get_pickup_scene(&"health")
+			# (null would fall back to an energy collectible: skip instead)
+			for i in range(health_drops if health_scene else 0):
+				var offset = Vector2((float(i) - float(health_drops - 1) / 2.0) * 50.0, 50.0)
+				spawn_manager.spawn_collectible_at.call_deferred(drop_position + offset, health_scene)

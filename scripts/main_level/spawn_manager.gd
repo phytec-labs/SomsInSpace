@@ -7,6 +7,10 @@ const GameConfigScript := preload("res://scripts/data/game_config.gd")
 const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
 
 const MOVEMENT_PATTERNS: Array[String] = ["linear", "sine", "zigzag"]
+# Pickup kinds, in ZoneDefinition.get_pickup_weights() order
+const PICKUP_KINDS: Array[StringName] = [&"energy", &"health", &"shield", &"bomb"]
+# At most one of each of these on screen at a time (re-rolled as energy)
+const SINGLE_ON_SCREEN_PICKUPS: Array[StringName] = [&"shield", &"bomb"]
 
 # Node references
 @onready var formation_manager = $FormationManager
@@ -19,7 +23,13 @@ const MOVEMENT_PATTERNS: Array[String] = ["linear", "sine", "zigzag"]
 @export var collectible_time_decrease_rate: float = 0.01
 @export_range(0.0, 1.0) var initial_collectible_chance: float = 0.7  # Higher chance for collectibles
 
-@export var energy_collectible_scene: PackedScene
+# Pickup scenes, copied from the GameConfig in configure() (data lives in
+# data/game_config.tres); spawn_collectible() picks one per the zone's
+# pickup_weight_* table
+var energy_collectible_scene: PackedScene
+var health_pickup_scene: PackedScene
+var shield_pickup_scene: PackedScene
+var bomb_pickup_scene: PackedScene
 
 # Enemy-specific properties
 @export_group("Enemy Settings")
@@ -67,6 +77,11 @@ func _ready() -> void:
 # main_level then selects the starting zone via set_spawn_zone().
 func configure(game_config: GameConfigScript) -> void:
 	config = game_config
+	if config:
+		energy_collectible_scene = config.energy_collectible_scene
+		health_pickup_scene = config.health_pickup_scene
+		shield_pickup_scene = config.shield_pickup_scene
+		bomb_pickup_scene = config.bomb_pickup_scene
 
 # Start spawning objects
 func start_spawning() -> void:
@@ -148,17 +163,82 @@ func get_collectible_spawn_position() -> Vector2:
 
 	return Vector2(x_pos, y_pos)
 
-# Spawn a collectible at a random position above the screen
+# Spawn a pickup rolled from the zone's table (see roll_pickup_kind()) at a
+# random position above the screen
 func spawn_collectible() -> Node2D:
-	return spawn_collectible_at(get_collectible_spawn_position())
+	return spawn_collectible_at(get_collectible_spawn_position(), get_pickup_scene(roll_pickup_kind()))
 
-# Spawn a (pooled) energy collectible at spawn_position, in this manager's
-# coordinates (e.g. an enemy's `position` when it drops loot on death)
-func spawn_collectible_at(spawn_position: Vector2) -> Node2D:
-	if not energy_collectible_scene:
+# Weighted pickup roll for the current zone (energy only without a zone),
+# with the guarantees applied: a shield / bomb while one is already on screen
+# and a health cell at full health become energy.
+func roll_pickup_kind() -> StringName:
+	var kind: StringName = _roll_weighted_pickup()
+	if kind in SINGLE_ON_SCREEN_PICKUPS and get_live_pickup_count(kind) > 0:
+		return &"energy"
+	if kind == &"health" and _is_player_at_full_health():
+		return &"energy"
+	# No scene configured for it: fall back to energy
+	if get_pickup_scene(kind) == null:
+		return &"energy"
+	return kind
+
+func _roll_weighted_pickup() -> StringName:
+	if current_zone == null:
+		return &"energy"
+	var weights: Array[float] = current_zone.get_pickup_weights()
+	var total := 0.0
+	for w in weights:
+		total += maxf(w, 0.0)
+	if total <= 0.0:
+		return &"energy"
+	var roll := randf() * total  # Global RNG: seeded runs replay
+	var cumulative := 0.0
+	for i in range(weights.size()):
+		var w := maxf(weights[i], 0.0)
+		if w <= 0.0:
+			continue
+		cumulative += w
+		if roll < cumulative:
+			return PICKUP_KINDS[i]
+	return &"energy"
+
+# Scene for a pickup kind (null if not configured)
+func get_pickup_scene(kind: StringName) -> PackedScene:
+	match kind:
+		&"health":
+			return health_pickup_scene
+		&"shield":
+			return shield_pickup_scene
+		&"bomb":
+			return bomb_pickup_scene
+	return energy_collectible_scene
+
+# Live (spawned, not yet collected / off screen) pickups of `kind`
+func get_live_pickup_count(kind: StringName) -> int:
+	var count := 0
+	for object in _live_objects:
+		if is_instance_valid(object) and object.has_method("get_pickup_type") \
+				and object.is_active and object.get_pickup_type() == kind:
+			count += 1
+	return count
+
+func _is_player_at_full_health() -> bool:
+	var level = get_tree().get_first_node_in_group("level")
+	if level == null or not ("current_health" in level) or not ("max_health" in level):
+		return false
+	return level.current_health >= level.max_health
+
+# Spawn a (pooled) pickup at spawn_position, in this manager's coordinates
+# (e.g. an enemy's `position` when it drops loot on death). `scene` is any
+# pickup scene (see get_pickup_scene()); null = the energy collectible.
+# Drops bypass the pickup table and its limits.
+func spawn_collectible_at(spawn_position: Vector2, scene: PackedScene = null) -> Node2D:
+	if scene == null:
+		scene = energy_collectible_scene
+	if not scene:
 		return null
 
-	var collectible = _acquire(energy_collectible_scene)
+	var collectible = _acquire(scene)
 
 	# Return it to the pool once it leaves the screen or is collected
 	if _needs_connections(collectible):
@@ -324,6 +404,12 @@ func _pick_movement_pattern() -> String:
 			break
 
 	return selected_pattern
+
+# Everything spawned by this manager and not yet returned to the pool
+# (obstacles, bosses, pickups); a copy, safe to iterate while returning
+func get_live_objects() -> Array:
+	_prune_freed()
+	return _live_objects.keys()
 
 # Obstacles currently alive and counted toward max_active_obstacles
 # (bosses excluded)

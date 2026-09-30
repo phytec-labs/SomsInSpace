@@ -28,6 +28,13 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 # award a graze when they pass through it. Only monitorable while the ship is
 # controllable and vulnerable (see _update_graze_area()).
 @onready var graze_area: Area2D = get_node_or_null("GrazeArea")
+# Shield bubble ring (shown while shielded; see activate_shield())
+# PLACEHOLDER_ART: scenes/player.tscn `ShieldRing` is a translucent cyan
+# Polygon2D disk ("Glow") plus a cyan Line2D circle ("Ring"), ~184 px across.
+# Replace both children with one Sprite2D (~300x300 ring with a soft alpha
+# edge); the pulse / flash / blink below drive ShieldRing's scale, modulate
+# and visibility, so they keep working on the sprite.
+@onready var shield_ring: Node2D = get_node_or_null("ShieldRing")
 
 # Emitted when a fly_to() tween reaches its target
 signal arrived
@@ -52,6 +59,23 @@ var is_blinking: bool = false
 var blink_timer: float = 0.0
 var blink_toggle_timer: float = 0.0
 var is_sprite_visible: bool = true
+
+# Shield bubble (shield pickup): absorbs damaging hits (main_level.gd checks
+# is_shielded()) for shield_time_left seconds. Accumulator timers in
+# _process(), so it freezes while the tree is paused.
+## Last seconds of the shield in which the ring blinks as a warning
+@export var shield_warning_time: float = 2.0
+const SHIELD_PULSE_SPEED := 6.0        # rad/s of the ring's scale/alpha pulse
+const SHIELD_PULSE_SCALE := 0.05       # +-5% scale
+const SHIELD_BLINK_RATE := 8.0         # Toggles per second in the warning time
+const SHIELD_FLASH_TIME := 0.15        # Bright pop when a hit is absorbed
+const SHIELD_FLASH_SCALE := 0.18
+const SHIELD_FLASH_COLOR := Color(2.2, 2.2, 2.2, 1.0)
+var shield_time_left: float = 0.0
+var shield_duration: float = 0.0       # Length of the current shield (HUD bar)
+var shield_hits_absorbed: int = 0      # Observability (tests / tuning)
+var _shield_anim_time: float = 0.0
+var _shield_flash_left: float = 0.0
 
 # Weapon tiers:
 #   1 = center gun
@@ -115,6 +139,7 @@ func _ready() -> void:
 
 	if graze_area:
 		graze_area.add_to_group("graze")
+	end_shield()
 	disable_movement()
 
 # Applies a ShipDefinition: sprite texture/tint, speed, fire cooldowns and
@@ -154,6 +179,8 @@ func is_alive() -> bool:
 func _process(delta: float) -> void:
 	if is_blinking:
 		process_blink(delta)
+	if shield_time_left > 0.0:
+		_process_shield(delta)
 
 	# Handle shooting cooldown
 	if not can_fire:
@@ -193,6 +220,75 @@ func end_blink() -> void:
 	update_sprite_visibility(true)  # Ensure sprite is visible
 	_update_graze_area()
 
+# --- Shield ---
+
+# Shield pickup: shielded for `duration` seconds (re-collecting refreshes the
+# time to the full duration). No effect while dead.
+func activate_shield(duration: float = 8.0) -> void:
+	if is_dead or duration <= 0.0:
+		return
+	shield_duration = duration
+	shield_time_left = duration
+	_shield_anim_time = 0.0
+	_shield_flash_left = 0.0
+	_update_shield_ring()
+
+func is_shielded() -> bool:
+	return shield_time_left > 0.0 and not is_dead
+
+# A damaging hit was absorbed (main_level.gd): brief pop, shield keeps going
+func shield_absorb_hit() -> void:
+	if not is_shielded():
+		return
+	shield_hits_absorbed += 1
+	_shield_flash_left = SHIELD_FLASH_TIME
+	_update_shield_ring()
+
+# Shield off now (time out, death, end of run, scene reload)
+func end_shield() -> void:
+	shield_time_left = 0.0
+	_shield_flash_left = 0.0
+	if shield_ring:
+		shield_ring.visible = false
+		shield_ring.scale = Vector2.ONE
+		shield_ring.modulate = Color.WHITE
+
+# Remaining shield time as a fraction of its duration (0 = off), for the HUD
+func get_shield_fraction() -> float:
+	if not is_shielded() or shield_duration <= 0.0:
+		return 0.0
+	return clampf(shield_time_left / shield_duration, 0.0, 1.0)
+
+func _process_shield(delta: float) -> void:
+	shield_time_left -= delta
+	_shield_anim_time += delta
+	_shield_flash_left = maxf(_shield_flash_left - delta, 0.0)
+	if shield_time_left <= 0.0 or is_dead:
+		end_shield()
+		return
+	_update_shield_ring()
+
+# Ring visuals from the shield state: pulse, hit flash, warning blink
+func _update_shield_ring() -> void:
+	if not shield_ring:
+		return
+	if not is_shielded():
+		shield_ring.visible = false
+		return
+	var pulse := sin(_shield_anim_time * SHIELD_PULSE_SPEED)
+	var ring_scale := 1.0 + pulse * SHIELD_PULSE_SCALE
+	var color := Color(1, 1, 1, 0.75 + 0.25 * pulse)
+	if _shield_flash_left > 0.0:
+		var t := _shield_flash_left / SHIELD_FLASH_TIME
+		ring_scale += SHIELD_FLASH_SCALE * t
+		color = color.lerp(SHIELD_FLASH_COLOR, t)
+	shield_ring.scale = Vector2(ring_scale, ring_scale)
+	shield_ring.modulate = color
+	# Blink in the warning time (a hit flash always shows)
+	var warning := shield_time_left <= shield_warning_time
+	shield_ring.visible = _shield_flash_left > 0.0 or not warning \
+		or int(_shield_anim_time * SHIELD_BLINK_RATE) % 2 == 0
+
 # Grazes only count while the ship is flying under player control and can be
 # hit (not blinking / dead / countdown / victory / fly_to). Deferred: this
 # runs from physics callbacks (a projectile hit starts the blink).
@@ -219,6 +315,9 @@ func update_sprite_visibility(visible: bool) -> void:
 # ship never keeps firing or chasing an old touch point. Main thrusters are
 # left as they are; directional thrusters stop until the ship moves again.
 func reset_input_state() -> void:
+	# The shield itself survives (this also runs on every unpause); only the
+	# ring is re-synced so it is never left showing without a shield
+	_update_shield_ring()
 	is_firing = false
 	is_touch_active = false
 	target_position = position
@@ -380,6 +479,7 @@ func reset_position() -> void:
 	is_touch_active = false
 	is_dead = false  # Reset the dead flag
 	end_blink()  # Ensure blink effect is reset
+	end_shield()
 
 # Weapon upgrade pickup: one tier up, capped at max_weapon_tier
 func upgrade_weapon() -> void:
@@ -471,6 +571,7 @@ func die() -> void:
 	# Hide all parts of the ship
 	if ship_sprite:
 		ship_sprite.visible = false
+	end_shield()
 
 	# Disable all thrusters
 	main_thruster.emitting = false
@@ -502,6 +603,8 @@ func fly_to(target: Vector2, duration: float) -> void:
 		return
 	if _fly_tween:
 		_fly_tween.kill()
+	# Scripted flight (docking) is never shielded: no ring over the station
+	end_shield()
 	can_move = false
 	is_firing = false
 	is_touch_active = false

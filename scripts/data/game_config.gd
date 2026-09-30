@@ -29,6 +29,29 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 ## Selectable player ships, in ship select order (the first is the default).
 @export var ships: Array[ShipDefinitionScript] = []
 
+@export_group("Pickups")
+## Pickup scenes rolled by SpawnManager.spawn_collectible() with each zone's
+## pickup_weight_* table (see ZoneDefinition). All extend EnergyCollectible
+## and are pooled through the SpawnManager like the energy collectible.
+@export var energy_collectible_scene: PackedScene
+@export var health_pickup_scene: PackedScene
+@export var shield_pickup_scene: PackedScene
+@export var bomb_pickup_scene: PackedScene
+## Health restored by a health cell (clamped to the ship's max_health).
+@export var health_pickup_amount: float = 25.0
+## Seconds a shield bubble lasts (re-collecting refreshes it to this).
+@export var shield_duration: float = 8.0
+## Drain (UFO beam) damage multiplier while shielded (the beam is escapable,
+## so the shield only halves it).
+@export_range(0.0, 1.0) var shield_drain_factor: float = 0.5
+## Damage a screen-clear bomb deals to a boss (other obstacles on screen are
+## destroyed outright).
+@export var bomb_boss_damage: float = 150.0
+## Damage a shielded player's contact deals to obstacles that survive rams
+## (boss, blimp), once per their contact hit interval. Ordinary obstacles
+## rammed while shielded are destroyed and award their kill points.
+@export var shield_ram_damage: float = 40.0
+
 # Returns the highest zone whose start_height is <= height (or the first zone)
 func get_zone_for_height(height: float) -> ZoneDefinitionScript:
 	var result: ZoneDefinitionScript = zones[0] if not zones.is_empty() else null

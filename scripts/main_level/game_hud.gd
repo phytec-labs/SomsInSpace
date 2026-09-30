@@ -24,6 +24,11 @@ signal pause_requested
 var _combo_fill_style: StyleBoxFlat
 var _last_combo: int = 1
 
+# Shield indicator (next to the combo box): "SHIELD" plus a thin bar with the
+# time left; hidden while no shield is up
+@onready var shield_box: Control = $StatsPanel/MarginContainer/StatsContainer/PointsContainer/ShieldBox
+@onready var shield_bar: ProgressBar = $StatsPanel/MarginContainer/StatsContainer/PointsContainer/ShieldBox/ShieldBar
+
 # Zone labels: generated from config.zones in configure() (zone id -> Label;
 # highlighted by update_zone)
 @onready var zone_labels_container: HBoxContainer = $ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels
@@ -107,6 +112,7 @@ func _ready() -> void:
 	update_points(0)
 	update_zone("ground")
 	hide_boss_bar()
+	update_shield(0.0)
 
 	# Set initial weapon / threat
 	update_weapon(1)
@@ -213,6 +219,15 @@ func update_combo(combo: int, time_fraction: float, color: Color = Color.WHITE) 
 				tween.tween_property(combo_label, "scale", Vector2.ONE, 0.12)
 	if combo > 1:
 		combo_bar.value = clampf(time_fraction, 0.0, 1.0)
+
+# Shield time left as a fraction of its duration (0 hides the indicator).
+# Called every frame during play; only the bar value changes while shown.
+func update_shield(fraction: float) -> void:
+	var active := fraction > 0.0
+	if shield_box.visible != active:
+		shield_box.visible = active
+	if active:
+		shield_bar.value = clampf(fraction, 0.0, 1.0)
 
 func update_zone(zone_name: String) -> void:
 	_current_zone = zone_name

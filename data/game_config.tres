@@ -11,9 +11,17 @@
 [ext_resource type="Resource" path="res://data/ships/phycore_am62x.tres" id="9_am62x"]
 [ext_resource type="Resource" path="res://data/ships/phycore_imx8mp.tres" id="10_imx8mp"]
 [ext_resource type="Resource" path="res://data/ships/phycore_imx93.tres" id="11_imx93"]
+[ext_resource type="PackedScene" path="res://scenes/collectibles/energy_collectible_1.tscn" id="12_energy"]
+[ext_resource type="PackedScene" path="res://scenes/collectibles/health_pickup.tscn" id="13_health"]
+[ext_resource type="PackedScene" path="res://scenes/collectibles/shield_pickup.tscn" id="14_shield"]
+[ext_resource type="PackedScene" path="res://scenes/collectibles/bomb_pickup.tscn" id="15_bomb"]
 
 [resource]
 script = ExtResource("1_lytdd")
 zones = Array[ExtResource("2_3pit6")]([ExtResource("3_ank8f"), ExtResource("4_54jad"), ExtResource("5_775ok"), ExtResource("6_llujv"), ExtResource("7_orbit")])
 progress_bar_max_height = 13500
 ships = Array[ExtResource("8_shipdef")]([ExtResource("9_am62x"), ExtResource("10_imx8mp"), ExtResource("11_imx93")])
+energy_collectible_scene = ExtResource("12_energy")
+health_pickup_scene = ExtResource("13_health")
+shield_pickup_scene = ExtResource("14_shield")
+bomb_pickup_scene = ExtResource("15_bomb")

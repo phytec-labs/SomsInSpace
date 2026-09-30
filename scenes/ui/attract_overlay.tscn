@@ -1,0 +1,66 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/attract_overlay.gd" id="1_script"]
+[ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="2_font"]
+
+[sub_resource type="Theme" id="Theme_font"]
+default_font = ExtResource("2_font")
+
+[node name="AttractOverlay" type="CanvasLayer"]
+process_mode = 3
+layer = 10
+script = ExtResource("1_script")
+
+[node name="InputCatcher" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_font")
+
+[node name="Banner" type="VBoxContainer" parent="InputCatcher"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 330.0
+offset_bottom = 510.0
+grow_horizontal = 2
+mouse_filter = 2
+alignment = 1
+
+[node name="DemoLabel" type="Label" parent="InputCatcher/Banner"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 0, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 14
+theme_override_font_sizes/font_size = 110
+text = "DEMO"
+horizontal_alignment = 1
+
+[node name="TouchLabel" type="Label" parent="InputCatcher/Banner"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 72
+text = "TOUCH TO PLAY"
+horizontal_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="InputCatcher"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 515.0
+offset_bottom = 555.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 1, 0.9)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 40
+text = "PHYTEC Soms In Space"
+horizontal_alignment = 1

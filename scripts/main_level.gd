@@ -93,6 +93,35 @@ const SHAKE_CLAMP := 0.75        # Docking clamps close
 const SHAKE_CLAMP_TIME := 0.35
 const SHAKE_GRAZE := 0.25
 const SHAKE_GRAZE_TIME := 0.1
+const SHAKE_BOMB := 1.0          # Screen-clear bomb
+const SHAKE_BOMB_TIME := 0.6
+const SHAKE_SHIELD := 0.3        # Hit absorbed by the shield
+const SHAKE_SHIELD_TIME := 0.12
+
+# --- Pickups (health cell, shield bubble, screen-clear bomb) ---
+# Values live in GameConfig (health_pickup_amount, shield_duration,
+# shield_drain_factor, bomb_boss_damage); the SpawnManager rolls which
+# pickup spawns (ZoneDefinition.pickup_weight_*).
+const HEAL_COLOR := Color(0.35, 1, 0.45)
+const SHIELD_COLOR := Color(0.4, 1, 1)
+const BOMB_FLASH_TIME := 0.25
+const BOMB_FLASH_ALPHA := 0.85
+## Obstacles / shots count as "on screen" for the bomb within this margin (px)
+const BOMB_SCREEN_MARGIN := 24.0
+## Damage the bomb deals to every non-boss obstacle (always lethal; dealt
+## through Obstacle.bomb_kill(), so asteroids don't split)
+const BOMB_KILL_DAMAGE := 9999.0
+## Boss phase changes (2 and 3) drop a health cell this far below the boss
+const BOSS_DROP_OFFSET := Vector2(0, 130)
+var _bomb_flash: ColorRect = null
+var _bomb_flash_left: float = 0.0
+# Observability (tests / tuning)
+var bomb_count: int = 0
+var last_bomb_kills: int = 0
+var last_bomb_projectiles_cleared: int = 0
+var boss_health_drops: int = 0
+var health_healed_total: float = 0.0
+var shield_ram_kills: int = 0
 
 var combo: int = 1
 var _combo_time_left: float = 0.0
@@ -187,6 +216,7 @@ func _on_object_spawned(game_object: Node2D) -> void:
 		game_object.connect("destroyed", _on_enemy_destroyed.bind(game_object))
 
 func _process(delta: float) -> void:
+	_update_bomb_flash(delta)
 	match current_state:
 		GameState.COUNTDOWN:
 			process_countdown(delta)
@@ -264,6 +294,7 @@ func process_game(delta: float) -> void:
 
 	_update_threat_display()
 	_update_combo(delta)
+	game_hud.update_shield(player.get_shield_fraction())
 
 # Push the wave manager's ramp level to the HUD (only when it changes)
 func _update_threat_display() -> void:
@@ -292,6 +323,11 @@ func update_health(amount: float) -> void:
 	# No damage once the run has ended (stray shots after victory / game over)
 	if amount < 0.0 and current_state != GameState.PLAYING:
 		return
+	# Shield bubble: the hit is absorbed (no health loss, the combo survives,
+	# no weapon tier loss); the shield flashes and keeps going
+	if amount < 0.0 and player.is_shielded():
+		_absorb_shield_hit()
+		return
 	current_health = clamp(current_health + amount, 0, max_health)
 	update_health_display()
 
@@ -314,8 +350,30 @@ func update_health(amount: float) -> void:
 func apply_drain(amount_per_second: float, delta: float) -> void:
 	if current_state != GameState.PLAYING or amount_per_second <= 0.0 or delta <= 0.0:
 		return
+	# The shield only halves drains (the beam is escapable)
+	if player.is_shielded():
+		amount_per_second *= config.shield_drain_factor
 	current_health = clampf(current_health - amount_per_second * delta, 0.0, max_health)
 	update_health_display()
+
+# Health cell: restore `amount` (clamped to max_health), green popup at the
+# ship. Returns the health actually restored.
+func heal(amount: float) -> float:
+	if amount <= 0.0 or current_state != GameState.PLAYING:
+		return 0.0
+	var before := current_health
+	current_health = clampf(current_health + amount, 0.0, max_health)
+	update_health_display()
+	var healed := current_health - before
+	health_healed_total += healed
+	var text := "+%d" % int(round(healed)) if healed > 0.0 else "MAX"
+	spawn_score_popup(text, player.global_position + Vector2(0, -70), HEAL_COLOR)
+	return healed
+
+# A damaging hit met the shield (update_health): pop the ring, small shake
+func _absorb_shield_hit() -> void:
+	player.shield_absorb_hit()
+	shake(SHAKE_SHIELD, SHAKE_SHIELD_TIME)
 
 # Optional rule (GameConfig.lose_weapon_tier_on_hit): a hit costs one tier
 func _drop_weapon_tier() -> void:
@@ -342,8 +400,9 @@ func award_kill_points(amount: int, source: Node2D = null) -> void:
 		if "spawn_count" in source:
 			source.set_meta("_kill_awarded_spawn", source.spawn_count)
 	_register_kill(absi(amount), at, false)
-	# Asteroid that splits into pieces
-	if is_instance_valid(source) and "size_level" in source and source.size_level > 1:
+	# Asteroid that splits into pieces (not when bombed or rammed)
+	if is_instance_valid(source) and "size_level" in source and source.size_level > 1 \
+			and not source.get("suppress_splits") and not source.get("is_being_collected"):
 		shake(SHAKE_MEDIUM, SHAKE_MEDIUM_TIME)
 
 # `destroyed` from any spawned obstacle (enemies, mines, asteroids, minions,
@@ -440,15 +499,117 @@ func _on_object_collected(object: Node2D) -> void:
 	if object is EnergyCollectible:
 		# Add points based on the collectible's value
 		update_points(object.points)  # Use the points property from GameObject class
+		_apply_pickup(object.get_pickup_type())
+
+# Effect of a collected pickup (points are awarded by the caller). Only
+# during play (e.g. a pickup drifting into the docking ship does nothing).
+func _apply_pickup(kind: StringName) -> void:
+	if current_state != GameState.PLAYING:
+		return
+	match kind:
+		&"health":
+			heal(config.health_pickup_amount)
+		&"shield":
+			player.activate_shield(config.shield_duration)
+			spawn_score_popup("SHIELD", player.global_position + Vector2(0, -70), SHIELD_COLOR)
+		&"bomb":
+			detonate_bomb()
+
+# --- Screen-clear bomb ---
+
+# Flash + big shake; every active non-boss obstacle on screen is destroyed
+# through Obstacle.bomb_kill() (normal kill points, combo rises as usual,
+# blimp loot drops, but asteroids do NOT split), the boss takes
+# GameConfig.bomb_boss_damage, and enemy projectiles on screen are removed.
+func detonate_bomb() -> void:
+	if current_state != GameState.PLAYING:
+		return
+	bomb_count += 1
+	show_message("BOMB!", 1.5)
+	shake(SHAKE_BOMB, SHAKE_BOMB_TIME)
+	_start_bomb_flash()
+
+	var screen := get_viewport_rect().grow(BOMB_SCREEN_MARGIN)
+	var kills_before := kill_count
+	# Snapshot first: kills return obstacles to the pool while we iterate
+	var targets: Array = []
+	for object in spawn_manager.get_live_objects():
+		if is_instance_valid(object) and object is Obstacle and object.is_active \
+				and screen.has_point(object.global_position):
+			targets.append(object)
+	for object in targets:
+		if not is_instance_valid(object) or not object.is_active:
+			continue
+		if object == boss:
+			object.take_damage(config.bomb_boss_damage)
+		elif object.has_method("bomb_kill"):
+			object.bomb_kill(BOMB_KILL_DAMAGE)
+		else:
+			object.take_damage(BOMB_KILL_DAMAGE)
+	last_bomb_kills = kill_count - kills_before
+
+	last_bomb_projectiles_cleared = 0
+	for shot in get_tree().get_nodes_in_group(&"enemy_projectile"):
+		if shot.get("is_active") and screen.has_point(shot.global_position) and shot.has_method("clear"):
+			shot.clear()
+			last_bomb_projectiles_cleared += 1
+
+# White full-screen flash (under the HUD), faded by _update_bomb_flash()
+func _start_bomb_flash() -> void:
+	if _bomb_flash == null:
+		_bomb_flash = ColorRect.new()
+		_bomb_flash.name = "BombFlash"
+		_bomb_flash.color = Color(1, 1, 1, 1)
+		_bomb_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_bomb_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+		$UI.add_child(_bomb_flash)
+		$UI.move_child(_bomb_flash, 0)
+	_bomb_flash_left = BOMB_FLASH_TIME
+	_bomb_flash.modulate.a = BOMB_FLASH_ALPHA
+	_bomb_flash.visible = true
+
+# Accumulator (runs in _process, so it freezes while paused)
+func _update_bomb_flash(delta: float) -> void:
+	if _bomb_flash_left <= 0.0:
+		return
+	_bomb_flash_left -= delta
+	if _bomb_flash_left <= 0.0:
+		_bomb_flash_left = 0.0
+		_bomb_flash.visible = false
+		return
+	_bomb_flash.modulate.a = BOMB_FLASH_ALPHA * (_bomb_flash_left / BOMB_FLASH_TIME)
+
+func is_bomb_flash_visible() -> bool:
+	return _bomb_flash != null and _bomb_flash.visible
 
 func _on_object_hit(object: Node2D) -> void:
 	# No damage once the run has ended (e.g. stray boss shots after victory)
 	if current_state != GameState.PLAYING:
 		return
-	if object is Obstacle:
-		if not player.is_blinking and not player.is_dead:
-			update_health(-object.damage)
-			player.start_blink()  # Start the blink effect)
+	if not (object is Obstacle) or player.is_dead:
+		return
+	# Shield bubble: an offensive window (even during the hit blink)
+	if player.is_shielded():
+		_on_shielded_contact(object)
+		return
+	if not player.is_blinking:
+		update_health(-object.damage)
+		player.start_blink()  # Start the blink effect
+
+# Contact with an obstacle while shielded: no health loss, the ring pops.
+#  - rammed ordinary obstacle (obstacle.gd handle_player_collision() destroys
+#    it after this returns): its kill points go through award_kill_points(),
+#    so the combo applies (and the `destroyed` hook skips it)
+#  - boss / blimp contact (they survive rams): they take
+#    GameConfig.shield_ram_damage per contact hit (their contact rate limit)
+#  - mine blast (the mine detonated itself): absorbed, nothing else
+func _on_shielded_contact(object: Obstacle) -> void:
+	_absorb_shield_hit()
+	if object.is_being_collected:
+		shield_ram_kills += 1
+		award_kill_points(absi(object.points), object)
+	elif not ("detonation_count" in object) and object.is_active:
+		object.take_damage(config.shield_ram_damage)
 
 func update_countdown_display() -> void:
 	var countdown_text: String = ""
@@ -486,8 +647,9 @@ func game_over() -> void:
 	# Create player explosion before hiding the player
 	create_player_explosion()
 
-	# Call the player's die function
+	# Call the player's die function (also ends a shield)
 	player.die()
+	game_hud.update_shield(0.0)
 
 	# Stop game systems
 	spawn_manager.stop_spawning()
@@ -580,10 +742,23 @@ func _connect_boss(new_boss: Node2D) -> void:
 	if boss.has_signal("phase_changed"):
 		boss.connect("phase_changed", _on_boss_phase_changed)
 
-# Phases 2+ (phase 1 is the fight start): big shake
+# Phases 2+ (phase 1 is the fight start): big shake and a health cell drop
 func _on_boss_phase_changed(phase: int) -> void:
 	if phase >= 2 and current_state == GameState.PLAYING:
 		shake(SHAKE_LARGE, SHAKE_LARGE_TIME)
+		_drop_boss_health_cell()
+
+# One health cell below the boss (deferred: phase changes come from shot
+# hits inside physics callbacks)
+func _drop_boss_health_cell() -> void:
+	if not is_instance_valid(boss):
+		return
+	var scene: PackedScene = spawn_manager.get_pickup_scene(&"health")
+	if scene == null:
+		return
+	boss_health_drops += 1
+	# Boss is a child of the SpawnManager: its position is in the manager's space
+	spawn_manager.spawn_collectible_at.call_deferred(boss.position + BOSS_DROP_OFFSET, scene)
 
 func _on_boss_fight_started() -> void:
 	# The entrance can finish after the run already ended
@@ -605,6 +780,8 @@ func _on_boss_defeated() -> void:
 		return
 	current_state = GameState.VICTORY
 	_reset_combo()
+	player.end_shield()
+	game_hud.update_shield(0.0)
 	game_hud.set_pause_button_visible(false)
 
 	# Stop the run; the ship stays on screen (no explosion)

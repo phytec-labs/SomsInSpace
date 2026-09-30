@@ -43,6 +43,16 @@ const FormationSettingsScript := preload("res://scripts/data/formation_settings.
 @export var collectible_time_scale: float = 1.0
 @export var collectible_chance_scale: float = 1.0
 
+@export_group("Pickup Weights")
+## Relative odds of each pickup type when SpawnManager.spawn_collectible()
+## fires (the collectible timer). Guarantees applied on top: at most one
+## shield and one bomb on screen, and no health cell at full health (both
+## re-rolled as energy).
+@export var pickup_weight_energy: float = 100.0
+@export var pickup_weight_health: float = 0.0
+@export var pickup_weight_shield: float = 0.0
+@export var pickup_weight_bomb: float = 0.0
+
 @export_group("Obstacle Movement Pattern Weights")
 ## Random movement patterns for legacy spawn_obstacle() / boss minions only
 ## (wave formations are driven by their EntryPath).
@@ -93,3 +103,7 @@ func get_ramp_level(seconds: float) -> int:
 # Pattern weights in the order [linear, sine, zigzag]
 func get_pattern_weights() -> Array[float]:
 	return [pattern_weight_linear, pattern_weight_sine, pattern_weight_zigzag]
+
+# Pickup weights in the order [energy, health, shield, bomb]
+func get_pickup_weights() -> Array[float]:
+	return [pickup_weight_energy, pickup_weight_health, pickup_weight_shield, pickup_weight_bomb]
