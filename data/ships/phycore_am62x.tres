@@ -1,19 +1,16 @@
 [gd_resource type="Resource" script_class="ShipDefinition" format=3]
 
 [ext_resource type="Script" path="res://scripts/data/ship_definition.gd" id="1_ship"]
-[ext_resource type="Texture2D" uid="uid://bikfkvgj1jug6" path="res://sprites/player_ship_body2.png" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://ble2i7dsjxw40" path="res://sprites/player_ship_body1.png" id="2_tex"]
 
-; PLACEHOLDER_ART: texture is the shared player_ship_body2.png with a heavy tint.
-; Swap for a distinct 1024x1536 ship sprite (see docs/ART_SWAP_TRACKER.md) and
-; set tint back to Color(1, 1, 1, 1).
 [resource]
 script = ExtResource("1_ship")
-id = &"phycore_am62x"
-display_name = "phyCORE-AM62x"
+id = &"ti_am62px"
+display_name = "TI SoM - AM62Px"
 tagline = "Balanced all-rounder"
-description = "Solid armor, speed and firepower."
+description = "Solid armor, speed and firepower: the TI AM62Px does it all."
 texture = ExtResource("2_tex")
-tint = Color(0.75, 0.9, 1, 1)
+tint = Color(1, 1, 1, 1)
 max_health = 100.0
 speed = 300.0
 fire_cooldown_scale = 1.0

@@ -3,10 +3,9 @@
 # SWARM and WaveGroup.enemy_scene). No shooting; all tuning is in the
 # scene's exports (health, damage, points, base_speed).
 #
-# PLACEHOLDER_ART: scenes/obstacles/drone_obstacle.tscn AnimatedSprite2D uses
-# the alien SpriteFrames (sprites/alien_1.tres) at ~0.45x, tinted cyan via
-# `self_modulate`. Swap sprite_frames (and reset self_modulate to white) when
-# the drone sheet arrives.
+# Art: sprites/drone_1.png (1254x1254, claws down toward the player) on a
+# Sprite2D at 0.042 (~53 px on screen); CircleShape2D r 20 over the body and
+# rotor hubs (claw and rotor tips left out).
 extends Obstacle
 class_name DroneObstacle
 

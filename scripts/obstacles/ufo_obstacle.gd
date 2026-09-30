@@ -15,10 +15,14 @@
 #
 # Pause-safe: _process/_physics_process only, no timers or tweens.
 #
-# PLACEHOLDER_ART: scenes/obstacles/ufo_obstacle.tscn Sprite2D uses
-# sprites/satelite_4.png (the pod, rotated level) tinted purple via
-# `self_modulate`; the Beam Polygon2D is a flat translucent cyan trapezoid.
-# Swap both for the saucer sprite and a beam texture/shader.
+# Art: sprites/ufo_1.png (1774x887) on a level Sprite2D at 0.12 (~210x80 px
+# on screen); the hull is a horizontal CapsuleShape2D (200 x 52). The beam
+# starts at the glowing emitter under the saucer (y 30, drawn behind the
+# hull) and reaches 500 px down.
+# PLACEHOLDER_ART: scenes/obstacles/ufo_obstacle.tscn `Beam/BeamPolygon` is a
+# flat translucent cyan trapezoid (80 px wide at the saucer, 160 px at the
+# bottom); swap it for a beam texture/shader and keep `Beam/BeamArea`'s
+# polygon matching its shape.
 extends Obstacle
 class_name UfoObstacle
 

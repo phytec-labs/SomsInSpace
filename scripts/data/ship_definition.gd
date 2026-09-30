@@ -14,8 +14,7 @@ extends Resource
 ## Short extra text for the ship select screen.
 @export_multiline var description: String = ""
 ## Ship body sprite (1024x1536, facing up, engine at bottom center; drawn at
-## the Player's Ship sprite scale).
-## PLACEHOLDER_ART: every ship currently uses player_ship_body2.png + tint.
+## the Player's Ship sprite scale 0.125, i.e. 128x192 px on screen).
 @export var texture: Texture2D
 ## Modulate applied to the ship sprite (white = untinted).
 @export var tint: Color = Color(1, 1, 1)

@@ -9,10 +9,11 @@
 #
 # Pause-safe: all timing is accumulated in _process().
 #
-# PLACEHOLDER_ART: scenes/obstacles/mine_obstacle.tscn draws the mine with
-# two Polygon2Ds under the (texture-less) Sprite2D: a dark grey octagon "Body"
-# and a red "Light" whose visibility blinks. Replace with a 2-4 frame sprite
-# sheet (light off/on) and drive the frame from _set_light().
+# Art: sprites/mine_1.png (1254x1254) on a Sprite2D at 0.042 (~52 px on
+# screen, spike tips included); CircleShape2D r 16 over the body only. The
+# "light" is a pulse of the sprite's modulate toward idle_light_color (slow);
+# once armed it pulses fast toward armed_light_color. The hit flash material
+# sits on the same sprite, so both work together.
 extends Obstacle
 class_name MineObstacle
 
@@ -23,11 +24,13 @@ class_name MineObstacle
 @export var fuse_time: float = 1.0
 ## Player distance (px) at detonation within which the player is hit
 @export var blast_radius: float = 150.0
-## Light blink rates (toggles per second): idle / armed
+## Light pulse rates (half-cycles per second, i.e. on/off toggles): idle / armed
 @export var idle_blink_rate: float = 1.5
 @export var armed_blink_rate: float = 12.0
-
-@onready var light: CanvasItem = get_node_or_null("Sprite2D/Light")
+## Sprite modulate at the peak of an idle pulse (white = light off)
+@export var idle_light_color: Color = Color(1.25, 0.8, 0.7, 1)
+## Sprite modulate at the peak of an armed pulse
+@export var armed_light_color: Color = Color(1.6, 0.45, 0.35, 1)
 
 var is_armed: bool = false
 var fuse_left: float = 0.0
@@ -42,7 +45,7 @@ func initialize(spawn_position: Vector2) -> void:
 	fuse_left = 0.0
 	_blink_time = 0.0
 	last_detonation_hit_player = false
-	_set_light(true)
+	_set_light(1.0)
 
 # Mines always drift straight down
 func set_movement_pattern(_pattern: String) -> void:
@@ -55,7 +58,8 @@ func _process(delta: float) -> void:
 
 	_blink_time += delta
 	var rate = armed_blink_rate if is_armed else idle_blink_rate
-	_set_light(int(_blink_time * rate) % 2 == 0)
+	# Smooth pulse, 1 (lit) at _blink_time 0, one full cycle per two toggles
+	_set_light(0.5 + 0.5 * cos(_blink_time * rate * PI))
 
 	if is_armed:
 		fuse_left -= delta
@@ -101,9 +105,11 @@ func _create_large_explosion() -> void:
 		explosion.set_explosion_type(2)  # LARGE
 		explosion.start()
 
-func _set_light(on: bool) -> void:
-	if light:
-		light.visible = on
+# Light level 0 (off, plain sprite) .. 1 (peak of the pulse)
+func _set_light(level: float) -> void:
+	if sprite:
+		var lit := armed_light_color if is_armed else idle_light_color
+		sprite.modulate = Color.WHITE.lerp(lit, clampf(level, 0.0, 1.0))
 
 func _get_player() -> Node2D:
 	var player = get_tree().get_first_node_in_group("player")
