@@ -24,6 +24,15 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 @onready var up_thruster: CPUParticles2D = $UpThruster
 @onready var down_thruster: CPUParticles2D = $DownThruster
 @onready var fire_audio_player: AudioStreamPlayer2D = $ProjectileAudioPlayer
+# Near-miss sensor (layer 16, group "graze"): enemy projectiles (mask 1|16)
+# award a graze when they pass through it. Only monitorable while the ship is
+# controllable and vulnerable (see _update_graze_area()).
+@onready var graze_area: Area2D = get_node_or_null("GrazeArea")
+
+# Emitted when a fly_to() tween reaches its target
+signal arrived
+var _fly_tween: Tween
+var is_flying: bool = false
 
 # State variables
 var can_move: bool = false
@@ -104,6 +113,8 @@ func _ready() -> void:
 
 	set_weapon_tier(weapon_tier, false)
 
+	if graze_area:
+		graze_area.add_to_group("graze")
 	disable_movement()
 
 # Applies a ShipDefinition: sprite texture/tint, speed, fire cooldowns and
@@ -174,11 +185,23 @@ func start_blink() -> void:
 	blink_timer = 0.0
 	blink_toggle_timer = 0.0
 	area.collision_mask = 0  # Disable collisions with obstacles
+	_update_graze_area()
 
 func end_blink() -> void:
 	is_blinking = false
 	area.collision_mask = 2  # Re-enable collisions with obstacles
 	update_sprite_visibility(true)  # Ensure sprite is visible
+	_update_graze_area()
+
+# Grazes only count while the ship is flying under player control and can be
+# hit (not blinking / dead / countdown / victory / fly_to). Deferred: this
+# runs from physics callbacks (a projectile hit starts the blink).
+func _update_graze_area() -> void:
+	if graze_area:
+		graze_area.set_deferred("monitorable", can_move and not is_blinking and not is_dead)
+
+func can_graze() -> bool:
+	return can_move and not is_blinking and not is_dead
 
 func update_sprite_visibility(visible: bool) -> void:
 	# If player is dead, sprites should remain hidden
@@ -334,11 +357,13 @@ func enable_movement() -> void:
 	target_position = position
 	main_thruster.emitting = true
 	main_thruster2.emitting = true
+	_update_graze_area()
 
 func disable_movement() -> void:
 	can_move = false
 	is_touch_active = false
 	velocity = Vector2.ZERO
+	_update_graze_area()
 
 	# Stop all particle emitters
 	main_thruster.emitting = false
@@ -462,3 +487,48 @@ func die() -> void:
 	can_move = false
 	velocity = Vector2.ZERO
 	_external_velocity = Vector2.ZERO
+	if _fly_tween:
+		_fly_tween.kill()
+		_fly_tween = null
+	is_flying = false
+	_update_graze_area()
+
+# Scripted flight (victory docking): tweens the ship to `target` (global) over
+# `duration` seconds, ignoring player input, with the main thrusters on (plus
+# the directional thruster opposite the travel direction). Thrusters go off and
+# `arrived` is emitted on arrival. Input stays disabled afterwards.
+func fly_to(target: Vector2, duration: float) -> void:
+	if is_dead:
+		return
+	if _fly_tween:
+		_fly_tween.kill()
+	can_move = false
+	is_firing = false
+	is_touch_active = false
+	velocity = Vector2.ZERO
+	_external_velocity = Vector2.ZERO
+	is_flying = true
+	_update_graze_area()
+
+	var travel := target - global_position
+	main_thruster.emitting = true
+	main_thruster2.emitting = true
+	update_thrusters(travel)  # Directional thrusters for the travel direction
+	main_thruster.emitting = true  # (update_thrusters ties these to can_move)
+	main_thruster2.emitting = true
+
+	_fly_tween = create_tween()
+	_fly_tween.tween_property(self, "global_position", target, maxf(duration, 0.01)) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_fly_tween.tween_callback(_on_fly_arrived)
+
+func _on_fly_arrived() -> void:
+	_fly_tween = null
+	is_flying = false
+	main_thruster.emitting = false
+	main_thruster2.emitting = false
+	left_thruster.emitting = false
+	right_thruster.emitting = false
+	up_thruster.emitting = false
+	down_thruster.emitting = false
+	arrived.emit()

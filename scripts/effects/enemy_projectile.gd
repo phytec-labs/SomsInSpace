@@ -11,11 +11,17 @@ var direction: Vector2 = Vector2.DOWN
 var is_active: bool = false
 
 var _time_left: float = 0.0
+# Near-miss already awarded for this flight (reset in initialize(), i.e. on
+# every pool acquire)
+var _grazed: bool = false
+
+# Player hurtbox (CollisionArea, layer 1) | player GrazeArea (layer 16)
+const PLAYER_MASK := 1 | 16
 
 func _ready() -> void:
 	# Set collision to look for player
 	collision_layer = 4  # Layer for enemy projectiles
-	collision_mask = 1   # Layer for player
+	collision_mask = PLAYER_MASK  # Player hurtbox + graze sensor
 
 	area_entered.connect(_on_area_entered)
 
@@ -46,6 +52,7 @@ func initialize(spawn_position: Vector2, projectile_direction: Vector2 = Vector2
 	direction = projectile_direction.normalized()
 	is_active = true
 	_time_left = lifetime
+	_grazed = false
 	set_process(true)
 	show()
 	set_deferred("monitoring", true)
@@ -58,8 +65,18 @@ func _on_area_entered(area: Area2D) -> void:
 	if not is_active:
 		return
 
-	# Debug print to verify the collision is detected
-	print("Enemy projectile hit: ", area.name)
+	# Near miss: passing through the player's GrazeArea awards a graze once
+	# per flight. The shot is NOT absorbed: it flies on and can still hit.
+	if area.is_in_group("graze"):
+		if not _grazed:
+			var grazer = area.get_parent()
+			var can_graze = grazer != null and grazer.has_method("can_graze") and grazer.can_graze()
+			if can_graze:
+				_grazed = true
+				var level = get_tree().get_first_node_in_group("level")
+				if level and level.has_method("award_graze"):
+					level.award_graze(global_position)
+		return
 
 	# Check if we hit the player
 	if area.get_parent() is CharacterBody2D:

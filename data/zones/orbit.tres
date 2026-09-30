@@ -6,13 +6,6 @@
 
 [sub_resource type="Resource" id="Resource_orbfs"]
 script = ExtResource("1_orb01")
-allowed_formations = Array[int]([2, 5, 3, 6])
-min_spread = 100.0
-max_spread = 150.0
-min_objects = 7
-max_objects = 10
-pattern_amplitude_scale = 1.5
-pattern_frequency_scale = 1.2
 
 [resource]
 script = ExtResource("3_orb03")

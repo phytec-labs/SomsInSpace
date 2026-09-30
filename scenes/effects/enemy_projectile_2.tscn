@@ -9,6 +9,7 @@ height = 20.0
 
 [node name="EnemyProjectile" type="Area2D"]
 collision_layer = 8
+collision_mask = 17
 script = ExtResource("1_lgwte")
 speed = 500.0
 lifetime = 2.0

@@ -44,6 +44,10 @@ var move_toward_center: bool = false
 var center_pull_strength: float = 0.5  # How strongly to pull toward the center (0.5 = gentle, 2.0 = aggressive)
 
 var use_formation_movement: bool = false  # Flag to indicate if object uses formation-based movement
+# Set by FormationManager when the wave group runs a fire pattern (VOLLEY /
+# RIPPLE / NONE): the per-frame shooting dice are skipped and the formation
+# calls shoot() itself. Reset to false on every spawn.
+var fire_controlled: bool = false
 
 # Shooting variables
 var time_since_last_shot: float = 0.0
@@ -184,7 +188,7 @@ func _process(delta: float) -> void:
 	check_if_offscreen()
 
 func _process_shooting(delta: float) -> void:
-	if not (can_shoot and projectile_scene):
+	if fire_controlled or not (can_shoot and projectile_scene):
 		return
 
 	time_since_last_shot += delta
@@ -224,7 +228,9 @@ func initialize(spawn_position: Vector2) -> void:
 		max_health = health
 	health = max_health
 
-	# Reset shooting state
+	# Reset shooting state. The per-instance RNG is re-seeded from the global
+	# one so a seeded run (tests) replays identically; gameplay is unchanged.
+	rng.seed = randi()
 	time_since_last_shot = 0.0
 	_reset_shoot_cooldown()
 
@@ -247,6 +253,7 @@ func initialize(spawn_position: Vector2) -> void:
 	# Reset formation variables
 	is_formation_member = false
 	use_formation_movement = false
+	fire_controlled = false
 	formation_id = -1
 	formation_offset = Vector2.ZERO
 	formation_local_position = Vector2.ZERO
@@ -281,12 +288,9 @@ func take_damage(damage: float) -> void:
 	health -= damage
 
 	if health <= 0:
-		# Award points to the player before destroying
-		var level = get_tree().get_first_node_in_group("level")
-		if level and level.has_method("update_points"):
-			# Convert negative points to positive for destroying
-			var destroy_points = abs(points)
-			level.update_points(destroy_points)
+		# Award the kill (x combo) before deactivating: the level marks this
+		# spawn_count so its `destroyed` hook doesn't count the kill again
+		_award_kill_points()
 
 		# Create explosion effect
 		create_explosion()
@@ -294,6 +298,18 @@ func take_damage(damage: float) -> void:
 		# Deactivate the obstacle
 		deactivate()
 		emit_signal("destroyed")
+
+# Kill points (obstacle points are negative; the player earns abs(points))
+# through the level's combo multiplier. Call while still active, before
+# emitting `destroyed`.
+func _award_kill_points() -> void:
+	var level = get_tree().get_first_node_in_group("level")
+	if level == null:
+		return
+	if level.has_method("award_kill_points"):
+		level.award_kill_points(abs(points), self)
+	elif level.has_method("update_points"):
+		level.update_points(abs(points))
 
 func create_explosion() -> void:
 	# Hide the sprite immediately
@@ -379,6 +395,7 @@ func handle_player_collision() -> void:
 	deactivate()
 	emit_signal("destroyed")
 
+# Fire one volley now (public: formation fire patterns call it directly)
 func shoot() -> void:
 	if not projectile_scene or not is_active:
 		return

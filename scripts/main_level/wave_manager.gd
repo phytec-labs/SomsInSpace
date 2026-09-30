@@ -1,120 +1,104 @@
 # wave_manager.gd
-# Plays the current zone's waves (ZoneDefinition.waves) in order, looping.
-# The longer the player stays in a zone, the higher the ramp level: delays get
-# shorter and groups get extra formations (see ZoneDefinition "Difficulty Ramp").
-# The Resources are never modified; effective values are computed per level.
+# Sequencer for the current zone's waves (ZoneDefinition.waves), in a fixed
+# order every run; the only per-run variation is the left/right mirror of
+# groups that allow it (see docs/WAVE_DESIGN.md).
+#
+# For each WaveGroup of a wave:
+#   1. wait for a free formation slot (GameConfig.max_formations_on_screen)
+#   2. telegraph: show a marker at the entry point, wait telegraph_seconds
+#      (scaled by the ramp's beat multiplier, min 0.3 s)
+#   3. spawn the formation (FormationManager) or scene_override singles
+#   4. release the next group: ON_CLEAR waits until this group is cleared
+#      (dead / off screen) plus beat_after; AFTER_DELAY waits `delay`
+# After the last group, the wave waits until every group it spawned is
+# cleared (except scene_override singles released AFTER_DELAY, which keep
+# flying on their own), then completion_delay, then the next wave. Past the last wave it
+# loops (one_shot groups already spawned this visit are skipped).
+#
+# Difficulty ramp: the longer the player stays in a zone, the higher the ramp
+# level; it multiplies formation speeds up and beats / delays down (see
+# ZoneDefinition "Difficulty Ramp"). Counts never change. The Resources are
+# never modified.
+#
+# Pause-safe: a single state machine advanced from _process() delta.
 extends Node2D
 
 const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
 const WaveDefinitionScript := preload("res://scripts/data/wave_definition.gd")
 const WaveGroupScript := preload("res://scripts/data/wave_group.gd")
+const TELEGRAPH_SCENE := preload("res://scenes/effects/spawn_telegraph.tscn")
 
-# Timer.wait_time must be > 0 (setting 0 is rejected with an error and the
-# previous value is kept), so zero/negative delays are clamped to this.
-const MIN_TIMER_WAIT: float = 0.05
+# Delay before the first wave of a zone (also after a zone change)
+const ZONE_START_DELAY: float = 1.0
+# Retry interval when a spawn produced nothing (obstacle cap)
+const CAP_RETRY_DELAY: float = 0.25
+# Telegraph marker inset from the screen edge (px)
+const TELEGRAPH_INSET: float = 44.0
+# Fallbacks when no GameConfig is available
+const DEFAULT_MAX_FORMATIONS: int = 3
+const DEFAULT_TELEGRAPH_SECONDS: float = 0.5
+const MIN_TELEGRAPH_SECONDS: float = 0.3
 
 # ramp_level: difficulty level (time spent in the zone) when the wave started
 signal wave_started(wave: WaveDefinitionScript, wave_index: int, ramp_level: int)
 signal wave_completed
-signal all_waves_completed
+# A group was spawned (formation_id = -1 never emitted); for tests / debugging
+signal group_spawned(group: WaveGroupScript, formation_id: int, mirrored: bool)
 
-# Node references
-@onready var wave_timer: Timer = $WaveTimer
-@onready var enemy_timer: Timer = $EnemyTimer
+enum State {
+	IDLE,         # Not spawning / zone without waves
+	WAIT,         # Counting down _timer, then _after_wait
+	SLOT,         # Waiting for a free formation slot
+	TELEGRAPH,    # Marker showing; spawn when _timer runs out
+	CLEAR,        # Waiting for _wait_formation to be cleared
+	WAVE_CLEAR,   # Waiting for every formation of the wave to be cleared
+}
+
 @onready var formation_manager = $"../FormationManager" if has_node("../FormationManager") else null
 
-# Wave control variables
 @export var active: bool = false
 @export var starting_wave: int = 0
-@export var loop_waves: bool = true  # Whether to loop back to beginning after final wave
 @export var debug_mode: bool = false  # Enable detailed debug logs
 
 # Wave progression
 var zone: ZoneDefinitionScript  # Current zone (set via set_zone())
 var current_wave_index: int = 0
 var current_group_index: int = 0
-var enemies_spawned_in_group: int = 0
 var zone_time: float = 0.0  # Seconds spent spawning in the current zone (drives the ramp)
-var wave_in_progress: bool = false
-var next_action: String = "none"  # Used to track what should happen after timer
+var rng := RandomNumberGenerator.new()  # Mirror rolls (tests may seed it)
 
+var _state: State = State.IDLE
+var _timer: float = 0.0
+var _after_wait: Callable = Callable()
+var _group: WaveGroupScript = null   # Group being released
+var _mirrored: bool = false          # Mirror roll for _group
+var _wait_formation: int = -1        # ON_CLEAR: formation being waited on
+var _wave_formations: Array[int] = []  # Formations spawned by the current wave
 # WaveGroups with one_shot that already spawned something during the current
 # zone visit (used as a set; cleared by set_zone())
 var _spent_one_shot_groups: Dictionary = {}
 
-# Keep track of recent spawn positions to avoid overlap
-var recent_spawn_positions = []
-var max_recent_positions = 5  # How many recent positions to remember
-var min_spawn_distance = 150.0  # Minimum distance between spawn positions
-
 func _ready() -> void:
-	# Verify formation manager reference
+	rng.randomize()
 	if not formation_manager:
 		push_error("WaveManager: FormationManager node not found!")
-	else:
-		print("WaveManager: FormationManager found")
-	
-	# Verify timers
-	if not wave_timer:
-		push_error("WaveManager: WaveTimer node not found!")
-	else:
-		# Disconnect any existing connections to avoid duplicates
-		if wave_timer.timeout.is_connected(_on_wave_timer_timeout):
-			wave_timer.timeout.disconnect(_on_wave_timer_timeout)
-		wave_timer.timeout.connect(_on_wave_timer_timeout)
-	
-	if not enemy_timer:
-		push_error("WaveManager: EnemyTimer node not found!")
-	else:
-		# Disconnect any existing connections to avoid duplicates
-		if enemy_timer.timeout.is_connected(_on_enemy_timer_timeout):
-			enemy_timer.timeout.disconnect(_on_enemy_timer_timeout)
-		enemy_timer.timeout.connect(_on_enemy_timer_timeout)
-	
-	# Initialize with first wave
 	current_wave_index = starting_wave
-	
-	# Start spawning if active is set
 	if active:
 		start_spawning()
 
-# Public methods
+# --- Public API ---
+
 func start_spawning() -> void:
-	if wave_in_progress:
-		return
-	
 	active = true
-	wave_in_progress = false
 	zone_time = 0.0
-	current_group_index = 0
-	enemies_spawned_in_group = 0
-	next_action = "start_wave"
-	
-	# A zone without waves (e.g. the boss zone) is a silent no-op; stay
-	# active so a later set_zone() to a zone with waves resumes spawning
-	if not _zone_has_waves():
-		_stop_timers()
-		return
-	
-	# Start first wave after a short delay
-	_start_timer(wave_timer, 1.0)
+	_begin_zone()
 
 func stop_spawning() -> void:
 	active = false
-	_stop_timers()
+	_set_idle()
 
-# Cancel any pending wave/group/enemy step
-func _stop_timers() -> void:
-	wave_in_progress = false
-	next_action = "none"
-	wave_timer.stop()
-	enemy_timer.stop()
-
-# True if the current zone has at least one wave to play
-func _zone_has_waves() -> bool:
-	return zone != null and not zone.waves.is_empty()
-
-# Switch to a new zone (ZoneDefinition): restart from its first wave, ramp level 0
+# Switch to a new zone (ZoneDefinition): restart from its first wave, ramp
+# level 0. Formations already flying keep going.
 func set_zone(new_zone: ZoneDefinitionScript) -> void:
 	if new_zone == null or new_zone == zone:
 		return
@@ -123,414 +107,235 @@ func set_zone(new_zone: ZoneDefinitionScript) -> void:
 	# The very first zone honours starting_wave; later zones start at wave 0
 	current_wave_index = starting_wave if is_first_zone else 0
 	zone_time = 0.0
-	wave_in_progress = false  # Reset the wave progress for the new zone
 	_spent_one_shot_groups.clear()  # New zone visit: one-shot groups may spawn again
-	_clear_recent_spawn_positions()  # Clear spawn positions when changing zones
-
 	if debug_mode:
-		print("WaveManager: Zone " + String(zone.id) + " has " + str(zone.waves.size()) + " waves")
-	
-	# Zone without waves (e.g. the boss zone): nothing to spawn
-	if not _zone_has_waves():
-		_stop_timers()
-		return
-
-	# If currently spawning, restart with new zone waves
+		print("WaveManager: Zone %s has %d waves" % [zone.id, zone.waves.size()])
 	if active:
-		next_action = "start_wave"
-		wave_timer.stop()  # Ensure any running timer is stopped
-		_start_timer(wave_timer, 1.0)
+		_begin_zone()
+	else:
+		_set_idle()
 
-func _process(delta: float) -> void:
-	# The tree pause stops _process, so paused time doesn't count
-	if active:
-		zone_time += delta
-
-# Difficulty ramp: effective values for the current ramp level
+# Difficulty ramp level for the time spent in the current zone (HUD threat)
 func get_ramp_level() -> int:
 	return zone.get_ramp_level(zone_time) if zone else 0
 
-func get_delay_multiplier() -> float:
-	return zone.get_delay_multiplier(get_ramp_level()) if zone else 1.0
+func get_speed_multiplier() -> float:
+	return zone.get_speed_multiplier(get_ramp_level()) if zone else 1.0
 
-# scene_override groups spawn exactly `count` instances (no ramp bonus)
-func get_effective_count(group: WaveGroupScript) -> int:
-	if group.scene_override:
-		return group.count
-	return group.count + get_effective_count_bonus()
+func get_beat_multiplier() -> float:
+	return zone.get_beat_multiplier(get_ramp_level()) if zone else 1.0
 
 # True for a one_shot group that already spawned during this zone visit
 func is_group_spent(group: WaveGroupScript) -> bool:
 	return group.one_shot and _spent_one_shot_groups.has(group)
 
-func _scaled_delay(base_delay: float) -> float:
-	return base_delay * get_delay_multiplier()
+# State name (tests / debugging)
+func get_state_name() -> String:
+	return State.keys()[_state]
 
-func _start_timer(timer: Timer, wait: float) -> void:
-	timer.wait_time = maxf(wait, MIN_TIMER_WAIT)
-	timer.start()
+# --- State machine ---
 
-# Current wave, or null if the zone has no waves (silently) or the wave
-# index is invalid (with a warning)
-func _get_current_wave() -> WaveDefinitionScript:
+func _process(delta: float) -> void:
+	# The tree pause stops _process, so paused time doesn't count
+	if not active:
+		return
+	zone_time += delta
+
+	match _state:
+		State.WAIT:
+			_timer -= delta
+			if _timer <= 0.0:
+				_state = State.IDLE
+				var next := _after_wait
+				_after_wait = Callable()
+				if next.is_valid():
+					next.call()
+		State.SLOT:
+			if _has_free_slot():
+				_begin_group_spawn()
+		State.TELEGRAPH:
+			_timer -= delta
+			if _timer <= 0.0:
+				_spawn_group()
+		State.CLEAR:
+			if _is_cleared(_wait_formation):
+				_wait(_group.beat_after * get_beat_multiplier(), _next_group)
+		State.WAVE_CLEAR:
+			if _wave_cleared():
+				var wave := _get_current_wave()
+				var completion := wave.completion_delay if wave else 1.0
+				current_wave_index += 1
+				wave_completed.emit()
+				_wait(completion * get_beat_multiplier(), _start_wave)
+
+func _set_idle() -> void:
+	_state = State.IDLE
+	_timer = 0.0
+	_after_wait = Callable()
+	_group = null
+	_wait_formation = -1
+	_wave_formations.clear()
+
+# (Re)start the current zone's sequence after a short delay
+func _begin_zone() -> void:
+	_set_idle()
 	if not _zone_has_waves():
-		return null
-	if current_wave_index < 0 or current_wave_index >= zone.waves.size():
-		push_warning("WaveManager: Invalid wave index " + str(current_wave_index) + " for zone " + String(zone.id))
+		return  # e.g. the boss zone: silent, but stays active for later zones
+	_wait(ZONE_START_DELAY, _start_wave)
+
+func _wait(seconds: float, then: Callable) -> void:
+	_state = State.WAIT
+	_timer = maxf(seconds, 0.0)
+	_after_wait = then
+
+func _zone_has_waves() -> bool:
+	return zone != null and not zone.waves.is_empty()
+
+func _get_current_wave() -> WaveDefinitionScript:
+	if not _zone_has_waves() or current_wave_index < 0 or current_wave_index >= zone.waves.size():
 		return null
 	return zone.waves[current_wave_index]
 
-# Wave control methods
-func start_wave() -> void:
-	if not active:
-		if debug_mode:
-			print("WaveManager: Cannot start wave - not active")
+func _start_wave() -> void:
+	if not active or not _zone_has_waves():
+		_set_idle()
 		return
-	
-	if wave_in_progress:
-		if debug_mode:
-			print("WaveManager: Cannot start wave - wave already in progress")
-		return
-	
-	# Zones without waves (e.g. the boss zone) spawn nothing
-	if not _zone_has_waves():
-		return
-	
-	# Wrap around if we've gone past the end and looping is enabled
-	if current_wave_index >= zone.waves.size():
-		if loop_waves:
-			current_wave_index = 0
-			if debug_mode:
-				print("WaveManager: Zone %s wrapped at ramp level %d (delay x%.2f, +%d per group)" % [
-					zone.id, get_ramp_level(), get_delay_multiplier(), get_effective_count_bonus()])
-		else:
-			emit_signal("all_waves_completed")
-			return
-	
-	# Get current wave data
-	var wave_data := _get_current_wave()
-	if wave_data == null:
-		return
-	wave_in_progress = true
-	current_group_index = 0
-	enemies_spawned_in_group = 0
-	
-	# Start the first group in the wave
-	wave_started.emit(wave_data, current_wave_index, get_ramp_level())
-	spawn_formation_group()
-
-func get_effective_count_bonus() -> int:
-	return zone.get_count_bonus(get_ramp_level()) if zone else 0
-
-func spawn_formation_group() -> void:
-	if not wave_in_progress:
-		if debug_mode:
-			print("WaveManager: Cannot spawn formation group - wave not in progress")
-		return
-	
-	var wave_data := _get_current_wave()
-	if wave_data == null:
-		return
-	
-	# Skip one-shot groups already spawned during this zone visit
-	while current_group_index < wave_data.groups.size() \
-			and is_group_spent(wave_data.groups[current_group_index]):
-		current_group_index += 1
-
-	# Check if we've completed all groups in this wave
-	if current_group_index >= wave_data.groups.size():
-		complete_wave()
-		return
-	
-	# Get current group data
-	var group: WaveGroupScript = wave_data.groups[current_group_index]
-	enemies_spawned_in_group = 0
-	
-	# Start spawning enemies in this group
-	var enemy_delay := _scaled_delay(group.enemy_delay)
-	next_action = "wait_for_next_enemy"
-	_start_timer(enemy_timer, enemy_delay)
-	
-	if debug_mode:
-		print("WaveManager: First enemy will spawn in " + str(enemy_delay) + " seconds")
-
-func spawn_enemy_in_group() -> void:
-	if not wave_in_progress:
-		if debug_mode:
-			print("WaveManager: Cannot spawn enemy - wave not in progress")
-		return
-	
-	# Additional validations
-	var wave_data := _get_current_wave()
-	if wave_data == null:
-		return
-	
-	if current_group_index >= wave_data.groups.size():
-		push_warning("WaveManager: Invalid group index: " + str(current_group_index))
-		return
-		
-	var group: WaveGroupScript = wave_data.groups[current_group_index]
-	var group_count := get_effective_count(group)
-	
-	# Check if we've spawned all enemies in this group
-	if enemies_spawned_in_group >= group_count:
-		# Move to next group after delay
-		current_group_index += 1
-		next_action = "wait_for_next_group"
-		wave_timer.stop() # Ensure timer is stopped before starting again
-		_start_timer(wave_timer, _scaled_delay(group.delay))
-		return
-	
-	# Get a random spawn position from the allowed positions for this group
-	var spawn_position_type := "top"
-	if not group.spawn_positions.is_empty():
-		spawn_position_type = String(group.spawn_positions[randi() % group.spawn_positions.size()])
-	var spawn_position = _get_spawn_position(spawn_position_type)
-	
-	var spawned_any := false
-	if group.scene_override:
-		# A single instance of a specific scene (formation is ignored)
-		var spawn_manager = get_parent()
-		spawned_any = spawn_manager.spawn_scene(group.scene_override, spawn_position) != null
-		if debug_mode:
-			print("WaveManager: scene_override %s spawned: %s" % [group.scene_override.resource_path, spawned_any])
-	elif formation_manager:
-		# Create the formation using formation manager
-		var spawn_func := Callable(get_parent(), "spawn_obstacle")
-		if group.formation_scene:
-			# Every member is formation_scene (bind() would append the scene
-			# after the position, so wrap the call instead)
-			var spawn_manager = get_parent()
-			var member_scene: PackedScene = group.formation_scene
-			spawn_func = func(pos: Vector2) -> Node2D:
-				return spawn_manager.spawn_scene(member_scene, pos)
-		var formation_objects = formation_manager.create_formation(
-			group.formation,
-			spawn_position,
-			spawn_func
-		)
-		spawned_any = formation_objects.size() > 0
-		
-		if debug_mode:
-			if formation_objects.size() > 0:
-				print("WaveManager: Created formation with " + str(formation_objects.size()) + " enemies")
-			else:
-				push_warning("WaveManager: Formation creation failed - no objects returned")
-	else:
-		push_warning("WaveManager: Cannot create formation - formation_manager is null")
-
-	if spawned_any and group.one_shot:
-		_spent_one_shot_groups[group] = true
-	
-	enemies_spawned_in_group += 1
-	
-	# Continue spawning if more enemies in this group
-	if enemies_spawned_in_group < group_count:
-		next_action = "wait_for_next_enemy"
-		enemy_timer.stop() # Ensure timer is stopped before starting again
-		_start_timer(enemy_timer, _scaled_delay(group.enemy_delay))
-	else:
-		# We need to explicitly check for moving to the next group
-		# This duplication is intentional for robustness
-		current_group_index += 1
-		
-		# Check if this was the last group
-		if current_group_index >= wave_data.groups.size():
-			complete_wave()
-		else:
-			# Set up for next group
-			next_action = "wait_for_next_group"
-			wave_timer.stop() # Ensure timer is stopped before starting again
-			_start_timer(wave_timer, _scaled_delay(group.delay))
-
-func complete_wave() -> void:
-	# Wave completed, prepare for next wave
-	wave_in_progress = false
-	
-	# Ensure we've got valid data
-	var wave_data := _get_current_wave()
-	if wave_data == null:
-		if not _zone_has_waves():
-			_stop_timers()
-			return
-		# Reset to a valid state
+	if current_wave_index < 0 or current_wave_index >= zone.waves.size():
 		current_wave_index = 0
-		next_action = "start_wave"
-		_start_timer(wave_timer, 2.0)
+		if debug_mode:
+			print("WaveManager: Zone %s looped at ramp level %d (speed x%.2f, beats x%.2f)" % [
+				zone.id, get_ramp_level(), get_speed_multiplier(), get_beat_multiplier()])
+	var wave := _get_current_wave()
+	current_group_index = 0
+	_wave_formations.clear()
+	wave_started.emit(wave, current_wave_index, get_ramp_level())
+	if debug_mode:
+		print("WaveManager: wave %d '%s' (ramp %d)" % [current_wave_index, wave.name, get_ramp_level()])
+	_prepare_group()
+
+# Pick the next unspent group of the wave (or finish the wave)
+func _prepare_group() -> void:
+	var wave := _get_current_wave()
+	if wave == null:
+		_set_idle()
 		return
-	
-	# Get completion delay before incrementing wave index
-	var completion_delay := _scaled_delay(wave_data.completion_delay)
-	
-	# Increment wave index
-	current_wave_index += 1
-	
-	# Emit completion signal
-	emit_signal("wave_completed")
-	
-	# Start next wave after completion delay
-	next_action = "start_wave"
-	wave_timer.stop() # Ensure timer is stopped before starting again
-	_start_timer(wave_timer, completion_delay)
+	while current_group_index < wave.groups.size() \
+			and (wave.groups[current_group_index] == null or is_group_spent(wave.groups[current_group_index])):
+		current_group_index += 1
+	if current_group_index >= wave.groups.size():
+		_state = State.WAVE_CLEAR
+		return
 
-# Timer callbacks
-func _on_wave_timer_timeout() -> void:
-	if next_action == "start_wave":
-		start_wave()
-	elif next_action == "wait_for_next_group":
-		spawn_formation_group()
+	_group = wave.groups[current_group_index]
+	_mirrored = _group.force_mirror or (_group.mirror_allowed and rng.randf() < 0.5)
+	if _has_free_slot():
+		_begin_group_spawn()
 	else:
-		# Default behavior
-		if active and not wave_in_progress:
-			start_wave()
-		elif wave_in_progress:
-			spawn_formation_group()
+		_state = State.SLOT
 
-func _on_enemy_timer_timeout() -> void:
-	if next_action == "wait_for_next_enemy":
-		spawn_enemy_in_group()
+func _next_group() -> void:
+	current_group_index += 1
+	_prepare_group()
+
+# Slot is free: telegraph (if asked) then spawn
+func _begin_group_spawn() -> void:
+	if _group.telegraph:
+		_show_telegraph(_group, _mirrored)
+		_state = State.TELEGRAPH
+		_timer = _get_telegraph_seconds()
 	else:
-		# Default behavior
-		if wave_in_progress:
-			spawn_enemy_in_group()
+		_spawn_group()
 
-# Spawn position generation methods
-func _get_spawn_position(position_type: String) -> Vector2:
-	match position_type:
-		"top":
-			return _get_top_spawn_position()
-		"left":
-			return _get_left_spawn_position()
-		"right":
-			return _get_right_spawn_position()
-		"bottom":
-			return _get_bottom_spawn_position()
-		_:
-			# Default to top
-			return _get_top_spawn_position()
+func _spawn_group() -> void:
+	# A slot may have been taken meanwhile (AFTER_DELAY overlaps): wait for
+	# one again (the group is telegraphed again once it frees up)
+	if not _has_free_slot():
+		_state = State.SLOT
+		return
 
-# Modified top spawn position with more variation
-func _get_top_spawn_position() -> Vector2:
-	var viewport_rect = get_viewport().get_visible_rect()
-	var margin = 50
-	var screen_width = viewport_rect.size.x
-	
-	# Divide the screen into 5 segments
-	var segment_width = (screen_width - 2*margin) / 5.0
-	
-	# Try to find a good position that isn't too close to recent positions
-	var position_attempts = 0
-	var max_attempts = 10
-	var final_position
-	var found_good_position = false
-	
-	while position_attempts < max_attempts and not found_good_position:
-		# Choose a random segment
-		var segment = randi() % 5
-		
-		# Calculate x position within that segment plus some randomness
-		var base_x = margin + segment * segment_width
-		var x_pos = base_x + randf_range(0, segment_width)
-		
-		# Add some variation to y position
-		var y_pos = randf_range(-150, -80)  # Different heights above screen
-		
-		final_position = Vector2(x_pos, y_pos)
-		
-		# Check if the position is far enough from recent positions
-		found_good_position = true
-		for recent_pos in recent_spawn_positions:
-			if final_position.distance_to(recent_pos) < min_spawn_distance:
-				found_good_position = false
-				break
-		
-		position_attempts += 1
-	
-	# If we couldn't find a good position after max attempts, just use the last one
-	if not found_good_position:
-		final_position = Vector2(randf_range(margin, screen_width - margin), -100)
-	
-	# Add to recent positions and remove oldest if needed
-	recent_spawn_positions.append(final_position)
-	if recent_spawn_positions.size() > max_recent_positions:
-		recent_spawn_positions.pop_front()
-	
-	return final_position
+	var formation_id := -1
+	if formation_manager:
+		if _group.scene_override:
+			formation_id = formation_manager.create_single_group(_group, _mirrored)
+		else:
+			formation_id = formation_manager.create_path_formation(_group, zone, _mirrored, get_speed_multiplier())
 
-# Modified left spawn position with more variation
-func _get_left_spawn_position() -> Vector2:
-	var viewport_rect = get_viewport().get_visible_rect()
-	var margin = 50
-	var screen_width = viewport_rect.size.x
-	
-	# Ensure y position is above the viewable area
-	var y_pos = randf_range(-150, -20)  # Higher up and offscreen
-	
-	# Add some variation to x position
-	var x_pos = randf_range(-150, -80)  # Different distances left of screen
-	
-	var final_position = Vector2(x_pos, y_pos)
-	
-	# Try to keep distance from recent positions
-	var closest_recent = 9999.0
-	for recent_pos in recent_spawn_positions:
-		var dist = final_position.distance_to(recent_pos)
-		closest_recent = min(closest_recent, dist)
-	
-	# If too close to a recent position, adjust slightly
-	if closest_recent < min_spawn_distance and not recent_spawn_positions.is_empty():
-		# Move it slightly more off-screen
-		x_pos -= 50
-		y_pos -= 20
-		final_position = Vector2(x_pos, y_pos)
-	
-	# Add to recent positions and remove oldest if needed
-	recent_spawn_positions.append(final_position)
-	if recent_spawn_positions.size() > max_recent_positions:
-		recent_spawn_positions.pop_front()
-	
-	return final_position
+	if formation_id < 0:
+		# Nothing spawned (obstacle cap or bad data): retry shortly
+		if debug_mode:
+			print("WaveManager: group %s spawned nothing; retrying" % _group.describe())
+		_wait(CAP_RETRY_DELAY, _spawn_group_retry)
+		return
 
-# Modified right spawn position to ensure offscreen spawning
-func _get_right_spawn_position() -> Vector2:
-	var viewport_rect = get_viewport().get_visible_rect()
-	var screen_width = viewport_rect.size.x
-	
-	# Ensure y position is above the viewable area
-	var y_pos = randf_range(-150, -20)  # Higher up and offscreen
-	
-	# Add some variation to x position
-	var x_pos = screen_width + randf_range(80, 150)  # Different distances right of screen
-	
-	var final_position = Vector2(x_pos, y_pos)
-	
-	# Try to keep distance from recent positions
-	var closest_recent = 9999.0
-	for recent_pos in recent_spawn_positions:
-		var dist = final_position.distance_to(recent_pos)
-		closest_recent = min(closest_recent, dist)
-	
-	# If too close to a recent position, adjust slightly
-	if closest_recent < min_spawn_distance and not recent_spawn_positions.is_empty():
-		# Move it slightly more off-screen
-		x_pos += 50
-		y_pos -= 20
-		final_position = Vector2(x_pos, y_pos)
-	
-	# Add to recent positions and remove oldest if needed
-	recent_spawn_positions.append(final_position)
-	if recent_spawn_positions.size() > max_recent_positions:
-		recent_spawn_positions.pop_front()
-	
-	return final_position
+	if _group.one_shot:
+		_spent_one_shot_groups[_group] = true
+	if _blocks_wave_completion(_group):
+		_wave_formations.append(formation_id)
+	group_spawned.emit(_group, formation_id, _mirrored)
+	if debug_mode:
+		print("WaveManager: spawned %s (mirrored %s) as formation %d" % [_group.describe(), _mirrored, formation_id])
 
-# Clear the recent spawn positions (call this when changing zones)
-func _clear_recent_spawn_positions() -> void:
-	recent_spawn_positions.clear()
+	if _group.release == WaveGroupScript.Release.AFTER_DELAY:
+		_wait(_group.delay * get_beat_multiplier(), _next_group)
+	else:
+		_wait_formation = formation_id
+		_state = State.CLEAR
 
-func _get_bottom_spawn_position() -> Vector2:
-	var viewport_rect = get_viewport().get_visible_rect()
-	var margin = 50
-	var x_pos = randf_range(margin, viewport_rect.size.x - margin)
-	var y_pos = viewport_rect.size.y + 100  # Below screen
-	return Vector2(x_pos, y_pos)
+# Formation groups always hold the wave until cleared. A scene_override
+# single released AFTER_DELAY (the UFO escort lead) does not: it keeps flying
+# on its own while the wave moves on. ON_CLEAR singles (the blimp mini-boss
+# beat) still block.
+func _blocks_wave_completion(group: WaveGroupScript) -> bool:
+	return not (group.scene_override and group.release == WaveGroupScript.Release.AFTER_DELAY)
+
+func _spawn_group_retry() -> void:
+	if _group == null:
+		return
+	if _has_free_slot():
+		_spawn_group()
+	else:
+		_state = State.SLOT
+
+func _has_free_slot() -> bool:
+	if formation_manager == null:
+		return true
+	return formation_manager.get_formations_on_screen() < _get_max_formations()
+
+func _is_cleared(formation_id: int) -> bool:
+	return formation_manager == null or formation_manager.is_formation_cleared(formation_id)
+
+func _wave_cleared() -> bool:
+	for formation_id in _wave_formations:
+		if not _is_cleared(formation_id):
+			return false
+	return true
+
+func _get_config() -> Resource:
+	var spawn_manager = get_parent()
+	return spawn_manager.get("config") if spawn_manager else null
+
+func _get_max_formations() -> int:
+	var config = _get_config()
+	return config.max_formations_on_screen if config else DEFAULT_MAX_FORMATIONS
+
+# GameConfig.telegraph_seconds, shortened by the ramp like the beats (but
+# never below MIN_TELEGRAPH_SECONDS so the warning stays readable)
+func _get_telegraph_seconds() -> float:
+	var config = _get_config()
+	var seconds: float = config.telegraph_seconds if config else DEFAULT_TELEGRAPH_SECONDS
+	if seconds <= 0.0:
+		return 0.0
+	return maxf(seconds * get_beat_multiplier(), minf(seconds, MIN_TELEGRAPH_SECONDS))
+
+# Marker at the group's entry point, pulled onto the screen edge, pointing
+# along the path
+func _show_telegraph(group: WaveGroupScript, mirrored: bool) -> void:
+	if formation_manager == null:
+		return
+	var start: Vector2 = formation_manager.get_path_start(group.path, mirrored)
+	var ahead: Vector2 = formation_manager.get_path_point(group.path, mirrored, 160.0)
+	var size := get_viewport_rect().size
+	var at := Vector2(clampf(start.x, TELEGRAPH_INSET, size.x - TELEGRAPH_INSET),
+		clampf(start.y, TELEGRAPH_INSET, size.y - TELEGRAPH_INSET))
+	var marker = ObjectPool.acquire(TELEGRAPH_SCENE, get_parent())
+	marker.start(at, _get_telegraph_seconds(), ahead - start)

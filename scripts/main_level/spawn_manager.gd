@@ -1,4 +1,4 @@
-# spawn_manager_updated.gd
+# spawn_manager.gd
 extends Node2D
 
 signal object_spawned(game_object)
@@ -171,7 +171,9 @@ func spawn_collectible_at(spawn_position: Vector2) -> Node2D:
 	emit_signal("object_spawned", collectible)
 	return collectible
 
-# This function is called by the wave manager to spawn obstacles in formations
+# Legacy: a random obstacle from the zone's obstacle_scenes with a random
+# movement pattern and speed. Wave groups no longer use this (they always name
+# their enemy scene; see spawn_scene()).
 func spawn_obstacle(spawn_position: Vector2) -> Node2D:
 	var scenes = get_obstacle_scenes_for_zone()
 	if scenes.is_empty():
@@ -183,19 +185,22 @@ func spawn_obstacle(spawn_position: Vector2) -> Node2D:
 		return null
 
 	# Select a random obstacle type for this zone
-	return _spawn_capped_obstacle(scenes[randi() % scenes.size()], spawn_position)
+	return _spawn_capped_obstacle(scenes[randi() % scenes.size()], spawn_position, true)
 
-# Spawn a specific obstacle scene (wave groups with scene_override /
-# formation_scene, splitting asteroids, ...). Same rules as spawn_obstacle():
-# respects max_active_obstacles (returns null at the cap) and gets a random
-# speed multiplier and movement pattern (obstacles with their own movement
-# ignore or override these). spawn_position is in this manager's coordinates.
-func spawn_scene(scene: PackedScene, spawn_position: Vector2) -> Node2D:
-	return _spawn_capped_obstacle(scene, spawn_position)
+# Spawn a specific obstacle scene (wave formation members, scene_override
+# singles, splitting asteroids, ...). Respects max_active_obstacles (returns
+# null at the cap). spawn_position is in this manager's coordinates.
+# random_movement: roll a random speed multiplier and movement pattern (for
+# enemies that fly on the base movement code, e.g. boss minions). Off by
+# default: formation members are driven by FormationManager, and the
+# self-moving singles (blimp, UFO, mine, asteroid pieces) set their own; the
+# speed multiplier is reset to 1.0 instead (pooled instances keep old values).
+func spawn_scene(scene: PackedScene, spawn_position: Vector2, random_movement: bool = false) -> Node2D:
+	return _spawn_capped_obstacle(scene, spawn_position, random_movement)
 
-# Minions summoned by the boss (same as spawn_scene())
+# Minions summoned by the boss: spawn_scene() with random movement, as before
 func spawn_minion(scene: PackedScene, spawn_position: Vector2) -> Node2D:
-	return spawn_scene(scene, spawn_position)
+	return spawn_scene(scene, spawn_position, true)
 
 # Spawn a boss: not subject to max_active_obstacles and never culled for
 # leaving the screen (only its destroyed signal returns it to the pool).
@@ -238,19 +243,20 @@ func _prune_freed() -> void:
 				dict.erase(key)
 
 # Shared path of spawn_obstacle() / spawn_scene() / spawn_minion()
-func _spawn_capped_obstacle(scene: PackedScene, spawn_position: Vector2) -> Node2D:
+func _spawn_capped_obstacle(scene: PackedScene, spawn_position: Vector2, random_movement: bool) -> Node2D:
 	if not scene or _is_at_obstacle_cap():
 		return null
 
 	var obstacle = _acquire(scene)
 
-	# Set random speed multiplier if the obstacle supports it
 	if obstacle.has_method("set_speed_multiplier"):
-		var speed_multi = randf_range(enemy_speed_multi_min, enemy_speed_multi_max)
+		var speed_multi := 1.0
+		if random_movement:
+			speed_multi = randf_range(enemy_speed_multi_min, enemy_speed_multi_max)
 		obstacle.set_speed_multiplier(speed_multi)
 
-	# Set random movement pattern if the obstacle supports it
-	if obstacle.has_method("set_movement_pattern"):
+	# Random movement pattern (opt-in) if the obstacle supports it
+	if random_movement and obstacle.has_method("set_movement_pattern"):
 		obstacle.set_movement_pattern(_pick_movement_pattern())
 
 	# Initialize the obstacle (sets position, resets formation_id to -1, shows it)

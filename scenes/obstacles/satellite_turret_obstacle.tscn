@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" uid="uid://dan3irwnoxqa7" path="res://scenes/obstacles/satellite_obstacle_1.tscn" id="1_satbase"]
+[ext_resource type="PackedScene" uid="uid://s0g3ppigvp73" path="res://scenes/effects/enemy_projectile_1.tscn" id="2_satproj"]
+
+[node name="SatelliteTurret" instance=ExtResource("1_satbase")]
+can_shoot = true
+projectile_scene = ExtResource("2_satproj")
+shoot_chance = 1.0
+accuracy = 0.9
+max_aim_angle = 45.0
+
+[node name="GunPoint1" type="Marker2D" parent="."]

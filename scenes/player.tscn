@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://fgrg1yvq87i7"]
+[gd_scene load_steps=11 format=3 uid="uid://fgrg1yvq87i7"]
 
 [ext_resource type="Script" uid="uid://cofp5vjifwmcm" path="res://scripts/main_level/player.gd" id="1_vp455"]
 [ext_resource type="PackedScene" uid="uid://dfjvynj27ebhu" path="res://scenes/effects/player_projectile_1.tscn" id="2_fcb3v"]
@@ -18,6 +18,9 @@ particles_anim_loop = false
 offsets = PackedFloat32Array(0, 0.262443, 0.997738)
 colors = PackedColorArray(0.424785, 0.172459, 0.664428, 1, 0.270588, 0.270588, 1, 0.717647, 1, 1, 1, 0)
 
+[sub_resource type="CircleShape2D" id="CircleShape2D_graze"]
+radius = 95.0
+
 [node name="Player" type="CharacterBody2D"]
 z_index = 1
 collision_mask = 2
@@ -35,6 +38,15 @@ collision_mask = 2
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="CollisionArea"]
 polygon = PackedVector2Array(-56, 24, -53, 8, -15, -28, -9, -58, -2, -79, 2, -79, 9, -58, 16, -25, 53, 8, 55, 25, 37, 45, 38, 58, 18, 53, -18, 53, -38, 59, -37, 46)
+
+[node name="GrazeArea" type="Area2D" parent="." groups=["graze"]]
+collision_layer = 16
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GrazeArea"]
+shape = SubResource("CircleShape2D_graze")
 
 [node name="Gunpoints" type="Node2D" parent="."]
 

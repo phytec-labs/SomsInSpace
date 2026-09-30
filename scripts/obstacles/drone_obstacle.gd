@@ -1,6 +1,6 @@
 # drone_obstacle.gd
 # Small, fragile drone that comes in SWARM formations (see FormationManager
-# SWARM and WaveGroup.formation_scene). No shooting; all tuning is in the
+# SWARM and WaveGroup.enemy_scene). No shooting; all tuning is in the
 # scene's exports (health, damage, points, base_speed).
 #
 # PLACEHOLDER_ART: scenes/obstacles/drone_obstacle.tscn AnimatedSprite2D uses

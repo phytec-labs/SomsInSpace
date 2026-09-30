@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EntryPath" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/entry_path.gd" id="1_bqy15"]
+
+[sub_resource type="Curve2D" id="Curve2D_l2hu6"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 0.5, -0.08, 0, 0, 0, 0, 0.5, 0.35)
+}
+point_count = 2
+
+[resource]
+script = ExtResource("1_bqy15")
+id = &"top_straight"
+curve = SubResource("Curve2D_l2hu6")
+default_speed = 240.0
+descend_speed = 170.0

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EntryPath" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/entry_path.gd" id="1_4n225"]
+
+[sub_resource type="Curve2D" id="Curve2D_qoa0q"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 0.5, -0.08, 0, 0, 0, 0, 0.5, 0.22)
+}
+point_count = 2
+
+[resource]
+script = ExtResource("1_4n225")
+id = &"hover_top"
+curve = SubResource("Curve2D_qoa0q")
+default_speed = 220.0
+end_mode = 1
+hold_seconds = 6.0
+hold_sway_amplitude = 60.0
+descend_speed = 160.0

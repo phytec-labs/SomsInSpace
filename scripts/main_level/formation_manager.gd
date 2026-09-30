@@ -1,12 +1,32 @@
 # formation_manager.gd
+# Spawns and flies wave formations (see docs/WAVE_DESIGN.md).
+#
+# create_path_formation() spawns a WaveGroup's members together at the start
+# of its EntryPath and then moves the formation center along the path by
+# distance (px/s); each member sits at center + its shape offset (SWARM adds a
+# sway and a per-member jitter). After the curve ends the path's end_mode takes
+# over (descend / hover then descend / exit along the last tangent).
+# The formation also runs the group's fire pattern (VOLLEY / RIPPLE) for
+# members that can shoot; INDIVIDUAL leaves members on their own shooting.
+#
+# create_single_group() spawns scene_override singles (blimp, UFO, ...), which
+# fly on their own; they are tracked like a formation so the WaveManager can
+# wait for them to clear.
+#
+# Members are pooled by the SpawnManager when they are destroyed or leave the
+# screen; a formation is "cleared" once none of its members is still the live
+# spawn it was (is_active and the same spawn_count).
+#
+# Pause-safe: everything runs from _process() delta.
 class_name FormationManager
 extends Node2D
 
 const FormationSettingsScript := preload("res://scripts/data/formation_settings.gd")
+const EntryPathScript := preload("res://scripts/data/entry_path.gd")
 
-signal formation_created(formation_objects)
+signal formation_created(formation_id: int, members: Array)
 
-# Formation types
+# Formation types (member offsets from the formation center)
 enum FormationType {
 	LINE,         # Simple horizontal line
 	V_SHAPE,      # V formation
@@ -14,292 +34,375 @@ enum FormationType {
 	DIAGONAL,     # Diagonal line
 	WAVE,         # Wave/sine pattern
 	CIRCLE,       # Circle/arc formation
-	RANDOM,       # Random cluster within bounds
-	SWARM,        # Loose cluster; wide sine sway, members jitter (FormationSettings "Swarm")
+	RANDOM,       # Fixed pseudo-random cluster
+	SWARM,        # Loose cluster; sways, members jitter (FormationSettings "Swarm")
 }
 
-# Formation definitions - store standard parameters for each formation
-var formation_definitions = {
-	FormationType.LINE: {
-		"object_count": 5,
-	},
-	FormationType.V_SHAPE: {
-		"object_count": 5,
-	},
-	FormationType.SQUARE: {
-		"object_count": 9,
-	},
-	FormationType.DIAGONAL: {
-		"object_count": 7,
-	},
-	FormationType.WAVE: {
-		"object_count": 8,
-	},
-	FormationType.CIRCLE: {
-		"object_count": 8,
-	},
-	FormationType.RANDOM: {
-		"object_count": 6,
-	},
-	# Member count comes from FormationSettings.swarm_min/max_objects
-	FormationType.SWARM: {
-		"object_count": 8,
-	}
+# How a formation's members shoot (WaveGroup.fire_mode)
+enum FireMode {
+	NONE,        # Never
+	VOLLEY,      # Every fire_interval, every live member that can shoot fires
+	RIPPLE,      # Every fire_interval, members fire in order RIPPLE_STEP apart
+	INDIVIDUAL,  # Members keep their own random shooting (Obstacle default)
 }
 
-var formation_patterns = ["linear", "sine", "zigzag", "spiral"]
-var default_formation_speeds = {
-	"linear": 1.0,
-	"sine": 0.8,
-	"zigzag": 0.9,
-	"spiral": 0.7,
-	"swarm": 1.0  # SWARM formations only (not in formation_patterns)
-}
+const PATH_DIR := "res://data/paths/"
+const RIPPLE_STEP: float = 0.12
+# Members that have been on screen are released once this far outside it
+const CULL_MARGIN: float = 120.0
+# Angular frequency (rad/s) of the HOLD_THEN_DESCEND sway
+const HOLD_SWAY_FREQUENCY: float = 1.3
 
-# Current zone's formation tuning (FormationSettings, from the zone's
-# ZoneDefinition; see set_zone())
+# Current zone's formation tuning (FormationSettings; see set_zone())
 var settings: FormationSettingsScript
 var current_formation_id: int = 0  # Used to generate unique IDs for formations
-var active_formations: Dictionary = {}  # Track active formations by ID
+var active_formations: Dictionary = {}  # formation id -> formation state (Dictionary)
 var rng = RandomNumberGenerator.new()
+
+var _paths: Dictionary = {}         # path id -> EntryPath (null if missing)
+var _pixel_curves: Dictionary = {}  # "id|mirrored|WxH" -> Curve2D in pixels
 
 func _ready() -> void:
 	rng.randomize()
 
-# Sets the current zone (a ZoneDefinition) to adjust formation settings
+# Sets the current zone (a ZoneDefinition) to adjust formation settings.
+# Formations already flying keep going.
 func set_zone(zone: Resource) -> void:
 	if zone and zone.formation_settings:
 		settings = zone.formation_settings
 	else:
 		push_warning("FormationManager: zone has no FormationSettings; keeping previous settings")
 
-# Add a new method to update all formations
-func _process(delta: float) -> void:
-	# Update active formations with additional movement patterns
-	for formation_id in active_formations.keys():
-		var formation = active_formations[formation_id]
-
-		# Check if formation is still active (has objects)
-		if formation.objects.is_empty():
-			active_formations.erase(formation_id)
-			continue
-
-		# Remove any objects that are no longer in the scene
-		for i in range(formation.objects.size() - 1, -1, -1):
-			# A pooled obstacle may have been reused by a newer formation; it
-			# then belongs to that formation only
-			var member = formation.objects[i]
-			if not is_instance_valid(member) or not member.is_active or member.formation_id != formation_id:
-				formation.objects.remove_at(i)
-				if formation.has("jitter"):
-					formation.jitter.erase(member)
-
-		# If no objects left, remove the formation
-		if formation.objects.is_empty():
-			active_formations.erase(formation_id)
-			continue
-
-		# Update formation pattern time
-		formation.pattern_time += delta
-
-		# Calculate pattern offsets based on formation's pattern
-		var pattern_offset = Vector2.ZERO
-		var viewport_center_x = _get_viewport_rect().size.x / 2.0
-
-		# Add center-pulling for side-spawned formations
-		if formation.is_side_spawn:
-			var distance_to_center = viewport_center_x - formation.base_position.x
-			var pull_threshold = 20.0
-			
-			# Only apply pulling force when outside threshold
-			if abs(distance_to_center) > pull_threshold:
-				# Use a fixed direction value (+1 or -1) instead of recalculating sign
-				if not formation.has("center_pull_direction"):
-					formation.center_pull_direction = 1.0 if distance_to_center > 0 else -1.0
-				
-				# Apply movement with fixed direction
-				var pull_amount = formation.speed * delta * formation.center_pull_strength
-				formation.base_position.x += pull_amount * formation.center_pull_direction
-				
-				# Check if we've crossed center and need to stop pulling
-				var new_distance = viewport_center_x - formation.base_position.x
-				if distance_to_center * new_distance <= 0:  # Sign changed = we crossed center
-					formation.is_side_spawn = false  # Stop center pulling completely
-
-		# Calculate vertical movement (always moves down)
-		formation.base_position.y += formation.speed * delta
-
-		# Calculate horizontal movement based on pattern
-		match formation.pattern:
-			"linear":
-				# Just move downward, no horizontal pattern
-				pass
-
-			"sine":
-				# Sinusoidal side to side movement
-				pattern_offset.x = sin(formation.pattern_time * formation.frequency) * formation.amplitude
-
-			"zigzag":
-				# Performance-optimized zigzag movement
-				# We'll use a simpler linear interpolation approach
-				
-				# We store our current movement direction in the formation data
-				if not formation.has("zigzag_direction"):
-					formation.zigzag_direction = 1.0
-					formation.zigzag_position = 0.0
-					
-				# Update position along the zigzag path
-				formation.zigzag_position += formation.zigzag_direction * formation.frequency * delta
-				
-				# Check for direction change when we reach amplitude boundaries
-				if formation.zigzag_position >= 1.0:
-					formation.zigzag_position = 1.0
-					formation.zigzag_direction = -1.0
-				elif formation.zigzag_position <= -1.0:
-					formation.zigzag_position = -1.0
-					formation.zigzag_direction = 1.0
-					
-				# Map the position to actual offset
-				pattern_offset.x = formation.zigzag_position * formation.amplitude
-
-			"spiral":
-				# Spiral movement
-				formation.rotation += delta * formation.frequency
-				pattern_offset.x = cos(formation.rotation) * formation.amplitude
-				pattern_offset.y = sin(formation.rotation) * formation.amplitude * 0.5
-
-			"swarm":
-				# Wide sine sway of the whole swarm; members add their own
-				# jitter below
-				pattern_offset.x = sin(formation.pattern_time * formation.frequency) * formation.amplitude
-
-		# Update all objects in this formation with the new positions
-		var jitter: Dictionary = formation.get("jitter", {})
-		for obj in formation.objects:
-			if is_instance_valid(obj) and obj.is_active and obj.formation_id == formation_id:
-				var member_position = formation.base_position + obj.formation_offset + pattern_offset
-				if jitter.has(obj):
-					# Small per-member orbit around its offset: [phase, angular speed]
-					var j: Vector2 = jitter[obj]
-					var a = formation.pattern_time * j.y + j.x
-					member_position += Vector2(cos(a), sin(a * 1.3)) * formation.jitter_radius
-				obj.global_position = member_position
-
-# Creates a specific formation type at the given position
-func create_formation(formation_type: FormationType, base_position: Vector2, spawn_func: Callable) -> Array:
-	var formation_def = formation_definitions[formation_type]
+func _get_settings() -> FormationSettingsScript:
 	if settings == null:
-		push_warning("FormationManager: no FormationSettings set; call set_zone() first")
-		return []
+		settings = FormationSettingsScript.new()
+	return settings
 
-	# Generate a unique formation ID
+func _get_spawn_manager() -> Node:
+	return get_parent()
+
+# --- Paths ---
+
+# EntryPath with the given id from res://data/paths/, or null
+func get_path_resource(id: StringName) -> EntryPathScript:
+	if _paths.has(id):
+		return _paths[id]
+	var file := PATH_DIR + String(id) + ".tres"
+	var path: EntryPathScript = null
+	if ResourceLoader.exists(file):
+		path = load(file) as EntryPathScript
+	if path == null:
+		push_error("FormationManager: entry path '%s' not found (%s)" % [id, file])
+	_paths[id] = path
+	return path
+
+func _get_pixel_curve(path: EntryPathScript, mirrored: bool) -> Curve2D:
+	var size := _get_viewport_rect().size
+	var key := "%s|%s|%dx%d" % [path.id, mirrored, int(size.x), int(size.y)]
+	if not _pixel_curves.has(key):
+		_pixel_curves[key] = path.build_pixel_curve(size, mirrored)
+	return _pixel_curves[key]
+
+# First point of the path in pixels (mirrored if asked)
+func get_path_start(path_id: StringName, mirrored: bool) -> Vector2:
+	var path := get_path_resource(path_id)
+	if path == null:
+		return Vector2(_get_viewport_rect().size.x / 2.0, -100.0)
+	var curve := _get_pixel_curve(path, mirrored)
+	if curve.point_count == 0:
+		return Vector2(_get_viewport_rect().size.x / 2.0, -100.0)
+	return curve.get_point_position(0)
+
+# A point a little way along the path (for pointing the telegraph marker)
+func get_path_point(path_id: StringName, mirrored: bool, distance: float) -> Vector2:
+	var path := get_path_resource(path_id)
+	if path == null:
+		return get_path_start(path_id, mirrored)
+	var curve := _get_pixel_curve(path, mirrored)
+	return curve.sample_baked(minf(distance, curve.get_baked_length()))
+
+# --- Spawning ---
+
+# Spawn `group` (a WaveGroup) as a formation flying its EntryPath. mirrored
+# flips the path and the member offsets about the screen center; speed_mult
+# scales the path and descend speeds (difficulty ramp). Members spawn through
+# SpawnManager.spawn_scene(), so the obstacle cap applies: a capped formation
+# just has fewer members. Returns the formation id, or -1 if nothing spawned.
+func create_path_formation(group: Resource, zone: Resource, mirrored: bool, speed_mult: float = 1.0) -> int:
+	if zone and zone.formation_settings and settings == null:
+		settings = zone.formation_settings
+	var s := _get_settings()
+	var path := get_path_resource(group.path)
+	var spawn_manager = _get_spawn_manager()
+	if path == null or group.enemy_scene == null or spawn_manager == null:
+		return -1
+
+	var curve := _get_pixel_curve(path, mirrored)
+	var length := curve.get_baked_length()
+	var start := curve.sample_baked(0.0) if curve.point_count > 0 else get_path_start(group.path, mirrored)
+
+	var formation_type: FormationType = group.formation as FormationType
+	var count: int = maxi(group.count, 1)
+	var spread: float = group.spread
+	if spread <= 0.0:
+		spread = s.swarm_radius if formation_type == FormationType.SWARM else s.default_spread
+
 	current_formation_id += 1
-	var formation_id = current_formation_id
+	var formation_id := current_formation_id
+	var members: Array = []
+	for i in range(count):
+		var offset := get_formation_position(formation_type, i, count, spread)
+		if mirrored:
+			offset.x = -offset.x
+		var node = spawn_manager.spawn_scene(group.enemy_scene, start + offset)
+		if node == null:
+			break  # Obstacle cap: the rest would be capped too
+		var driven := false
+		if node.has_method("set_formation_data"):
+			node.set_formation_data(formation_id, offset)
+			driven = node.get("formation_id") == formation_id
+		if driven:
+			if node.has_method("set_use_formation_movement"):
+				node.set_use_formation_movement(true)
+			if "fire_controlled" in node:
+				node.fire_controlled = group.fire_mode != FireMode.INDIVIDUAL
+		members.append(_make_member(node, offset, driven))
 
-	# Determine number of objects in this formation instance
-	var object_count: int
+	if members.is_empty():
+		return -1
+
+	var speed: float = (group.path_speed if group.path_speed > 0.0 else path.default_speed) * speed_mult
+	var formation := {
+		"id": formation_id,
+		"label": group.describe() if group.has_method("describe") else "",
+		"members": members,
+		"driven": true,
+		"type": formation_type,
+		"mirrored": mirrored,
+		"curve": curve,
+		"length": length,
+		"distance": 0.0,
+		"speed": maxf(speed, 1.0),
+		"descend_speed": path.descend_speed * speed_mult,
+		"end_mode": path.end_mode,
+		"hold_seconds": (group.hold_seconds if group.hold_seconds > 0.0 else path.hold_seconds) / maxf(speed_mult, 0.01),
+		"hold_elapsed": 0.0,
+		"hold_x": 0.0,
+		"sway_amplitude": path.hold_sway_amplitude,
+		"exit_direction": _end_tangent(curve, length),
+		"base": start,
+		"time": 0.0,
+		"fire_mode": group.fire_mode,
+		"fire_interval": group.fire_interval,
+		"fire_timer": 0.0,
+		"ripple_index": -1,
+		"ripple_timer": 0.0,
+	}
+
 	if formation_type == FormationType.SWARM:
-		object_count = rng.randi_range(settings.swarm_min_objects,
-			maxi(settings.swarm_min_objects, settings.swarm_max_objects))
-		# Keep the whole sway on screen
-		var width = _get_viewport_rect().size.x
-		var margin = minf(settings.swarm_sine_amplitude + settings.swarm_radius, width / 2.0)
-		base_position.x = clampf(base_position.x, margin, width - margin)
-	else:
-		object_count = rng.randi_range(
-			min(formation_def.object_count, settings.min_objects),
-			min(formation_def.object_count, settings.max_objects)
-		)
+		# Per-member jitter: Vector2(phase, angular speed)
+		var variation := s.swarm_jitter_speed_variation
+		for m in members:
+			m.jitter = Vector2(rng.randf() * TAU,
+				s.swarm_jitter_speed * rng.randf_range(1.0 - variation, 1.0 + variation))
+		formation.jitter_radius = s.swarm_jitter_radius
+		formation.swarm_amplitude = s.swarm_sine_amplitude
+		formation.swarm_frequency = s.swarm_sine_frequency
 
-	# Determine spread for this formation
-	var spread = rng.randf_range(settings.min_spread, settings.max_spread)
+	active_formations[formation_id] = formation
+	formation_created.emit(formation_id, members.map(func(m): return m.node))
+	return formation_id
 
-	if formation_type == FormationType.SWARM:
-		spread = settings.swarm_radius
-
-	# Create the formation objects
-	var formation_objects = []
-	# Members that actually joined the formation (obstacles that fly on their
-	# own, e.g. the UFO, decline set_formation_data and keep formation_id -1)
-	var members = []
-
-	for i in range(object_count):
-		# Get position offset for this object in the formation
-		var offset = get_formation_position(formation_type, i, object_count, spread)
-		var spawn_position = base_position + offset
-
-		# Spawn the actual object. null = obstacle cap reached (or nothing to
-		# spawn): the rest of the formation would be null too, so stop here
-		var object = spawn_func.call(spawn_position)
-		if object == null:
+# scene_override groups: `count` single instances of the scene, spread
+# horizontally around the path's start point (mirrored if asked). They fly on
+# their own; the record only tracks them for clear checks. Returns the id or -1.
+func create_single_group(group: Resource, mirrored: bool) -> int:
+	var spawn_manager = _get_spawn_manager()
+	if group.scene_override == null or spawn_manager == null:
+		return -1
+	var start := get_path_start(group.path, mirrored)
+	var count: int = maxi(group.count, 1)
+	var spread: float = group.spread if group.spread > 0.0 else _get_settings().default_spread * 2.0
+	current_formation_id += 1
+	var formation_id := current_formation_id
+	var members: Array = []
+	for i in range(count):
+		var x := (float(i) - float(count - 1) / 2.0) * spread
+		var node = spawn_manager.spawn_scene(group.scene_override, start + Vector2(x, 0.0))
+		if node == null:
 			break
-		if object:
-			# Set formation data if the object supports it
-			if object.has_method("set_formation_data"):
-				object.set_formation_data(formation_id, offset)
-			formation_objects.append(object)
-			if object.get("formation_id") == formation_id:
-				members.append(object)
+		members.append(_make_member(node, Vector2(x, 0.0), false))
+	if members.is_empty():
+		return -1
+	active_formations[formation_id] = {
+		"id": formation_id,
+		"label": group.describe() if group.has_method("describe") else "",
+		"members": members,
+		"driven": false,
+		"fire_mode": FireMode.INDIVIDUAL,
+		"time": 0.0,
+	}
+	formation_created.emit(formation_id, members.map(func(m): return m.node))
+	return formation_id
 
-	# Store information about this formation
-	if not members.is_empty():
-		# Select a pattern for the formation
-		var pattern = formation_patterns[rng.randi() % formation_patterns.size()]
-		if formation_type == FormationType.SWARM:
-			pattern = "swarm"
-		var speed_multiplier = default_formation_speeds[pattern]
+func _make_member(node: Node, offset: Vector2, driven: bool) -> Dictionary:
+	return {
+		"node": node,
+		"spawn": node.get("spawn_count"),
+		"offset": offset,
+		"driven": driven,
+		"entered": false,
+		"jitter": Vector2.ZERO,
+	}
 
-		# Assign appropriate pattern attributes based on pattern type
-		var amplitude = 70.0
-		var frequency = 0.5
-		if pattern == "zigzag":
-			frequency = 0.3
-		elif pattern == "spiral":
-			frequency = 0.2
+# --- Queries ---
 
-		# Zone-specific pattern scaling
-		amplitude *= settings.pattern_amplitude_scale
-		frequency *= settings.pattern_frequency_scale
+# Formations (and scene_override groups) with at least one live member
+func get_formations_on_screen() -> int:
+	var n := 0
+	for formation in active_formations.values():
+		if _live_count(formation) > 0:
+			n += 1
+	return n
 
-		if pattern == "swarm":
-			amplitude = settings.swarm_sine_amplitude
-			frequency = settings.swarm_sine_frequency
+# True once every member of the formation is dead, pooled or gone
+func is_formation_cleared(formation_id: int) -> bool:
+	if not active_formations.has(formation_id):
+		return true
+	return _live_count(active_formations[formation_id]) == 0
 
-		active_formations[formation_id] = {
-			"type": formation_type,
-			"base_position": base_position,
-			"objects": members,
-			"speed": members[0].base_speed * members[0].speed_multiplier * speed_multiplier,
-			"pattern": pattern,  # Formation movement pattern
-			"pattern_time": 0.0,
-			"amplitude": amplitude,
-			"frequency": frequency,
-			"rotation": 0.0,  # For spiral patterns
-			"is_side_spawn": _is_side_spawn(base_position),
-			"center_pull_strength": 0.5 if _is_side_spawn(base_position) else 0.0
-		}
+func get_live_count(formation_id: int) -> int:
+	if not active_formations.has(formation_id):
+		return 0
+	return _live_count(active_formations[formation_id])
 
-		if pattern == "swarm":
-			# Per-member jitter: Vector2(phase, angular speed), keyed by member
-			var jitter := {}
-			var variation = settings.swarm_jitter_speed_variation
-			for obj in members:
-				jitter[obj] = Vector2(rng.randf() * TAU,
-					settings.swarm_jitter_speed * rng.randf_range(1.0 - variation, 1.0 + variation))
-			active_formations[formation_id]["jitter"] = jitter
-			active_formations[formation_id]["jitter_radius"] = settings.swarm_jitter_radius
+func _is_member_alive(m: Dictionary) -> bool:
+	var node = m.node
+	return is_instance_valid(node) and node.is_active and node.get("spawn_count") == m.spawn
 
-		# Set all objects to use the formation's movement rather than their own
-		for obj in members:
-			if obj.has_method("set_use_formation_movement"):
-				obj.set_use_formation_movement(true)
+func _live_count(formation: Dictionary) -> int:
+	var n := 0
+	for m in formation.members:
+		if _is_member_alive(m):
+			n += 1
+	return n
 
-		# Emit signal with created formation
-		emit_signal("formation_created", formation_objects)
+# --- Update ---
 
-	return formation_objects
+func _process(delta: float) -> void:
+	for formation_id in active_formations.keys():
+		var formation: Dictionary = active_formations[formation_id]
+		if _live_count(formation) == 0:
+			active_formations.erase(formation_id)
+			continue
+		formation.time += delta
+		if formation.driven:
+			_advance(formation, delta)
+			_place_members(formation)
+			_update_fire(formation, delta)
+			_cull_members(formation)
 
-# Calculate the position for a specific formation type
+# Move the formation center along its path, then apply the end mode
+func _advance(f: Dictionary, delta: float) -> void:
+	var curve: Curve2D = f.curve
+	if f.distance < f.length:
+		f.distance = minf(f.distance + f.speed * delta, f.length)
+		f.base = curve.sample_baked(f.distance)
+		f.hold_x = f.base.x
+		return
+	var end_mode: int = f.end_mode
+	var base: Vector2 = f.base
+	if end_mode == EntryPathScript.EndMode.HOLD_THEN_DESCEND and f.hold_elapsed < f.hold_seconds:
+		f.hold_elapsed += delta
+		base.x = f.hold_x + sin(f.hold_elapsed * HOLD_SWAY_FREQUENCY) * f.sway_amplitude
+	elif end_mode == EntryPathScript.EndMode.EXIT:
+		base += f.exit_direction * f.speed * delta
+	else:
+		base.y += f.descend_speed * delta
+	f.base = base
+
+func _end_tangent(curve: Curve2D, length: float) -> Vector2:
+	if length <= 1.0:
+		return Vector2.DOWN
+	var a := curve.sample_baked(maxf(length - 12.0, 0.0))
+	var b := curve.sample_baked(length)
+	var dir := (b - a).normalized()
+	return dir if dir != Vector2.ZERO else Vector2.DOWN
+
+func _place_members(f: Dictionary) -> void:
+	var sway := Vector2.ZERO
+	if f.type == FormationType.SWARM:
+		sway.x = sin(f.time * f.swarm_frequency) * f.swarm_amplitude
+	for m in f.members:
+		if not m.driven or not _is_member_alive(m):
+			continue
+		var pos: Vector2 = f.base + m.offset + sway
+		if f.type == FormationType.SWARM:
+			var j: Vector2 = m.jitter
+			var a: float = f.time * j.y + j.x
+			pos += Vector2(cos(a), sin(a * 1.3)) * f.jitter_radius
+		m.node.global_position = pos
+
+# Release members that were on screen and have now left it (paths can carry
+# them off a side, e.g. EXIT paths); the bottom edge is handled by Obstacle
+func _cull_members(f: Dictionary) -> void:
+	var rect := _get_viewport_rect()
+	var outer := rect.grow(CULL_MARGIN)
+	for m in f.members:
+		if not m.driven or not _is_member_alive(m):
+			continue
+		var pos: Vector2 = m.node.global_position
+		if rect.has_point(pos):
+			m.entered = true
+		elif (m.entered or pos.y > rect.end.y) and not outer.has_point(pos):
+			if m.node.has_method("force_screen_exit"):
+				m.node.force_screen_exit()
+
+func _update_fire(f: Dictionary, delta: float) -> void:
+	var mode: int = f.fire_mode
+	if (mode != FireMode.VOLLEY and mode != FireMode.RIPPLE) or f.fire_interval <= 0.0:
+		return
+
+	# A ripple in progress: next member every RIPPLE_STEP
+	if f.ripple_index >= 0:
+		f.ripple_timer += delta
+		while f.ripple_index >= 0 and f.ripple_timer >= RIPPLE_STEP:
+			f.ripple_timer -= RIPPLE_STEP
+			# Skip members that can't fire so the rhythm stays even
+			while f.ripple_index < f.members.size() and not _can_fire(f.members[f.ripple_index]):
+				f.ripple_index += 1
+			if f.ripple_index < f.members.size():
+				f.members[f.ripple_index].node.shoot()
+				f.ripple_index += 1
+			if f.ripple_index >= f.members.size():
+				f.ripple_index = -1
+
+	f.fire_timer += delta
+	if f.fire_timer < f.fire_interval:
+		return
+	f.fire_timer = 0.0
+	if mode == FireMode.VOLLEY:
+		for m in f.members:
+			if _can_fire(m):
+				m.node.shoot()
+	else:
+		f.ripple_index = 0
+		f.ripple_timer = RIPPLE_STEP  # First member fires on the next update
+
+# Live, able to shoot, and on screen
+func _can_fire(m: Dictionary) -> bool:
+	if not m.driven or not _is_member_alive(m):
+		return false
+	var node = m.node
+	if not node.get("can_shoot") or not node.has_method("shoot"):
+		return false
+	var pos: Vector2 = node.global_position
+	var size := _get_viewport_rect().size
+	return pos.y > 0.0 and pos.y < size.y and pos.x > 0.0 and pos.x < size.x
+
+# --- Shapes ---
+
+# Offset of member `index` of `count` from the formation center
 func get_formation_position(formation_type: FormationType, index: int, count: int, spread: float) -> Vector2:
 	match formation_type:
 		FormationType.LINE:
@@ -313,9 +416,9 @@ func get_formation_position(formation_type: FormationType, index: int, count: in
 			return Vector2(x_pos, y_pos)
 
 		FormationType.SQUARE:
-			var side_length = int(ceil(sqrt(count)))  # Convert to int explicitly
+			var side_length = int(ceil(sqrt(count)))
 			var x_index = index % side_length
-			var y_index = int(index / side_length)  # Also convert this to int for consistency
+			var y_index = int(index / side_length)
 			var x_pos = (x_index - (side_length - 1) / 2.0) * spread
 			var y_pos = (y_index - (side_length - 1) / 2.0) * spread
 			return Vector2(x_pos, y_pos)
@@ -353,17 +456,10 @@ func get_formation_position(formation_type: FormationType, index: int, count: in
 			return Vector2(x_pos, y_pos)
 
 		_:
-			# Default to LINE if unknown type
 			var x_pos = (index - (count - 1) / 2.0) * spread
 			return Vector2(x_pos, 0)
 
-func _is_side_spawn(position: Vector2) -> bool:
-	var viewport_rect = _get_viewport_rect()
-	var screen_edge_margin = 50.0
-	return (position.x < -screen_edge_margin or position.x > viewport_rect.size.x + screen_edge_margin)
-
 func _get_viewport_rect() -> Rect2:
-	# Get the viewport from the scene tree
 	var viewport = get_viewport()
 	if viewport:
 		return viewport.get_visible_rect()

@@ -18,7 +18,11 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 @export var progress_bar_max_height: int = 13500
 ## Safety valve: SpawnManager skips obstacle spawns while this many are
 ## active (0 disables the cap).
-@export var max_active_obstacles: int = 150
+@export var max_active_obstacles: int = 60
+## WaveManager holds the next group while this many formations are alive.
+@export var max_formations_on_screen: int = 3
+## Seconds the spawn telegraph marker shows before a group spawns.
+@export var telegraph_seconds: float = 0.5
 ## Optional rule: a damaging hit (obstacle contact or enemy shot) also drops
 ## the player's weapon one tier (min tier 1).
 @export var lose_weapon_tier_on_hit: bool = false

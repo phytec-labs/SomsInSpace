@@ -16,6 +16,14 @@ signal pause_requested
 @onready var zone_progress_container: Control = $ZoneProgressContainer
 @onready var pause_button: Button = $PauseButton
 
+# Combo multiplier (next to points): "x2".."x4" plus a thin bar showing the
+# time left in the combo window; hidden at x1
+@onready var combo_box: Control = $StatsPanel/MarginContainer/StatsContainer/PointsContainer/ComboBox
+@onready var combo_label: Label = $StatsPanel/MarginContainer/StatsContainer/PointsContainer/ComboBox/ComboLabel
+@onready var combo_bar: ProgressBar = $StatsPanel/MarginContainer/StatsContainer/PointsContainer/ComboBox/ComboBar
+var _combo_fill_style: StyleBoxFlat
+var _last_combo: int = 1
+
 # Zone labels: generated from config.zones in configure() (zone id -> Label;
 # highlighted by update_zone)
 @onready var zone_labels_container: HBoxContainer = $ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels
@@ -43,7 +51,9 @@ const WEAPON_NAMES: Array[String] = ["Laser", "Twin Laser", "Spread Laser"]
 const SPREAD_WEAPON_TINT := Color(0.45, 1.0, 1.0)
 var current_weapon_tier: int = 0
 
-# Threat indicator (next to the zone bar): wave ramp level as filled pips
+# Threat indicator (next to the zone bar): wave ramp level as filled pips.
+# The level rises every ZoneDefinition.ramp_interval_seconds (25 s) spent in
+# a zone and resets to 0 on a zone change (WaveManager.get_ramp_level()).
 @onready var threat_indicator: Control = $ThreatIndicator
 @onready var threat_label: Label = $ThreatIndicator/ThreatLabel
 @onready var threat_pips_container: HBoxContainer = $ThreatIndicator/ThreatPips
@@ -78,6 +88,7 @@ var _current_zone: String = ""
 
 func _ready() -> void:
 	_health_fill_style = health_bar.get_theme_stylebox("fill")
+	_combo_fill_style = combo_bar.get_theme_stylebox("fill")
 
 	# Initialize zone marker positions based on container width, and keep
 	# them in sync whenever the container is resized (window resize etc.)
@@ -182,6 +193,26 @@ func update_points(value: int) -> void:
 		return
 	_last_points = value
 	points_label.text = "✧ Points: " + str(value)
+
+# Combo multiplier: `combo` (1 hides it), `time_fraction` = time left in the
+# combo window (0..1), `color` = the tier color. Called every frame while a
+# combo is live; only the bar value changes then (no allocations).
+func update_combo(combo: int, time_fraction: float, color: Color = Color.WHITE) -> void:
+	if combo != _last_combo:
+		var rising := combo > _last_combo
+		_last_combo = combo
+		combo_box.visible = combo > 1
+		if combo > 1:
+			combo_label.text = "x%d" % combo
+			combo_label.add_theme_color_override("font_color", color)
+			_combo_fill_style.bg_color = color
+			if rising:
+				combo_label.pivot_offset = combo_label.size / 2.0
+				var tween = create_tween()
+				tween.tween_property(combo_label, "scale", Vector2(1.4, 1.4), 0.06)
+				tween.tween_property(combo_label, "scale", Vector2.ONE, 0.12)
+	if combo > 1:
+		combo_bar.value = clampf(time_fraction, 0.0, 1.0)
 
 func update_zone(zone_name: String) -> void:
 	_current_zone = zone_name

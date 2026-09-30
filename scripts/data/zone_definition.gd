@@ -33,7 +33,8 @@ const FormationSettingsScript := preload("res://scripts/data/formation_settings.
 @export_range(0.0, 1.0) var star_visibility: float = 0.0
 
 @export_group("Spawning")
-## Obstacle scenes the zone's formations are built from (picked at random).
+## Random obstacle pool for legacy SpawnManager.spawn_obstacle() callers only;
+## wave groups always name their own enemy_scene.
 @export var obstacle_scenes: Array[PackedScene] = []
 ## Waves played in order, looping; pacing ramps up over time (see Difficulty Ramp).
 @export var waves: Array[WaveDefinitionScript] = []
@@ -43,36 +44,38 @@ const FormationSettingsScript := preload("res://scripts/data/formation_settings.
 @export var collectible_chance_scale: float = 1.0
 
 @export_group("Obstacle Movement Pattern Weights")
+## Random movement patterns for legacy spawn_obstacle() / boss minions only
+## (wave formations are driven by their EntryPath).
 @export var pattern_weight_linear: float = 0.5
 @export var pattern_weight_sine: float = 0.3
 @export var pattern_weight_zigzag: float = 0.2
 
 @export_group("Difficulty Ramp")
 ## Seconds spent in this zone per ramp level (level = int(zone_time / this)).
-@export var ramp_interval_seconds: float = 30.0
-## Each ramp level multiplies group delay, enemy_delay and wave
-## completion_delay by this (compounding)...
-@export var ramp_delay_multiplier: float = 0.9
-## ...down to this lower bound.
-@export var min_delay_multiplier: float = 0.6
-## One extra formation per group every this many ramp levels...
-@export var levels_per_count_bonus: int = 4
-## ...up to this many extra formations per group.
-@export var max_count_bonus: int = 1
+## The ramp adds speed, never bodies: counts stay as authored.
+@export var ramp_interval_seconds: float = 25.0
+## Each ramp level multiplies path_speed and descend speeds by this
+## (compounding)...
+@export var ramp_speed_multiplier: float = 1.1
+## ...up to this.
+@export var max_speed_multiplier: float = 1.6
+## Each ramp level multiplies beats, delays and completion delays by this
+## (compounding)...
+@export var ramp_beat_multiplier: float = 0.9
+## ...down to this.
+@export var min_beat_multiplier: float = 0.5
 
 # Name shown on the HUD zone bar
 func get_short_name() -> String:
 	return short_name if not short_name.is_empty() else display_name
 
-# Delay multiplier for the given ramp level (0 = just entered the zone)
-func get_delay_multiplier(level: int) -> float:
-	return maxf(min_delay_multiplier, pow(ramp_delay_multiplier, maxi(level, 0)))
+# Formation speed multiplier for the given ramp level (0 = just entered)
+func get_speed_multiplier(level: int) -> float:
+	return minf(max_speed_multiplier, pow(ramp_speed_multiplier, maxi(level, 0)))
 
-# Extra formations per group for the given ramp level
-func get_count_bonus(level: int) -> int:
-	if levels_per_count_bonus <= 0:
-		return 0
-	return mini(max_count_bonus, maxi(level, 0) / levels_per_count_bonus)
+# Beat / delay multiplier for the given ramp level
+func get_beat_multiplier(level: int) -> float:
+	return maxf(min_beat_multiplier, pow(ramp_beat_multiplier, maxi(level, 0)))
 
 # Ramp level after `seconds` spent in this zone
 func get_ramp_level(seconds: float) -> int:

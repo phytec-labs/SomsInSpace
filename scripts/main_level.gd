@@ -6,6 +6,8 @@ extends Node2D
 const GameConfigScript := preload("res://scripts/data/game_config.gd")
 const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
 const EXPLOSION_SCENE := preload("res://scenes/effects/explosion.tscn")
+const DOCKING_STATION_SCENE := preload("res://scenes/effects/docking_station.tscn")
+const SCORE_POPUP_SCENE := preload("res://scenes/effects/juice_score_popup.tscn")
 
 ## All zone / pacing tuning (see res://data/game_config.tres)
 @export var config: GameConfigScript
@@ -20,6 +22,7 @@ const EXPLOSION_SCENE := preload("res://scenes/effects/explosion.tscn")
 @onready var game_over_screen: Control = $UI/GameOverScreen
 @onready var game_hud = $UI/GameHUDUi
 @onready var pause_menu: Control = $UI/PauseMenu
+@onready var game_camera: Camera2D = get_node_or_null("GameCamera")
 
 # Game States
 enum GameState {COUNTDOWN, PLAYING, PAUSED, GAME_OVER, VICTORY}
@@ -46,9 +49,57 @@ var current_zone_def: ZoneDefinitionScript
 # Victory bonus per percent of max health left (full health = +1000 for
 # every ship, whatever its max_health)
 const VICTORY_BONUS_PER_HEALTH_PERCENT: int = 10
-const VICTORY_SCREEN_DELAY: float = 2.5
 var boss: Node2D = null
 var victory_bonus: int = 0
+# Victory docking sequence (timings live on docking_station.gd)
+var docking_station: Node2D = null
+
+# --- Juice: combo multiplier, grazes, score popups, screen shake ---
+#
+# KILL POINTS / COMBO: obstacle.gd (and boss_alien.gd, via the same
+# Obstacle._award_kill_points()) calls level.award_kill_points(abs(points),
+# self) before emitting `destroyed`. That awards the full multiplied amount
+# and marks the kill with the obstacle's spawn_count, so the `destroyed` hook
+# (_on_enemy_destroyed) skips it. The hook still handles what never goes
+# through award_kill_points: mine detonations (shake, no points) and rams (no
+# points); any other destroyed obstacle falls back to "base already awarded"
+# and only gets the combo extra.
+## Seconds after a kill in which the next kill raises the combo
+@export var combo_window: float = 1.5
+## Highest combo multiplier
+@export var max_combo: int = 4
+## Points per near miss (enemy shot through the player's GrazeArea)
+@export var graze_points: int = 5
+const COMBO_COLORS: Array[Color] = [
+	Color(1, 1, 1),        # x1 white
+	Color(1, 0.95, 0.25),  # x2 yellow
+	Color(1, 0.6, 0.15),   # x3 orange
+	Color(1, 0.2, 0.15),   # x4 red
+]
+const GRAZE_COLOR := Color(0.35, 1, 1)
+const GRAZE_POPUP_SCALE := 0.7
+# Screen shake presets: trauma strength (0..1) and duration (s). Kill shakes
+# scale from SHAKE_KILL_MIN to SHAKE_KILL_MAX with the kill's points
+# (SHAKE_KILL_POINTS_FULL points or more = max).
+const SHAKE_KILL_MIN := 0.3
+const SHAKE_KILL_MAX := 0.5
+const SHAKE_KILL_POINTS_FULL := 100.0
+const SHAKE_KILL_TIME := 0.15
+const SHAKE_MEDIUM := 0.6        # Mine detonation, asteroid split
+const SHAKE_MEDIUM_TIME := 0.3
+const SHAKE_LARGE := 0.85        # Player hit, boss phase change
+const SHAKE_LARGE_TIME := 0.4
+const SHAKE_CLAMP := 0.75        # Docking clamps close
+const SHAKE_CLAMP_TIME := 0.35
+const SHAKE_GRAZE := 0.25
+const SHAKE_GRAZE_TIME := 0.1
+
+var combo: int = 1
+var _combo_time_left: float = 0.0
+# Observability (tests / tuning)
+var kill_count: int = 0
+var combo_bonus_total: int = 0
+var graze_count: int = 0
 
 # Weapon upgrade pickups: one per zone with spawns_weapon_upgrade, per run
 @export var weapon_upgrade_scene: PackedScene
@@ -128,6 +179,12 @@ func _on_object_spawned(game_object: Node2D) -> void:
 		game_object.connect("object_collected", _on_object_collected.bind(game_object))
 	if game_object.has_signal("object_hit") and not game_object.is_connected("object_hit", _on_object_hit):
 		game_object.connect("object_hit", _on_object_hit.bind(game_object))
+	# Kills (popups / combo / shake): once per instance and level. Pooled
+	# instances outlive a scene reload, so the meta holds this level's id.
+	if game_object.has_signal("destroyed") \
+			and game_object.get_meta("_juice_level_connected", 0) != get_instance_id():
+		game_object.set_meta("_juice_level_connected", get_instance_id())
+		game_object.connect("destroyed", _on_enemy_destroyed.bind(game_object))
 
 func _process(delta: float) -> void:
 	match current_state:
@@ -206,6 +263,7 @@ func process_game(delta: float) -> void:
 	update_spawn_difficulty(current_height)
 
 	_update_threat_display()
+	_update_combo(delta)
 
 # Push the wave manager's ramp level to the HUD (only when it changes)
 func _update_threat_display() -> void:
@@ -237,6 +295,11 @@ func update_health(amount: float) -> void:
 	current_health = clamp(current_health + amount, 0, max_health)
 	update_health_display()
 
+	# A damaging hit breaks the combo and shakes the screen hard
+	if amount < 0.0:
+		_reset_combo()
+		shake(SHAKE_LARGE, SHAKE_LARGE_TIME)
+
 	# Every damaging hit goes through here (obstacle contact via
 	# _on_object_hit, enemy shots call update_health directly); continuous
 	# drains use apply_drain() instead
@@ -265,6 +328,113 @@ func _drop_weapon_tier() -> void:
 func update_points(amount: int) -> void:  # New function to update points
 	points += amount
 	update_points_display()
+
+# --- Kills, combo, grazes ---
+
+# Entry point for kill points (see the KILL POINTS note at the top): awards
+# `amount` x the combo multiplier, advances the combo, pops the score and
+# shakes. Pass the killed obstacle as `source` (popup position, and it marks
+# the kill so the `destroyed` hook doesn't count it again).
+func award_kill_points(amount: int, source: Node2D = null) -> void:
+	var at: Vector2 = player.global_position
+	if is_instance_valid(source):
+		at = source.global_position
+		if "spawn_count" in source:
+			source.set_meta("_kill_awarded_spawn", source.spawn_count)
+	_register_kill(absi(amount), at, false)
+	# Asteroid that splits into pieces
+	if is_instance_valid(source) and "size_level" in source and source.size_level > 1:
+		shake(SHAKE_MEDIUM, SHAKE_MEDIUM_TIME)
+
+# `destroyed` from any spawned obstacle (enemies, mines, asteroids, minions,
+# blimp, boss). Tells kills from rams and mine detonations without touching
+# obstacle.gd: a ram sets is_being_collected; a detonation bumps the mine's
+# detonation_count.
+func _on_enemy_destroyed(obstacle: Node2D) -> void:
+	if not is_instance_valid(obstacle):
+		return
+	# Already handled by award_kill_points()
+	if "spawn_count" in obstacle and obstacle.get_meta("_kill_awarded_spawn", -1) == obstacle.spawn_count:
+		return
+	# Mine detonation: medium shake, no kill
+	if "detonation_count" in obstacle:
+		var detonations: int = obstacle.detonation_count
+		if detonations != obstacle.get_meta("_juice_detonations", 0):
+			obstacle.set_meta("_juice_detonations", detonations)
+			shake(SHAKE_MEDIUM, SHAKE_MEDIUM_TIME)
+			return
+	# Rammed by the player: no points (the hit itself shakes)
+	if "is_being_collected" in obstacle and obstacle.is_being_collected:
+		return
+	var base_points: int = absi(int(obstacle.get("points")))
+	_register_kill(base_points, obstacle.global_position, true)
+	# Asteroid that splits into pieces
+	if "size_level" in obstacle and obstacle.size_level > 1:
+		shake(SHAKE_MEDIUM, SHAKE_MEDIUM_TIME)
+
+# One kill worth `base_points`. The combo only runs while PLAYING (x1 after
+# the run ended, e.g. the boss's final explosion). `base_already_awarded`:
+# obstacle.gd already added base_points, so only the combo extra is added.
+func _register_kill(base_points: int, at: Vector2, base_already_awarded: bool) -> void:
+	kill_count += 1
+	var multiplier := 1
+	if current_state == GameState.PLAYING:
+		combo = mini(combo + 1, maxi(max_combo, 1)) if _combo_time_left > 0.0 else 1
+		_combo_time_left = combo_window
+		multiplier = combo
+		game_hud.update_combo(combo, 1.0, _combo_color(combo))
+
+	var total := base_points * multiplier
+	if base_already_awarded:
+		var bonus := total - base_points
+		if bonus > 0:
+			combo_bonus_total += bonus
+			update_points(bonus)
+	else:
+		update_points(total)
+
+	if base_points > 0:
+		spawn_score_popup("+%d" % total, at, _combo_color(multiplier))
+	var t := clampf(float(base_points) / SHAKE_KILL_POINTS_FULL, 0.0, 1.0)
+	shake(lerpf(SHAKE_KILL_MIN, SHAKE_KILL_MAX, t), SHAKE_KILL_TIME)
+
+func _combo_color(value: int) -> Color:
+	return COMBO_COLORS[clampi(value, 1, COMBO_COLORS.size()) - 1]
+
+# Combo window countdown (process_game, so it freezes while paused)
+func _update_combo(delta: float) -> void:
+	if _combo_time_left <= 0.0:
+		return
+	_combo_time_left -= delta
+	if _combo_time_left <= 0.0:
+		_reset_combo()
+	elif combo > 1:
+		game_hud.update_combo(combo, _combo_time_left / combo_window, _combo_color(combo))
+
+func _reset_combo() -> void:
+	combo = 1
+	_combo_time_left = 0.0
+	game_hud.update_combo(1, 0.0)
+
+# Near miss (enemy_projectile.gd, once per shot): points, cyan popup, tiny shake
+func award_graze(at: Vector2) -> void:
+	if current_state != GameState.PLAYING:
+		return
+	graze_count += 1
+	update_points(graze_points)
+	spawn_score_popup("GRAZE +%d" % graze_points, at, GRAZE_COLOR, GRAZE_POPUP_SCALE)
+	shake(SHAKE_GRAZE, SHAKE_GRAZE_TIME)
+
+# Pooled floating text (self-releases after its lifetime)
+func spawn_score_popup(text: String, at: Vector2, color: Color, size_scale: float = 1.0) -> void:
+	var popup = ObjectPool.acquire(SCORE_POPUP_SCENE, self)
+	if popup:
+		popup.popup(text, at, color, size_scale)
+
+# Screen shake on the GameCamera (the UI CanvasLayer never shakes)
+func shake(strength: float, duration: float) -> void:
+	if game_camera and game_camera.has_method("shake"):
+		game_camera.shake(strength, duration)
 
 func _on_object_collected(object: Node2D) -> void:
 	if object is EnergyCollectible:
@@ -311,6 +481,7 @@ func start_game() -> void:
 func game_over() -> void:
 	current_state = GameState.GAME_OVER
 	game_hud.set_pause_button_visible(false)
+	_reset_combo()
 
 	# Create player explosion before hiding the player
 	create_player_explosion()
@@ -406,6 +577,13 @@ func _connect_boss(new_boss: Node2D) -> void:
 		boss.connect("health_changed", game_hud.update_boss_health)
 	if boss.has_signal("defeated"):
 		boss.connect("defeated", _on_boss_defeated, CONNECT_ONE_SHOT)
+	if boss.has_signal("phase_changed"):
+		boss.connect("phase_changed", _on_boss_phase_changed)
+
+# Phases 2+ (phase 1 is the fight start): big shake
+func _on_boss_phase_changed(phase: int) -> void:
+	if phase >= 2 and current_state == GameState.PLAYING:
+		shake(SHAKE_LARGE, SHAKE_LARGE_TIME)
 
 func _on_boss_fight_started() -> void:
 	# The entrance can finish after the run already ended
@@ -420,7 +598,13 @@ func _on_boss_defeated() -> void:
 	# Only a live run can be won (not after the player already died)
 	if current_state != GameState.PLAYING:
 		return
+	# Health hit zero this frame but process_game() hasn't noticed yet: the
+	# player died first, so it's a normal game over (no station)
+	if current_health <= 0.0:
+		game_over()
+		return
 	current_state = GameState.VICTORY
+	_reset_combo()
 	game_hud.set_pause_button_visible(false)
 
 	# Stop the run; the ship stays on screen (no explosion)
@@ -432,13 +616,35 @@ func _on_boss_defeated() -> void:
 	game_hud.hide_boss_bar()
 	show_message("ORBIT REACHED!")
 
+	# Docking sequence: the station waits for the boss death sequence,
+	# descends, the ship flies into the port, clamps close, DOCKED; then
+	# _on_docking_finished awards the bonus and shows the results. All of it
+	# runs on node-bound tweens, so nothing resumes if the level is freed.
+	_start_docking()
+
+func _start_docking() -> void:
+	docking_station = DOCKING_STATION_SCENE.instantiate()
+	docking_station.position = Vector2(get_viewport_rect().size.x / 2.0, docking_station.start_y)
+	add_child(docking_station)
+	docking_station.ready_for_ship.connect(_on_station_ready_for_ship)
+	docking_station.clamps_closed.connect(_on_station_clamps_closed)
+	docking_station.docking_finished.connect(_on_docking_finished, CONNECT_ONE_SHOT)
+	docking_station.play_docking(player)
+
+func _on_station_ready_for_ship() -> void:
+	if current_state != GameState.VICTORY or not is_instance_valid(docking_station):
+		return
+	player.fly_to(docking_station.get_dock_position(), docking_station.ship_fly_time)
+
+func _on_station_clamps_closed() -> void:
+	shake(SHAKE_CLAMP, SHAKE_CLAMP_TIME)
+
+func _on_docking_finished() -> void:
+	if not is_inside_tree() or current_state != GameState.VICTORY:
+		return
 	victory_bonus = _health_percent() * VICTORY_BONUS_PER_HEALTH_PERCENT
 	update_points(victory_bonus)
-
-	# Let the boss death sequence play out before the results screen. The
-	# timeout is connected to a method (rather than awaited) so nothing
-	# resumes if the level is freed during the wait.
-	get_tree().create_timer(VICTORY_SCREEN_DELAY).timeout.connect(_show_victory_screen)
+	_show_victory_screen()
 
 # Health left as a whole percentage of the ship's max_health (0..100)
 func _health_percent() -> int:

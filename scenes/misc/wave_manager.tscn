@@ -4,9 +4,3 @@
 
 [node name="WaveManager" type="Node2D"]
 script = ExtResource("1_v7g0q")
-
-[node name="WaveTimer" type="Timer" parent="."]
-one_shot = true
-
-[node name="EnemyTimer" type="Timer" parent="."]
-one_shot = true

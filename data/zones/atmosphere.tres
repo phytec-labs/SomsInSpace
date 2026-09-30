@@ -13,66 +13,109 @@
 [ext_resource type="PackedScene" path="res://scenes/obstacles/drone_obstacle.tscn" id="20_drone"]
 [ext_resource type="PackedScene" path="res://scenes/obstacles/blimp_obstacle.tscn" id="21_blimp"]
 
-[sub_resource type="Resource" id="Resource_h1qr7"]
+[sub_resource type="Resource" id="Resource_8rxys"]
 script = ExtResource("1_xuwny")
-allowed_formations = Array[int]([0, 1, 2, 4, 7])
-min_spread = 80.0
-max_spread = 150.0
-min_objects = 3
-max_objects = 5
+default_spread = 100.0
+
+[sub_resource type="Resource" id="Resource_5a4an"]
+script = ExtResource("10_ow4rb")
+enemy_scene = ExtResource("5_56myx")
+formation = 1
+count = 5
+path = &"swoop_left"
+fire_mode = 2
+release = 1
+delay = 1.5
+
+[sub_resource type="Resource" id="Resource_56myx"]
+script = ExtResource("10_ow4rb")
+enemy_scene = ExtResource("4_5a4an")
+spread = 120.0
+beat_after = 1.2
+
+[sub_resource type="Resource" id="Resource_sa254"]
+script = ExtResource("9_20ipa")
+name = "Jet Swoop"
+groups = Array[ExtResource("10_ow4rb")]([SubResource("Resource_5a4an"), SubResource("Resource_56myx")])
+completion_delay = 1.5
+
+[sub_resource type="Resource" id="Resource_loiy0"]
+script = ExtResource("10_ow4rb")
+enemy_scene = ExtResource("6_sa254")
+formation = 3
+path = &"pincer_left"
+mirror_allowed = false
+fire_mode = 1
+fire_interval = 2.5
+release = 1
+
+[sub_resource type="Resource" id="Resource_x8ob2"]
+script = ExtResource("10_ow4rb")
+enemy_scene = ExtResource("6_sa254")
+formation = 3
+path = &"pincer_left"
+force_mirror = true
+fire_mode = 1
+fire_interval = 2.5
+beat_after = 1.2
+
+[sub_resource type="Resource" id="Resource_20ipa"]
+script = ExtResource("9_20ipa")
+name = "Pincer"
+groups = Array[ExtResource("10_ow4rb")]([SubResource("Resource_loiy0"), SubResource("Resource_x8ob2")])
+completion_delay = 1.5
+
+[sub_resource type="Resource" id="Resource_ow4rb"]
+script = ExtResource("10_ow4rb")
+enemy_scene = ExtResource("20_drone")
+formation = 7
+count = 7
+path = &"loop_left"
+release = 1
+delay = 2.0
+
+[sub_resource type="Resource" id="Resource_h1qr7"]
+script = ExtResource("10_ow4rb")
+enemy_scene = ExtResource("7_loiy0")
+formation = 1
+count = 4
+path = &"swoop_left"
+beat_after = 1.2
 
 [sub_resource type="Resource" id="Resource_8ra31"]
-script = ExtResource("10_ow4rb")
-formation = 1
-count = 2
-delay = 0.8
-enemy_delay = 0.3
+script = ExtResource("9_20ipa")
+name = "Drone Loop"
+groups = Array[ExtResource("10_ow4rb")]([SubResource("Resource_ow4rb"), SubResource("Resource_h1qr7")])
+completion_delay = 1.5
 
 [sub_resource type="Resource" id="Resource_ddxkt"]
 script = ExtResource("10_ow4rb")
-enemy_delay = 0.2
-spawn_positions = Array[StringName]([&"left", &"right"])
-
-[sub_resource type="Resource" id="Resource_swarm_at"]
-script = ExtResource("10_ow4rb")
-formation = 7
-delay = 1.5
-enemy_delay = 0.5
-formation_scene = ExtResource("20_drone")
-
-[sub_resource type="Resource" id="Resource_h3yp1"]
-script = ExtResource("9_20ipa")
-name = "Atmosphere Introduction"
-groups = Array[ExtResource("10_ow4rb")]([SubResource("Resource_8ra31"), SubResource("Resource_ddxkt"), SubResource("Resource_swarm_at")])
-
-[sub_resource type="Resource" id="Resource_orqid"]
-script = ExtResource("10_ow4rb")
-delay = 0.5
-enemy_delay = 0.3
-spawn_positions = Array[StringName]([&"left"])
-
-[sub_resource type="Resource" id="Resource_6v61t"]
-script = ExtResource("10_ow4rb")
-delay = 0.5
-enemy_delay = 0.3
-spawn_positions = Array[StringName]([&"right"])
-
-[sub_resource type="Resource" id="Resource_u1quh"]
-script = ExtResource("10_ow4rb")
-formation = 1
-delay = 1.5
-enemy_delay = 0.2
-
-[sub_resource type="Resource" id="Resource_blimp_at"]
-script = ExtResource("10_ow4rb")
-enemy_delay = 1.0
+count = 1
+path = &"hover_top"
+beat_after = 1.0
 scene_override = ExtResource("21_blimp")
 one_shot = true
 
-[sub_resource type="Resource" id="Resource_g6gk7"]
+[sub_resource type="Resource" id="Resource_h3yp1"]
 script = ExtResource("9_20ipa")
-name = "Atmosphere Challenge"
-groups = Array[ExtResource("10_ow4rb")]([SubResource("Resource_orqid"), SubResource("Resource_6v61t"), SubResource("Resource_u1quh"), SubResource("Resource_blimp_at")])
+name = "Blimp"
+groups = Array[ExtResource("10_ow4rb")]([SubResource("Resource_ddxkt")])
+
+[sub_resource type="Resource" id="Resource_orqid"]
+script = ExtResource("10_ow4rb")
+enemy_scene = ExtResource("2_vhl41")
+count = 4
+spread = 120.0
+path = &"hover_top"
+hold_seconds = 6.0
+fire_mode = 1
+beat_after = 1.2
+
+[sub_resource type="Resource" id="Resource_6v61t"]
+script = ExtResource("9_20ipa")
+name = "Turrets"
+groups = Array[ExtResource("10_ow4rb")]([SubResource("Resource_orqid")])
+completion_delay = 2.0
 
 [resource]
 script = ExtResource("8_x8ob2")
@@ -81,10 +124,10 @@ display_name = "Atmosphere"
 start_height = 1500
 spawns_weapon_upgrade = true
 has_clouds = true
-obstacle_scenes = Array[PackedScene]([ExtResource("2_vhl41"), ExtResource("3_8rxys"), ExtResource("4_5a4an"), ExtResource("5_56myx"), ExtResource("6_sa254"), ExtResource("7_loiy0")])
-waves = Array[ExtResource("9_20ipa")]([SubResource("Resource_h3yp1"), SubResource("Resource_g6gk7")])
-formation_settings = SubResource("Resource_h1qr7")
 background_color = Color(0.278431, 0.388235, 0.388235, 1)
 star_visibility = 0.3
+obstacle_scenes = Array[PackedScene]([ExtResource("2_vhl41"), ExtResource("3_8rxys"), ExtResource("4_5a4an"), ExtResource("5_56myx"), ExtResource("6_sa254"), ExtResource("7_loiy0")])
+waves = Array[ExtResource("9_20ipa")]([SubResource("Resource_sa254"), SubResource("Resource_20ipa"), SubResource("Resource_8ra31"), SubResource("Resource_h3yp1"), SubResource("Resource_6v61t")])
+formation_settings = SubResource("Resource_8rxys")
 collectible_time_scale = 0.8
 collectible_chance_scale = 0.9

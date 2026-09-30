@@ -82,6 +82,14 @@ func check_if_offscreen() -> void:
 		has_exited_screen = true  # Set flag to prevent repeated signals
 		emit_signal("screen_exited")
 
+# Report leaving the play area now (once), e.g. when a formation carries the
+# object off a side edge; the spawner returns it to its pool on the signal
+func force_screen_exit() -> void:
+	if has_exited_screen or not is_active:
+		return
+	has_exited_screen = true
+	emit_signal("screen_exited")
+
 # Called on every spawn: pooled instances are re-added to the tree without
 # _ready() running again, so all per-spawn state is reset here.
 func initialize(spawn_position: Vector2) -> void:

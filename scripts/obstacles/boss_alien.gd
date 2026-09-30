@@ -342,10 +342,8 @@ func _spawn_death_explosion(large: bool) -> void:
 func _finish_death() -> void:
 	_spawn_death_explosion(true)
 
-	# Award points the same way the base obstacle does
-	var level = get_tree().get_first_node_in_group("level")
-	if level and level.has_method("update_points"):
-		level.update_points(abs(points))
+	# Award points the same way the base obstacle does (through the level)
+	_award_kill_points()
 
 	deactivate()
 	emit_signal("destroyed")

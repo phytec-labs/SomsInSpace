@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EntryPath" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/entry_path.gd" id="1_p0sem"]
+
+[sub_resource type="Curve2D" id="Curve2D_chinm"]
+_data = {
+"points": PackedVector2Array(0, 0, 0.35, 0.08, -0.12, 0.3, -0.35, 0.04, 0, 0, 1.15, 0.4)
+}
+point_count = 2
+
+[resource]
+script = ExtResource("1_p0sem")
+id = &"side_sweep_left"
+curve = SubResource("Curve2D_chinm")
+end_mode = 2
+descend_speed = 190.0

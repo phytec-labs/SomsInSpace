@@ -12,66 +12,163 @@
 [ext_resource type="Script" path="res://scripts/data/zone_definition.gd" id="10_3mac4"]
 [ext_resource type="Script" path="res://scripts/data/wave_definition.gd" id="11_yifx7"]
 [ext_resource type="Script" path="res://scripts/data/wave_group.gd" id="12_4f71x"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/drone_obstacle.tscn" id="15_574ry"]
 [ext_resource type="PackedScene" path="res://scenes/obstacles/ufo_obstacle.tscn" id="22_ufo"]
 [ext_resource type="PackedScene" path="res://scenes/obstacles/asteroid_obstacle.tscn" id="23_asteroid"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/satellite_turret_obstacle.tscn" id="24_satturret"]
+
+[sub_resource type="Resource" id="Resource_574ry"]
+script = ExtResource("1_g408x")
+default_spread = 100.0
+
+[sub_resource type="Resource" id="Resource_81i2r"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("2_twsbg")
+formation = 3
+count = 6
+spread = 110.0
+path = &"loop_left"
+fire_mode = 2
+fire_interval = 1.8
+beat_after = 1.2
+
+[sub_resource type="Resource" id="Resource_xlduk"]
+script = ExtResource("11_yifx7")
+name = "Jet Loop"
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_81i2r")])
+completion_delay = 1.5
+
+[sub_resource type="Resource" id="Resource_rd6pr"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("6_xlduk")
+count = 5
+spread = 110.0
+path = &"dive_center"
+release = 1
+delay = 1.2
+
+[sub_resource type="Resource" id="Resource_ewvk7"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("7_rd6pr")
+count = 5
+spread = 110.0
+path = &"dive_center"
+force_mirror = true
+beat_after = 1.2
+
+[sub_resource type="Resource" id="Resource_mthro"]
+script = ExtResource("11_yifx7")
+name = "Meteor Dive"
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_rd6pr"), SubResource("Resource_ewvk7")])
+completion_delay = 1.5
+
+[sub_resource type="Resource" id="Resource_3mac4"]
+script = ExtResource("12_4f71x")
+count = 1
+path = &"hover_top"
+release = 1
+delay = 1.0
+scene_override = ExtResource("22_ufo")
+
+[sub_resource type="Resource" id="Resource_yifx7"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("3_33nra")
+formation = 1
+count = 4
+path = &"pincer_left"
+fire_mode = 1
+fire_interval = 2.2
+beat_after = 1.2
+
+[sub_resource type="Resource" id="Resource_4f71x"]
+script = ExtResource("11_yifx7")
+name = "Saucer Escort"
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_3mac4"), SubResource("Resource_yifx7")])
+completion_delay = 1.5
 
 [sub_resource type="Resource" id="Resource_de37l"]
-script = ExtResource("1_g408x")
-allowed_formations = Array[int]([1, 2, 5, 4])
-min_spread = 80.0
-max_spread = 125.0
-min_objects = 4
-max_objects = 7
-pattern_amplitude_scale = 1.5
-pattern_frequency_scale = 1.2
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("24_satturret")
+formation = 2
+count = 4
+spread = 120.0
+path = &"hover_top"
+hold_seconds = 5.0
+fire_mode = 1
+fire_interval = 1.8
+beat_after = 1.2
 
 [sub_resource type="Resource" id="Resource_bn250"]
-script = ExtResource("12_4f71x")
-formation = 1
-delay = 0.0
-enemy_delay = 0.2
-spawn_positions = Array[StringName]([&"left", &"right"])
+script = ExtResource("11_yifx7")
+name = "Satellite Grid"
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_de37l")])
+completion_delay = 1.5
 
 [sub_resource type="Resource" id="Resource_fd3qn"]
 script = ExtResource("12_4f71x")
-formation = 3
-count = 2
-enemy_delay = 0.15
+enemy_scene = ExtResource("23_asteroid")
+spread = 200.0
+beat_after = 1.2
 
 [sub_resource type="Resource" id="Resource_q34x6"]
 script = ExtResource("11_yifx7")
-name = "Upper Atmosphere Intro"
-groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_bn250"), SubResource("Resource_fd3qn")])
+name = "Asteroids"
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_fd3qn")])
 completion_delay = 1.5
 
 [sub_resource type="Resource" id="Resource_y2vnn"]
 script = ExtResource("12_4f71x")
-formation = 2
-delay = 0.0
-enemy_delay = 0.2
+enemy_scene = ExtResource("15_574ry")
+formation = 7
+count = 6
+path = &"swoop_left"
+release = 1
+delay = 1.0
 
 [sub_resource type="Resource" id="Resource_s7ljn"]
 script = ExtResource("12_4f71x")
-formation = 1
-enemy_delay = 0.15
-spawn_positions = Array[StringName]([&"left"])
+enemy_scene = ExtResource("4_574ry")
+spread = 100.0
+path = &"dive_center"
+fire_mode = 2
+fire_interval = 1.2
+beat_after = 1.2
 
 [sub_resource type="Resource" id="Resource_tbhq3"]
-script = ExtResource("12_4f71x")
-formation = 1
-enemy_delay = 0.15
-spawn_positions = Array[StringName]([&"right"])
-
-[sub_resource type="Resource" id="Resource_ufo_ua"]
-script = ExtResource("12_4f71x")
-enemy_delay = 0.5
-scene_override = ExtResource("22_ufo")
+script = ExtResource("11_yifx7")
+name = "Swarm Strike"
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_y2vnn"), SubResource("Resource_s7ljn")])
+completion_delay = 1.5
 
 [sub_resource type="Resource" id="Resource_qn555"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("5_81i2r")
+formation = 4
+count = 5
+spread = 70.0
+path = &"side_sweep_left"
+fire_mode = 2
+fire_interval = 1.6
+release = 1
+delay = 1.5
+
+[sub_resource type="Resource" id="Resource_bj48d"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("5_81i2r")
+formation = 4
+count = 5
+spread = 70.0
+path = &"side_sweep_left"
+force_mirror = true
+fire_mode = 2
+fire_interval = 1.6
+beat_after = 1.2
+
+[sub_resource type="Resource" id="Resource_f38uq"]
 script = ExtResource("11_yifx7")
-name = "Upper Atmosphere Battle"
-groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_y2vnn"), SubResource("Resource_s7ljn"), SubResource("Resource_tbhq3"), SubResource("Resource_ufo_ua")])
-completion_delay = 1.5
+name = "Crossfire"
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_qn555"), SubResource("Resource_bj48d")])
+completion_delay = 2.0
 
 [resource]
 script = ExtResource("10_3mac4")
@@ -80,11 +177,11 @@ display_name = "Upper Atmosphere"
 short_name = "Upper Atm."
 start_height = 5000
 spawns_weapon_upgrade = true
-obstacle_scenes = Array[PackedScene]([ExtResource("2_twsbg"), ExtResource("3_33nra"), ExtResource("4_574ry"), ExtResource("5_81i2r"), ExtResource("6_xlduk"), ExtResource("7_rd6pr"), ExtResource("8_ewvk7"), ExtResource("9_mthro"), ExtResource("23_asteroid")])
-waves = Array[ExtResource("11_yifx7")]([SubResource("Resource_q34x6"), SubResource("Resource_qn555")])
-formation_settings = SubResource("Resource_de37l")
 background_color = Color(0.117647, 0.152941, 0.14902, 1)
 star_visibility = 0.7
+obstacle_scenes = Array[PackedScene]([ExtResource("2_twsbg"), ExtResource("3_33nra"), ExtResource("4_574ry"), ExtResource("5_81i2r"), ExtResource("6_xlduk"), ExtResource("7_rd6pr"), ExtResource("8_ewvk7"), ExtResource("9_mthro"), ExtResource("23_asteroid")])
+waves = Array[ExtResource("11_yifx7")]([SubResource("Resource_xlduk"), SubResource("Resource_mthro"), SubResource("Resource_4f71x"), SubResource("Resource_bn250"), SubResource("Resource_q34x6"), SubResource("Resource_tbhq3"), SubResource("Resource_f38uq")])
+formation_settings = SubResource("Resource_574ry")
 collectible_time_scale = 0.7
 collectible_chance_scale = 0.8
 pattern_weight_linear = 0.3

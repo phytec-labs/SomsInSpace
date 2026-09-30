@@ -5,7 +5,7 @@
 class_name ShipDefinition
 extends Resource
 
-## Stable id (saved in user://session.cfg to remember the last choice).
+## Stable id (identifies the ship; not persisted anywhere).
 @export var id: StringName = &""
 ## Name shown on the ship select screen and in the HUD.
 @export var display_name: String = ""

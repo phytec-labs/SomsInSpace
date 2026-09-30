@@ -47,6 +47,9 @@ func start_game() -> void:
 
 func show_ship_select() -> void:
 	menu_ui.hide()
+	# Kiosk: every visitor starts on the first ship, not the previous
+	# visitor's pick (GameSession outlives scene changes)
+	GameSession.select_ship(0)
 	ship_select.open()
 
 func _on_ship_launch_requested(index: int) -> void:

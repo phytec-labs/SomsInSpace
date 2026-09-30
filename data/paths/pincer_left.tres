@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EntryPath" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/entry_path.gd" id="1_wdnss"]
+
+[sub_resource type="Curve2D" id="Curve2D_xexiy"]
+_data = {
+"points": PackedVector2Array(0, 0, 0.25, 0, -0.1, 0.15, -0.08, -0.1, 0, 0, 0.4, 0.35)
+}
+point_count = 2
+
+[resource]
+script = ExtResource("1_wdnss")
+id = &"pincer_left"
+curve = SubResource("Curve2D_xexiy")
+default_speed = 280.0
+descend_speed = 190.0
