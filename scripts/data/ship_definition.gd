@@ -27,6 +27,20 @@ extends Resource
 @export var fire_cooldown_scale: float = 1.0
 ## Multiplies player projectile damage.
 @export var damage_scale: float = 1.0
+@export_group("Hardpoints")
+# Positions in the Player's local space (on-screen px at the Ship sprite scale
+# 0.125, ship center = origin, nose up). Applied by player.gd apply_ship();
+# defaults are the Player scene's original values (sized for body2).
+## Center gunpoint y (a few px inside the visible nose tip).
+@export var nose_offset_y: float = -73.0
+## Left/right gunpoint |x| (tier 2+ side guns; mirrored).
+@export var wing_gun_x: float = 28.0
+## Left/right gunpoint y.
+@export var wing_gun_y: float = -1.0
+## MainThruster / MainThruster2 y (a few px inside the engine row).
+@export var engine_offset_y: float = 48.0
+## LeftThruster / RightThruster y (Up/Down thrusters are not moved).
+@export var side_thruster_y: float = 22.0
 
 ## Shots per second relative to the default ship (for UI stat bars).
 func get_fire_rate_factor() -> float:

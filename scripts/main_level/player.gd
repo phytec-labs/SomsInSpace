@@ -28,12 +28,10 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 # award a graze when they pass through it. Only monitorable while the ship is
 # controllable and vulnerable (see _update_graze_area()).
 @onready var graze_area: Area2D = get_node_or_null("GrazeArea")
-# Shield bubble ring (shown while shielded; see activate_shield())
-# PLACEHOLDER_ART: scenes/player.tscn `ShieldRing` is a translucent cyan
-# Polygon2D disk ("Glow") plus a cyan Line2D circle ("Ring"), ~184 px across.
-# Replace both children with one Sprite2D (~300x300 ring with a soft alpha
-# edge); the pulse / flash / blink below drive ShieldRing's scale, modulate
-# and visibility, so they keep working on the sprite.
+# Shield bubble (shown while shielded; see activate_shield()). Its child
+# "Dome" Sprite2D (sprites/shield_dome_1.png at 0.16, offset up so the dome
+# covers the nose, rim ~40 px below the ship center); the pulse / hit pop /
+# warning blink drive ShieldRing's scale, modulate and visibility.
 @onready var shield_ring: Node2D = get_node_or_null("ShieldRing")
 
 # Emitted when a fly_to() tween reaches its target
@@ -155,6 +153,7 @@ func apply_ship(def: ShipDefinitionScript) -> void:
 		ship_sprite.modulate = def.tint
 	speed = def.speed
 	damage_scale = def.damage_scale
+	_apply_hardpoints(def)
 
 	if _base_tier_fire_cooldowns.is_empty():
 		_base_tier_fire_cooldowns = tier_fire_cooldowns.duplicate()
@@ -164,6 +163,22 @@ func apply_ship(def: ShipDefinitionScript) -> void:
 	tier_fire_cooldowns = scaled
 	# Refresh fire_cooldown for the current tier (no flash / signal)
 	set_weapon_tier(weapon_tier, false)
+
+# Gunpoints and thrusters from the ship's hardpoint offsets (x of each marker
+# is kept unless the definition sets it; Up/Down thrusters are not moved)
+func _apply_hardpoints(def: ShipDefinitionScript) -> void:
+	if center_gunpoint:
+		center_gunpoint.position.y = def.nose_offset_y
+	if left_gunpoint:
+		left_gunpoint.position = Vector2(-def.wing_gun_x, def.wing_gun_y)
+	if right_gunpoint:
+		right_gunpoint.position = Vector2(def.wing_gun_x, def.wing_gun_y)
+	for thruster in [main_thruster, main_thruster2]:
+		if thruster:
+			thruster.position.y = def.engine_offset_y
+	for thruster in [left_thruster, right_thruster]:
+		if thruster:
+			thruster.position.y = def.side_thruster_y
 
 # Contract for enemies (e.g. a tractor beam): adds `v` (px/s) on top of the
 # input movement for the player's next physics step only (calls in the same
@@ -268,7 +283,7 @@ func _process_shield(delta: float) -> void:
 		return
 	_update_shield_ring()
 
-# Ring visuals from the shield state: pulse, hit flash, warning blink
+# Dome visuals from the shield state: pulse, hit flash, warning blink
 func _update_shield_ring() -> void:
 	if not shield_ring:
 		return

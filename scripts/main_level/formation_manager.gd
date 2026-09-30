@@ -52,6 +52,9 @@ const RIPPLE_STEP: float = 0.12
 const CULL_MARGIN: float = 120.0
 # Angular frequency (rad/s) of the HOLD_THEN_DESCEND sway
 const HOLD_SWAY_FREQUENCY: float = 1.3
+# SWARM: members' edge margin (px, about half a drone) used to keep the swarm
+# inside the screen sides and to start it fully off screen
+const SWARM_EDGE_MARGIN: float = 24.0
 
 # Current zone's formation tuning (FormationSettings; see set_zone())
 var settings: FormationSettingsScript
@@ -210,6 +213,8 @@ func create_path_formation(group: Resource, zone: Resource, mirrored: bool, spee
 		formation.jitter_radius = s.swarm_jitter_radius
 		formation.swarm_amplitude = s.swarm_sine_amplitude
 		formation.swarm_frequency = s.swarm_sine_frequency
+		_setup_swarm_bounds(formation)
+		_place_members(formation)  # Move the members to the (clamped) start now
 
 	active_formations[formation_id] = formation
 	formation_created.emit(formation_id, members.map(func(m): return m.node))
@@ -323,6 +328,56 @@ func _advance(f: Dictionary, delta: float) -> void:
 		base.y += f.descend_speed * delta
 	f.base = base
 
+# SWARM bounds: `swarm_half_width` (widest member offset + jitter + edge
+# margin) keeps the swarm center (path + sway) far enough from the screen sides
+# that no member leaves them, except on EXIT paths, which enter / leave across
+# a side on purpose. When the path starts off screen, a straight lead-in is put
+# in front of it (along the start tangent, duplicated curve) so the whole
+# swarm starts off screen instead of popping in at the edge.
+func _setup_swarm_bounds(f: Dictionary) -> void:
+	var half_width := 0.0
+	for m in f.members:
+		half_width = maxf(half_width, absf(m.offset.x))
+	f.swarm_half_width = half_width + f.jitter_radius + SWARM_EDGE_MARGIN
+	f.swarm_clamp_x = f.end_mode != EntryPathScript.EndMode.EXIT
+	var curve: Curve2D = f.curve
+	var rect := _get_viewport_rect()
+	var start: Vector2 = f.base
+	if curve.point_count == 0 or rect.has_point(start):
+		return
+	var dir := (curve.sample_baked(minf(12.0, f.length)) - start).normalized()
+	if dir == Vector2.ZERO:
+		dir = Vector2.DOWN
+	var visible_rect := rect.grow(SWARM_EDGE_MARGIN + f.jitter_radius)
+	var lead := 0.0
+	while lead < 600.0:
+		var center := _swarm_center(f, start - dir * lead)
+		var any_visible := false
+		for m in f.members:
+			if visible_rect.has_point(center + m.offset):
+				any_visible = true
+				break
+		if not any_visible:
+			break
+		lead += 8.0
+	if lead <= 0.0:
+		return
+	curve = curve.duplicate()
+	curve.add_point(start - dir * lead, Vector2.ZERO, Vector2.ZERO, 0)
+	f.curve = curve
+	f.length = curve.get_baked_length()
+	f.base = curve.sample_baked(0.0)
+
+# SWARM center for a path position (sway included), kept inside the screen
+# sides when the formation clamps (see _setup_swarm_bounds())
+func _swarm_center(f: Dictionary, base: Vector2, sway_x: float = 0.0) -> Vector2:
+	var center := Vector2(base.x + sway_x, base.y)
+	if f.get("swarm_clamp_x", false):
+		var w := _get_viewport_rect().size.x
+		var hw: float = f.swarm_half_width
+		center.x = clampf(center.x, minf(hw, w / 2.0), maxf(w - hw, w / 2.0))
+	return center
+
 func _end_tangent(curve: Curve2D, length: float) -> Vector2:
 	if length <= 1.0:
 		return Vector2.DOWN
@@ -332,13 +387,13 @@ func _end_tangent(curve: Curve2D, length: float) -> Vector2:
 	return dir if dir != Vector2.ZERO else Vector2.DOWN
 
 func _place_members(f: Dictionary) -> void:
-	var sway := Vector2.ZERO
+	var center: Vector2 = f.base
 	if f.type == FormationType.SWARM:
-		sway.x = sin(f.time * f.swarm_frequency) * f.swarm_amplitude
+		center = _swarm_center(f, f.base, sin(f.time * f.swarm_frequency) * f.swarm_amplitude)
 	for m in f.members:
 		if not m.driven or not _is_member_alive(m):
 			continue
-		var pos: Vector2 = f.base + m.offset + sway
+		var pos: Vector2 = center + m.offset
 		if f.type == FormationType.SWARM:
 			var j: Vector2 = m.jitter
 			var a: float = f.time * j.y + j.x

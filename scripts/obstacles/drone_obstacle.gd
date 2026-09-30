@@ -4,7 +4,7 @@
 # scene's exports (health, damage, points, base_speed).
 #
 # Art: sprites/drone_1.png (1254x1254, claws down toward the player) on a
-# Sprite2D at 0.042 (~53 px on screen); CircleShape2D r 20 over the body and
+# Sprite2D at 0.032 (~40 px on screen); CircleShape2D r 15 over the body and
 # rotor hubs (claw and rotor tips left out).
 extends Obstacle
 class_name DroneObstacle

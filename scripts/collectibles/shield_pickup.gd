@@ -4,10 +4,8 @@
 # like the energy collectible; the effect is applied by main_level.gd
 # _on_object_collected() via get_pickup_type().
 #
-# PLACEHOLDER_ART: scenes/collectibles/shield_pickup.tscn draws the icon with
-# children of the (texture-less) Sprite2D: a translucent cyan "Fill" disk, a
-# cyan "Ring" Line2D and a "Highlight" arc. Replace them with a 256x256
-# transparent PNG as the Sprite2D texture (scale ~0.22).
+# Art: sprites/shield_dome_1.png (1261x1247) on the Sprite2D at 0.044
+# (~55 px wide), the same dome as the player's shield bubble.
 extends EnergyCollectible
 
 func get_pickup_type() -> StringName:

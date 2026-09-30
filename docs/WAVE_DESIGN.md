@@ -176,6 +176,11 @@ medium / small), UFO 40, blimp 160 (320 in the atmosphere, its only zone).
 
 `default_spread`, plus the swarm fields `swarm_radius`, `swarm_sine_amplitude`,
 `swarm_sine_frequency` (sway around the path), and `swarm_jitter_*`.
+Defaults: radius 165, sway 50 px at 1.5 rad/s, jitter 6 px (6-8 drones stay
+~48+ px apart). A swarm's center is kept far enough from the screen sides that
+no member leaves them (except on EXIT paths such as `side_sweep_left`), and a
+path that starts off screen gets a straight lead-in so the whole swarm starts
+off screen.
 
 ### GameConfig caps
 

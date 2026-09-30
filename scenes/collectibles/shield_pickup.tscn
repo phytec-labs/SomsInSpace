@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/collectibles/shield_pickup.gd" id="1_script"]
 [ext_resource type="AudioStream" uid="uid://ba7lcd7dluclr" path="res://audio/retro-coin-1.mp3" id="2_sound"]
+[ext_resource type="Texture2D" uid="uid://dhjo7aubwjeca" path="res://sprites/shield_dome_1.png" id="3_dome"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_pickup"]
 radius = 28.0
@@ -18,21 +19,8 @@ rotation_speed = 3.0
 shape = SubResource("CircleShape2D_pickup")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-
-[node name="Fill" type="Polygon2D" parent="Sprite2D"]
-color = Color(0.1, 0.6, 0.8, 0.35)
-polygon = PackedVector2Array(26.00, 0.00, 25.35, 5.79, 23.43, 11.28, 20.33, 16.21, 16.21, 20.33, 11.28, 23.43, 5.79, 25.35, 0.00, 26.00, -5.79, 25.35, -11.28, 23.43, -16.21, 20.33, -20.33, 16.21, -23.43, 11.28, -25.35, 5.79, -26.00, 0.00, -25.35, -5.79, -23.43, -11.28, -20.33, -16.21, -16.21, -20.33, -11.28, -23.43, -5.79, -25.35, -0.00, -26.00, 5.79, -25.35, 11.28, -23.43, 16.21, -20.33, 20.33, -16.21, 23.43, -11.28, 25.35, -5.79)
-
-[node name="Ring" type="Line2D" parent="Sprite2D"]
-points = PackedVector2Array(24.00, 0.00, 23.40, 5.34, 21.62, 10.41, 18.76, 14.96, 14.96, 18.76, 10.41, 21.62, 5.34, 23.40, 0.00, 24.00, -5.34, 23.40, -10.41, 21.62, -14.96, 18.76, -18.76, 14.96, -21.62, 10.41, -23.40, 5.34, -24.00, 0.00, -23.40, -5.34, -21.62, -10.41, -18.76, -14.96, -14.96, -18.76, -10.41, -21.62, -5.34, -23.40, -0.00, -24.00, 5.34, -23.40, 10.41, -21.62, 14.96, -18.76, 18.76, -14.96, 21.62, -10.41, 23.40, -5.34)
-closed = true
-width = 5.0
-default_color = Color(0.4, 1, 1, 1)
-
-[node name="Highlight" type="Line2D" parent="Sprite2D"]
-points = PackedVector2Array(-14.10, -5.13, -13.24, -7.04, -12.14, -8.82, -10.79, -10.42, -9.23, -11.82, -7.50, -12.99, -5.62, -13.91, -3.63, -14.55, -1.57, -14.92)
-width = 3.0
-default_color = Color(0.85, 1, 1, 0.9)
+scale = Vector2(0.044, 0.044)
+texture = ExtResource("3_dome")
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
 stream = ExtResource("2_sound")
