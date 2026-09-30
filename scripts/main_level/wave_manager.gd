@@ -86,15 +86,29 @@ func start_spawning() -> void:
 	enemies_spawned_in_group = 0
 	next_action = "start_wave"
 	
+	# A zone without waves (e.g. the boss zone) is a silent no-op; stay
+	# active so a later set_zone() to a zone with waves resumes spawning
+	if not _zone_has_waves():
+		_stop_timers()
+		return
+	
 	# Start first wave after a short delay
 	_start_timer(wave_timer, 1.0)
 
 func stop_spawning() -> void:
 	active = false
+	_stop_timers()
+
+# Cancel any pending wave/group/enemy step
+func _stop_timers() -> void:
 	wave_in_progress = false
 	next_action = "none"
 	wave_timer.stop()
 	enemy_timer.stop()
+
+# True if the current zone has at least one wave to play
+func _zone_has_waves() -> bool:
+	return zone != null and not zone.waves.is_empty()
 
 # Switch to a new zone (ZoneDefinition): restart from its first wave, ramp level 0
 func set_zone(new_zone: ZoneDefinitionScript) -> void:
@@ -111,6 +125,11 @@ func set_zone(new_zone: ZoneDefinitionScript) -> void:
 	if debug_mode:
 		print("WaveManager: Zone " + String(zone.id) + " has " + str(zone.waves.size()) + " waves")
 	
+	# Zone without waves (e.g. the boss zone): nothing to spawn
+	if not _zone_has_waves():
+		_stop_timers()
+		return
+
 	# If currently spawning, restart with new zone waves
 	if active:
 		next_action = "start_wave"
@@ -139,10 +158,10 @@ func _start_timer(timer: Timer, wait: float) -> void:
 	timer.wait_time = maxf(wait, MIN_TIMER_WAIT)
 	timer.start()
 
-# Current wave, or null (with a warning) if the zone/wave index is invalid
+# Current wave, or null if the zone has no waves (silently) or the wave
+# index is invalid (with a warning)
 func _get_current_wave() -> WaveDefinitionScript:
-	if zone == null or zone.waves.is_empty():
-		push_warning("WaveManager: No waves defined for zone: " + (String(zone.id) if zone else "<none>"))
+	if not _zone_has_waves():
 		return null
 	if current_wave_index < 0 or current_wave_index >= zone.waves.size():
 		push_warning("WaveManager: Invalid wave index " + str(current_wave_index) + " for zone " + String(zone.id))
@@ -161,8 +180,8 @@ func start_wave() -> void:
 			print("WaveManager: Cannot start wave - wave already in progress")
 		return
 	
-	if zone == null or zone.waves.is_empty():
-		push_warning("WaveManager: No waves defined for zone: " + (String(zone.id) if zone else "<none>"))
+	# Zones without waves (e.g. the boss zone) spawn nothing
+	if not _zone_has_waves():
 		return
 	
 	# Wrap around if we've gone past the end and looping is enabled
@@ -295,6 +314,9 @@ func complete_wave() -> void:
 	# Ensure we've got valid data
 	var wave_data := _get_current_wave()
 	if wave_data == null:
+		if not _zone_has_waves():
+			_stop_timers()
+			return
 		# Reset to a valid state
 		current_wave_index = 0
 		next_action = "start_wave"

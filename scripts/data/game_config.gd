@@ -11,8 +11,9 @@ const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
 @export var scroll_speed: float = 100.0
 ## Seconds of "3, 2, 1" before launch.
 @export var countdown_time: float = 3.0
-## Height represented by the full width of the HUD zone progress bar.
-@export var progress_bar_max_height: int = 40000
+## Height represented by the full width of the HUD zone progress bar
+## (normally the last zone's start_height, i.e. where the boss appears).
+@export var progress_bar_max_height: int = 13500
 ## Safety valve: SpawnManager skips obstacle spawns while this many are
 ## active (0 disables the cap).
 @export var max_active_obstacles: int = 150

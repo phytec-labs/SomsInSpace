@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://ci76j6nnodhti"]
+[gd_scene load_steps=11 format=3 uid="uid://ci76j6nnodhti"]
 
 [ext_resource type="Script" uid="uid://dai1tjcw2bc2v" path="res://scripts/main_level/game_hud.gd" id="1_3c41i"]
 [ext_resource type="FontFile" uid="uid://cbgo8cv70u14u" path="res://fonts/m5x7.ttf" id="2_y6bie"]
@@ -58,6 +58,27 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.3, 0.3, 0.3, 0.8)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_boss_bg"]
+bg_color = Color(0.1, 0.05, 0.1, 0.8)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.8, 0.8, 0.8, 0.5)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_boss_fill"]
+bg_color = Color(0.9, 0.15, 0.55, 1)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
@@ -136,9 +157,9 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -158.0
+offset_left = -180.0
 offset_top = -46.0
-offset_right = 158.0
+offset_right = 180.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
@@ -162,59 +183,6 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
 alignment = 1
-
-[node name="GroundLabel" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
-custom_minimum_size = Vector2(75, 0)
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_y6bie")
-theme_override_font_sizes/font_size = 16
-text = "Ground"
-horizontal_alignment = 1
-
-[node name="|" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_y6bie")
-theme_override_font_sizes/font_size = 16
-text = "|"
-horizontal_alignment = 1
-
-[node name="AtmosphereLabel" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
-custom_minimum_size = Vector2(75, 0)
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_y6bie")
-theme_override_font_sizes/font_size = 16
-text = "Atmosphere"
-horizontal_alignment = 1
-
-[node name="|2" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_y6bie")
-theme_override_font_sizes/font_size = 16
-text = "|"
-horizontal_alignment = 1
-
-[node name="UpperAtmoLabel" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
-custom_minimum_size = Vector2(75, 0)
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_y6bie")
-theme_override_font_sizes/font_size = 16
-text = "Upper Atm."
-horizontal_alignment = 1
-
-[node name="|3" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_y6bie")
-theme_override_font_sizes/font_size = 16
-text = "|"
-horizontal_alignment = 1
-
-[node name="SpaceLabel" type="Label" parent="ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels"]
-custom_minimum_size = Vector2(75, 0)
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_y6bie")
-theme_override_font_sizes/font_size = 16
-text = "Space"
-horizontal_alignment = 1
 
 [node name="ZoneIndicator" type="Control" parent="ZoneProgressContainer"]
 custom_minimum_size = Vector2(0, 10)
@@ -333,3 +301,36 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_panel")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_panel")
 theme_override_styles/normal = SubResource("StyleBoxFlat_panel")
 text = "II"
+
+[node name="BossBar" type="VBoxContainer" parent="."]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -180.0
+offset_top = 24.0
+offset_right = 180.0
+offset_bottom = 80.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="BossNameLabel" type="Label" parent="BossBar"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.4, 0.75, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 32
+text = "Mothership"
+horizontal_alignment = 1
+
+[node name="BossHealthBar" type="ProgressBar" parent="BossBar"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_boss_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_boss_fill")
+value = 100.0
+show_percentage = false

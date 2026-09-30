@@ -4,6 +4,9 @@ extends Node
 # Constants
 const SAVE_FILE_PATH = "user://highscores.save"
 const MAX_SCORES = 5  # Maximum number of scores to store
+# Bump when scoring changes make old saves incomparable (v2: 3-minute run with
+# the height capped at orbit). Older / unversioned saves are discarded.
+const SAVE_VERSION := 2
 
 # Score data structure
 var high_scores = []
@@ -91,27 +94,31 @@ func is_score_higher(height1: float, points1: int, height2: float, points2: int)
 func save_scores() -> void:
 	var save_file = FileAccess.open(SAVE_FILE_PATH, FileAccess.WRITE)
 	if save_file:
-		save_file.store_var(high_scores)
+		save_file.store_var({"version": SAVE_VERSION, "scores": high_scores})
 		save_file.close()
 
-# Load scores from disk
+# Load scores from disk. Saves from another version (including the old bare
+# Array format) are discarded and the file is rewritten empty.
 func load_scores() -> void:
-	if FileAccess.file_exists(SAVE_FILE_PATH):
-		var save_file = FileAccess.open(SAVE_FILE_PATH, FileAccess.READ)
-		if save_file:
-			var loaded_data = save_file.get_var()
-			save_file.close()
-			
-			# Validate the loaded data
-			if loaded_data is Array:
-				high_scores = loaded_data
-				sort_scores()  # Ensure proper sorting
-			else:
-				# Invalid data, reset scores
-				high_scores = []
-	else:
+	high_scores = []
+	if not FileAccess.file_exists(SAVE_FILE_PATH):
 		# No save file, start with empty list
-		high_scores = []
+		return
+
+	var loaded_data = null
+	var save_file = FileAccess.open(SAVE_FILE_PATH, FileAccess.READ)
+	if save_file:
+		loaded_data = save_file.get_var()
+		save_file.close()
+
+	if loaded_data is Dictionary and loaded_data.get("version") == SAVE_VERSION \
+			and loaded_data.get("scores") is Array:
+		high_scores = loaded_data["scores"]
+		sort_scores()  # Ensure proper sorting
+	else:
+		# Old format, other version or invalid data: start over
+		print("ScoreboardManager: discarding incompatible high score save")
+		save_scores()
 
 # Clear all high scores
 func clear_scores() -> void:

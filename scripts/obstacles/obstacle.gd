@@ -428,15 +428,20 @@ func _apply_accuracy(direction: Vector2) -> Vector2:
 		direction = direction.rotated(deviation)
 	return direction
 
-# Spawn one (pooled) projectile from gun_point and play the shoot sound
+# Spawn one (pooled) projectile from gun_point, aimed via _aim_direction()
+# with accuracy jitter, and play the shoot sound
 func _fire_from(gun_point: Node2D) -> void:
+	_fire_from_direction(gun_point, _apply_accuracy(_aim_direction(gun_point.global_position)))
+
+# Spawn one (pooled) projectile from gun_point travelling in an explicit
+# direction (no aiming or jitter applied) and play the shoot sound
+func _fire_from_direction(gun_point: Node2D, direction: Vector2) -> void:
+	if not projectile_scene:
+		return
 	var projectile = ObjectPool.acquire(projectile_scene, _get_effects_parent())
 
-	var spawn_position = gun_point.global_position
-	var direction = _apply_accuracy(_aim_direction(spawn_position))
-
 	if projectile.has_method("initialize"):
-		projectile.initialize(spawn_position, direction)
+		projectile.initialize(gun_point.global_position, direction)
 
 	# Play shoot sound if available
 	if shoot_audio_player and shoot_audio_player.stream:

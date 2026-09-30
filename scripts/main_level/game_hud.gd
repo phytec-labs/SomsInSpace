@@ -15,15 +15,20 @@ signal pause_requested
 @onready var zone_progress_container: Control = $ZoneProgressContainer
 @onready var pause_button: Button = $PauseButton
 
-# Zone labels (cached; highlighted by update_zone)
-@onready var zone_labels := {
-	"ground": $ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels/GroundLabel,
-	"atmosphere": $ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels/AtmosphereLabel,
-	"upper_atmosphere": $ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels/UpperAtmoLabel,
-	"space": $ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels/SpaceLabel,
-}
+# Zone labels: generated from config.zones in configure() (zone id -> Label;
+# highlighted by update_zone)
+@onready var zone_labels_container: HBoxContainer = $ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels
+var zone_labels := {}
 const ZONE_LABEL_COLOR := Color(0.7, 0.7, 0.7)
 const ZONE_LABEL_HIGHLIGHT_COLOR := Color(1, 1, 0.5)
+const ZONE_LABEL_FONT := preload("res://fonts/m5x7.ttf")
+const ZONE_LABEL_FONT_SIZE := 16
+const ZONE_LABEL_MIN_WIDTH := 64.0
+
+# Boss health bar (top center; hidden unless a boss fight is on)
+@onready var boss_bar: Control = $BossBar
+@onready var boss_name_label: Label = $BossBar/BossNameLabel
+@onready var boss_health_bar: ProgressBar = $BossBar/BossHealthBar
 
 # Weapon panel references
 @onready var weapon_sprite = $WeaponsPanel/MarginContainer/WeaponsContainer/WeaponSlot/WeaponSprite
@@ -71,6 +76,7 @@ func _ready() -> void:
 	update_height(0)
 	update_points(0)
 	update_zone("ground")
+	hide_boss_bar()
 
 	# Set initial weapon
 	update_weapon("basic")
@@ -80,6 +86,7 @@ func configure(game_config: GameConfigScript) -> void:
 	config = game_config
 	if config and config.progress_bar_max_height > 0:
 		max_height = config.progress_bar_max_height
+	_build_zone_labels()
 	_refresh_zone_layout()
 	_update_zone_marker()
 	update_zone_progress(_last_height)
@@ -154,6 +161,58 @@ func update_zone_progress(height: float) -> void:
 	var zone = config.get_zone_for_height(height)
 	if zone and String(zone.id) != _current_zone:
 		update_zone(String(zone.id))
+
+# (Re)create one label per zone, separated by "|", from config.zones
+func _build_zone_labels() -> void:
+	for child in zone_labels_container.get_children():
+		zone_labels_container.remove_child(child)
+		child.queue_free()
+	zone_labels.clear()
+	if not config:
+		return
+
+	var first := true
+	for zone in config.zones:
+		if zone == null:
+			continue
+		if not first:
+			zone_labels_container.add_child(_make_zone_label("|", 0.0))
+		first = false
+		var label := _make_zone_label(zone.get_short_name(), ZONE_LABEL_MIN_WIDTH)
+		label.name = String(zone.id).to_pascal_case() + "Label"
+		zone_labels_container.add_child(label)
+		zone_labels[String(zone.id)] = label
+
+	# Re-apply the highlight to the new labels
+	var current := _current_zone
+	_current_zone = ""
+	update_zone(current)
+
+func _make_zone_label(text: String, min_width: float) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.custom_minimum_size = Vector2(min_width, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_font_override("font", ZONE_LABEL_FONT)
+	label.add_theme_font_size_override("font_size", ZONE_LABEL_FONT_SIZE)
+	label.add_theme_color_override("font_color", ZONE_LABEL_COLOR)
+	return label
+
+# --- Boss bar ---
+
+func show_boss_bar(boss_name: String) -> void:
+	boss_name_label.text = boss_name
+	boss_health_bar.max_value = 100.0
+	boss_health_bar.value = 100.0
+	boss_bar.visible = true
+
+func update_boss_health(current: float, max_health: float) -> void:
+	boss_health_bar.max_value = maxf(max_health, 0.001)
+	boss_health_bar.value = clampf(current, 0.0, boss_health_bar.max_value)
+
+func hide_boss_bar() -> void:
+	boss_bar.visible = false
 
 func update_weapon(weapon_type: String) -> void:
 	current_weapon_type = weapon_type

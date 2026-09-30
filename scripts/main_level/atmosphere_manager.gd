@@ -5,19 +5,12 @@ extends Node2D
 @onready var background: ColorRect = $Background
 @onready var starfield: Node2D = $Starfield
 
-# Zone colors
-@export_group("Zone Colors")
-@export var ground_color: Color = Color(0.53, 0.81, 0.92, 1.0)      # Light blue sky
-@export var atmosphere_color: Color = Color(0.28, 0.46, 0.8, 1.0)   # Darker blue
-@export var upper_atmosphere_color: Color = Color(0.13, 0.19, 0.45, 1.0) # Deep blue
-@export var space_color: Color = Color(0.05, 0.05, 0.1, 1.0)         # Almost black
+# Per-zone background colors and star visibility come from the ZoneDefinition
+# resources (data/zones/*.tres); main_level.gd passes them to
+# set_zone_appearance() whenever the zone changes.
 
-# Star visibility settings
-@export_group("Star Visibility")
-@export_range(0.0, 1.0) var ground_star_visibility: float = 0.0
-@export_range(0.0, 1.0) var atmosphere_star_visibility: float = 0.3
-@export_range(0.0, 1.0) var upper_atmosphere_star_visibility: float = 0.7
-@export_range(0.0, 1.0) var space_star_visibility: float = 1.0
+# Shown until the first set_zone_appearance() call
+@export var initial_color: Color = Color(0.05, 0.05, 0.1, 1.0)
 
 # Transition settings
 @export_group("Transition Settings")
@@ -27,8 +20,9 @@ extends Node2D
 var transition_time: float = 0.0
 var transition_active: bool = false
 
-# Current zone tracking
-var current_zone: String = "ground"
+# Current zone tracking ("" until the first set_zone_appearance())
+var current_zone: String = ""
+var current_color: Color
 
 func _ready() -> void:
 	# Ensure the background covers the viewport
@@ -36,10 +30,11 @@ func _ready() -> void:
 	get_tree().root.size_changed.connect(_on_viewport_size_changed)
 
 	# Set initial shader parameters
+	current_color = initial_color
 	var shader_material = background.material as ShaderMaterial
 	if shader_material:
-		shader_material.set_shader_parameter("current_color", get_zone_color("ground"))
-		shader_material.set_shader_parameter("target_color", get_zone_color("ground"))
+		shader_material.set_shader_parameter("current_color", initial_color)
+		shader_material.set_shader_parameter("target_color", initial_color)
 		shader_material.set_shader_parameter("transition_progress", 1.0)
 		shader_material.set_shader_parameter("gradient_size", gradient_size)
 
@@ -58,47 +53,25 @@ func _process(delta: float) -> void:
 func _on_viewport_size_changed():
 	background.size = get_viewport_rect().size
 
-func get_zone_color(zone_name: String) -> Color:
-	match zone_name:
-		"ground":
-			return ground_color
-		"atmosphere":
-			return atmosphere_color
-		"upper_atmosphere":
-			return upper_atmosphere_color
-		"space":
-			return space_color
-		_:
-			return ground_color
-
-func get_zone_star_visibility(zone_name: String) -> float:
-	match zone_name:
-		"ground":
-			return ground_star_visibility
-		"atmosphere":
-			return atmosphere_star_visibility
-		"upper_atmosphere":
-			return upper_atmosphere_star_visibility
-		"space":
-			return space_star_visibility
-		_:
-			return 0.0
-
-func set_zone(zone_name: String) -> void:
-	# Verify zone exists
-	if not get_zone_color(zone_name) or zone_name == current_zone:
+# Switch to a zone's appearance: wipe the background to `color` (shader
+# transition) and fade the starfield to `star_visibility`. The first call
+# (level start) applies instantly instead of transitioning.
+func set_zone_appearance(zone_id: String, color: Color, star_visibility: float) -> void:
+	if zone_id == current_zone:
 		return
+	var is_initial := current_zone.is_empty()
 
 	var shader_material = background.material as ShaderMaterial
 	if shader_material:
-		shader_material.set_shader_parameter("current_color", get_zone_color(current_zone))
-		shader_material.set_shader_parameter("target_color", get_zone_color(zone_name))
-		shader_material.set_shader_parameter("transition_progress", 0.0)
+		shader_material.set_shader_parameter("current_color", color if is_initial else current_color)
+		shader_material.set_shader_parameter("target_color", color)
+		shader_material.set_shader_parameter("transition_progress", 1.0 if is_initial else 0.0)
 
-	current_zone = zone_name
+	current_zone = zone_id
+	current_color = color
 	transition_time = 0.0
-	transition_active = true
+	transition_active = not is_initial
 
 	# Update star visibility
 	if starfield and starfield.has_method("set_star_visibility"):
-		starfield.set_star_visibility(get_zone_star_visibility(zone_name), transition_duration)
+		starfield.set_star_visibility(star_visibility, 0.001 if is_initial else transition_duration)

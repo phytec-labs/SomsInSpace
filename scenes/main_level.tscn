@@ -62,9 +62,6 @@ scale = Vector2(0.621341, 0.621341)
 
 [node name="AtmosphereManager" parent="." instance=ExtResource("9_c88u2")]
 position = Vector2(1, 0)
-ground_color = Color(0.454902, 0.627451, 0.596078, 1)
-atmosphere_color = Color(0.278431, 0.388235, 0.388235, 1)
-upper_atmosphere_color = Color(0.117647, 0.152941, 0.14902, 1)
 
 [node name="CloudManager" parent="." instance=ExtResource("10_cvtml")]
 min_cloud_speed = 50.0

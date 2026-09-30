@@ -4,6 +4,8 @@ extends Control
 signal retry_pressed
 signal main_menu_pressed
 
+@onready var header_label: Label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/GameOverLabel
+@onready var bonus_label: Label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreContainer/BonusLabel
 @onready var height_label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreContainer/HeightLabel
 @onready var score_label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ScoreContainer/ScoreLabel
 @onready var retry_button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/RetryButton
@@ -23,6 +25,11 @@ var menu_group: MenuButtonGroupScript
 var current_final_height: float = 0
 var current_final_score: int = 0
 var scoreboard_manager = null
+var is_victory: bool = false
+
+const GAME_OVER_TEXT := "Game Over"
+const VICTORY_TEXT := "ORBIT REACHED!"
+const VICTORY_COLOR := Color(1, 0.8, 0.2)
 
 # UI States
 enum UIState { SCORE_INPUT, SCOREBOARD_VIEW }
@@ -82,6 +89,20 @@ func _input(event: InputEvent) -> void:
 
 	# Button navigation in SCOREBOARD_VIEW is handled by menu_group
 
+# Victory mode: gold "ORBIT REACHED!" header plus the bonus line. Reset to
+# game-over mode automatically whenever the screen is hidden.
+func set_victory(victory: bool, bonus: int = 0) -> void:
+	is_victory = victory
+	if victory:
+		header_label.text = VICTORY_TEXT
+		header_label.add_theme_color_override("font_color", VICTORY_COLOR)
+		bonus_label.text = "Victory bonus: +%d" % bonus
+		bonus_label.visible = true
+	else:
+		header_label.text = GAME_OVER_TEXT
+		header_label.remove_theme_color_override("font_color")
+		bonus_label.visible = false
+
 func set_final_height(height: float) -> void:
 	current_final_height = height
 	if height_label:
@@ -100,6 +121,9 @@ func _on_button_activated(_index: int, button: Button) -> void:
 			main_menu_pressed.emit()
 
 func _on_visibility_changed() -> void:
+	if not visible:
+		set_victory(false)
+		return
 	if visible:
 		# Reset UI state
 		if name_input:

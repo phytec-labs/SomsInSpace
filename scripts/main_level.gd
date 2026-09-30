@@ -22,7 +22,7 @@ const EXPLOSION_SCENE := preload("res://scenes/effects/explosion.tscn")
 @onready var pause_menu: Control = $UI/PauseMenu
 
 # Game States
-enum GameState {COUNTDOWN, PLAYING, PAUSED, GAME_OVER}
+enum GameState {COUNTDOWN, PLAYING, PAUSED, GAME_OVER, VICTORY}
 var current_state: GameState = GameState.COUNTDOWN
 
 # Height tracking
@@ -41,6 +41,12 @@ var current_countdown: float = 0.0
 # Zone tracking (current_zone is the zone id, e.g. "ground")
 var current_zone: String = ""
 var current_zone_def: ZoneDefinitionScript
+
+# Boss fight (zone with a boss_scene)
+const VICTORY_BONUS_PER_HEALTH: int = 10
+const VICTORY_SCREEN_DELAY: float = 2.5
+var boss: Node2D = null
+var victory_bonus: int = 0
 
 # Weapon upgrade variables
 @export var weapon_upgrade_scene: PackedScene
@@ -109,7 +115,7 @@ func _process(delta: float) -> void:
 			process_game(delta)
 		GameState.PAUSED:
 			pass  # Tree is paused; _process doesn't run in this state
-		GameState.GAME_OVER:
+		GameState.GAME_OVER, GameState.VICTORY:
 			pass
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -159,8 +165,10 @@ func process_countdown(delta: float) -> void:
 		start_game()
 
 func process_game(delta: float) -> void:
-	# Update height score
-	height_score += scroll_speed * delta
+	# Update height score (frozen in e.g. the boss zone; scrolling visuals
+	# keep going)
+	if not (current_zone_def and current_zone_def.freezes_height):
+		height_score += scroll_speed * delta
 
 	cloud_manager.update_height(height_score)
 
@@ -190,6 +198,9 @@ func update_points_display() -> void:
 	game_hud.update_points(points)
 
 func update_health(amount: float) -> void:
+	# No damage once the run has ended (stray shots after victory / game over)
+	if amount < 0.0 and current_state != GameState.PLAYING:
+		return
 	current_health = clamp(current_health + amount, 0, max_health)
 	update_health_display()
 
@@ -203,6 +214,9 @@ func _on_object_collected(object: Node2D) -> void:
 		update_points(object.points)  # Use the points property from GameObject class
 
 func _on_object_hit(object: Node2D) -> void:
+	# No damage once the run has ended (e.g. stray boss shots after victory)
+	if current_state != GameState.PLAYING:
+		return
 	if object is Obstacle:
 		if not player.is_blinking and not player.is_dead:
 			update_health(-object.damage)
@@ -249,10 +263,17 @@ func game_over() -> void:
 	# Stop game systems
 	spawn_manager.stop_spawning()
 	cloud_manager.stop_spawning()
+	# A live boss stops attacking (it keeps hovering behind the results)
+	if is_instance_valid(boss) and boss.has_method("stand_down"):
+		boss.stand_down()
 
 	# Show game over screen after a short delay to see explosion
 	await get_tree().create_timer(1.0).timeout
 
+	# The level may have left the tree (scene change) during the wait
+	if not is_inside_tree():
+		return
+	game_hud.hide_boss_bar()
 	if game_over_screen:
 		# SET VALUES FIRST - before showing the screen
 		game_over_screen.set_final_height(height_score)
@@ -284,26 +305,105 @@ func _update_zone(height: float) -> void:
 	current_zone_def = zone
 	current_zone = String(zone.id)
 
+	# Height-freezing zones (the boss zone) pin the height at their start so
+	# the final height / HUD marker land exactly on the zone boundary
+	if zone.freezes_height:
+		height_score = zone.start_height
+
 	# Update all managers at once
 	spawn_manager.set_spawn_zone(zone)
-	atmosphere_manager.set_zone(current_zone)
+	atmosphere_manager.set_zone_appearance(current_zone, zone.background_color, zone.star_visibility)
 	cloud_manager.set_zone(current_zone)
 	cloud_manager.set_clouds_enabled(zone.has_clouds)
 
+	if zone.boss_scene:
+		_start_boss_fight(zone)
+
+# Boss zone entered: spawn the boss and hook its signals up to the HUD
+func _start_boss_fight(zone: ZoneDefinitionScript) -> void:
+	if boss != null:
+		return
+	show_message("WARNING: MOTHERSHIP")
+	if not spawn_manager.has_method("spawn_boss"):
+		push_error("MainLevel: SpawnManager has no spawn_boss(); boss not spawned")
+		return
+	boss = spawn_manager.spawn_boss(zone.boss_scene)
+	if boss == null:
+		push_error("MainLevel: spawn_boss() returned null for zone " + String(zone.id))
+		return
+	_connect_boss(boss)
+
+# Wire the boss's signals (BossAlien: fight_started, health_changed, defeated)
+func _connect_boss(new_boss: Node2D) -> void:
+	boss = new_boss
+	# (connected by name: `boss` is typed Node2D, not BossAlien)
+	if boss.has_signal("fight_started"):
+		boss.connect("fight_started", _on_boss_fight_started)
+	if boss.has_signal("health_changed"):
+		boss.connect("health_changed", game_hud.update_boss_health)
+	if boss.has_signal("defeated"):
+		boss.connect("defeated", _on_boss_defeated, CONNECT_ONE_SHOT)
+
+func _on_boss_fight_started() -> void:
+	# The entrance can finish after the run already ended
+	if current_state != GameState.PLAYING and current_state != GameState.PAUSED:
+		return
+	var boss_name := "Mothership"
+	if is_instance_valid(boss) and "boss_name" in boss and not String(boss.get("boss_name")).is_empty():
+		boss_name = String(boss.get("boss_name"))
+	game_hud.show_boss_bar(boss_name)
+
+func _on_boss_defeated() -> void:
+	# Only a live run can be won (not after the player already died)
+	if current_state != GameState.PLAYING:
+		return
+	current_state = GameState.VICTORY
+	game_hud.set_pause_button_visible(false)
+
+	# Stop the run; the ship stays on screen (no explosion)
+	spawn_manager.stop_spawning()
+	cloud_manager.stop_spawning()
+	player.disable_movement()
+	player.reset_input_state()
+
+	game_hud.hide_boss_bar()
+	show_message("ORBIT REACHED!")
+
+	victory_bonus = int(current_health) * VICTORY_BONUS_PER_HEALTH
+	update_points(victory_bonus)
+
+	# Let the boss death sequence play out before the results screen. The
+	# timeout is connected to a method (rather than awaited) so nothing
+	# resumes if the level is freed during the wait.
+	get_tree().create_timer(VICTORY_SCREEN_DELAY).timeout.connect(_show_victory_screen)
+
+func _show_victory_screen() -> void:
+	if not is_inside_tree() or current_state != GameState.VICTORY:
+		return
+	if game_over_screen:
+		game_over_screen.set_victory(true, victory_bonus)
+		game_over_screen.set_final_height(height_score)
+		game_over_screen.set_final_score(points)
+		game_over_screen.show()
+
 func _on_game_over_retry() -> void:
 	# Only reachable from the game over screen, never while paused
-	if current_state != GameState.GAME_OVER:
+	if not _is_run_over():
 		return
 	get_tree().paused = false
 	# Reload the current scene
 	get_tree().reload_current_scene()
 
 func _on_game_over_main_menu() -> void:
-	if current_state != GameState.GAME_OVER:
+	if not _is_run_over():
 		return
 	get_tree().paused = false
 	# Transition to main menu scene
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+
+# True once the run has ended (game over or victory)
+func _is_run_over() -> bool:
+	return current_state == GameState.GAME_OVER or current_state == GameState.VICTORY
 
 func spawn_weapon_upgrade() -> void:
 	if not weapon_upgrade_scene or upgrade_spawned:

@@ -52,3 +52,5 @@ has_clouds = true
 obstacle_scenes = Array[PackedScene]([ExtResource("2_youtc"), ExtResource("3_qchir"), ExtResource("4_7ucwy")])
 waves = Array[ExtResource("6_1hby0")]([SubResource("Resource_ljlqc"), SubResource("Resource_0u8y8")])
 formation_settings = SubResource("Resource_672sh")
+background_color = Color(0.454902, 0.627451, 0.596078, 1)
+star_visibility = 0.0

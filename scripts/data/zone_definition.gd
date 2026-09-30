@@ -7,9 +7,11 @@ const WaveDefinitionScript := preload("res://scripts/data/wave_definition.gd")
 const FormationSettingsScript := preload("res://scripts/data/formation_settings.gd")
 
 ## Zone id; AtmosphereManager / CloudManager / GameHUD match on these strings
-## ("ground", "atmosphere", "upper_atmosphere", "space").
+## ("ground", "atmosphere", "upper_atmosphere", "space", "orbit").
 @export var id: StringName = &""
 @export var display_name: String = ""
+## Compact name for the HUD zone bar (empty = use display_name).
+@export var short_name: String = ""
 ## Height (m) at which this zone starts.
 @export var start_height: int = 0
 
@@ -18,6 +20,16 @@ const FormationSettingsScript := preload("res://scripts/data/formation_settings.
 @export var spawns_weapon_upgrade: bool = false
 ## CloudManager spawns clouds while this zone is active.
 @export var has_clouds: bool = false
+## Height stops increasing while this zone is active (e.g. the boss zone).
+@export var freezes_height: bool = false
+## Boss spawned (once) when this zone is entered; null = no boss.
+@export var boss_scene: PackedScene
+
+@export_group("Appearance")
+## Background color the AtmosphereManager wipes to when this zone is entered.
+@export var background_color: Color = Color(0.53, 0.81, 0.92, 1.0)
+## Starfield opacity in this zone (0 = no stars, 1 = full).
+@export_range(0.0, 1.0) var star_visibility: float = 0.0
 
 @export_group("Spawning")
 ## Obstacle scenes the zone's formations are built from (picked at random).
@@ -46,6 +58,10 @@ const FormationSettingsScript := preload("res://scripts/data/formation_settings.
 @export var levels_per_count_bonus: int = 4
 ## ...up to this many extra formations per group.
 @export var max_count_bonus: int = 1
+
+# Name shown on the HUD zone bar
+func get_short_name() -> String:
+	return short_name if not short_name.is_empty() else display_name
 
 # Delay multiplier for the given ramp level (0 = just entered the zone)
 func get_delay_multiplier(level: int) -> float:

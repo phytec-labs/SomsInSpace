@@ -6,7 +6,9 @@
 [ext_resource type="Resource" path="res://data/zones/atmosphere.tres" id="4_54jad"]
 [ext_resource type="Resource" path="res://data/zones/upper_atmosphere.tres" id="5_775ok"]
 [ext_resource type="Resource" path="res://data/zones/space.tres" id="6_llujv"]
+[ext_resource type="Resource" path="res://data/zones/orbit.tres" id="7_orbit"]
 
 [resource]
 script = ExtResource("1_lytdd")
-zones = Array[ExtResource("2_3pit6")]([ExtResource("3_ank8f"), ExtResource("4_54jad"), ExtResource("5_775ok"), ExtResource("6_llujv")])
+zones = Array[ExtResource("2_3pit6")]([ExtResource("3_ank8f"), ExtResource("4_54jad"), ExtResource("5_775ok"), ExtResource("6_llujv"), ExtResource("7_orbit")])
+progress_bar_max_height = 13500

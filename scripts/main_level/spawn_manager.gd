@@ -42,6 +42,8 @@ var collectible_pool = []
 var _obstacle_instances: Array[Node2D] = []
 
 func _ready() -> void:
+	# Lets other systems (e.g. the boss summoning minions) find this manager
+	add_to_group("spawn_manager")
 	rng.randomize()
 
 	# Set initial collectible time
@@ -186,23 +188,52 @@ func spawn_obstacle(spawn_position: Vector2) -> Node2D:
 		push_warning("No obstacle scenes available for the current zone!")
 		return null
 
-	# Safety valve: skip this spawn while too many obstacles are alive
-	# (FormationManager / WaveManager tolerate a null here)
-	if config and config.max_active_obstacles > 0 \
-			and get_active_obstacle_count() >= config.max_active_obstacles:
+	# Checked before picking a scene so a capped spawn costs nothing
+	if _is_at_obstacle_cap():
 		return null
 
 	# Select a random obstacle type for this zone
-	var selected_scene = scenes[randi() % scenes.size()]
-	if not selected_scene:
+	return _spawn_capped_obstacle(scenes[randi() % scenes.size()], spawn_position)
+
+# Spawn a specific obstacle scene (e.g. minions summoned by a boss). Same rules
+# as spawn_obstacle(): respects max_active_obstacles (returns null at the cap)
+# and gets a random speed multiplier and movement pattern.
+func spawn_minion(scene: PackedScene, spawn_position: Vector2) -> Node2D:
+	return _spawn_capped_obstacle(scene, spawn_position)
+
+# Spawn a boss: not subject to max_active_obstacles and never culled for
+# leaving the screen (only its destroyed signal returns it to the pool).
+# The boss drives its own entrance from initialize().
+func spawn_boss(scene: PackedScene) -> Node2D:
+	if not scene:
 		return null
 
-	# Get or create obstacle instance
-	var obstacle = get_from_pool(selected_scene.resource_path)
-	if not obstacle:
-		obstacle = selected_scene.instantiate()
-		add_child(obstacle)
-		_obstacle_instances.append(obstacle)
+	var boss = _acquire_obstacle(scene, false)
+
+	var spawn_position = Vector2(get_viewport_rect().size.x / 2.0, -250.0)
+	boss.initialize(spawn_position)
+
+	# Connected once per instance; reused instances keep their connections
+	if not boss.has_meta("_spawn_pool_connected"):
+		boss.set_meta("_spawn_pool_connected", true)
+		if boss.has_signal("destroyed"):
+			boss.destroyed.connect(_on_object_exited.bind(boss))
+
+	emit_signal("object_spawned", boss)
+	return boss
+
+# Safety valve: too many obstacles alive to spawn another
+# (FormationManager / WaveManager tolerate a null spawn result)
+func _is_at_obstacle_cap() -> bool:
+	return config != null and config.max_active_obstacles > 0 \
+			and get_active_obstacle_count() >= config.max_active_obstacles
+
+# Shared path of spawn_obstacle() / spawn_minion()
+func _spawn_capped_obstacle(scene: PackedScene, spawn_position: Vector2) -> Node2D:
+	if not scene or _is_at_obstacle_cap():
+		return null
+
+	var obstacle = _acquire_obstacle(scene, true)
 
 	# Set random speed multiplier if the obstacle supports it
 	if obstacle.has_method("set_speed_multiplier"):
@@ -211,24 +242,7 @@ func spawn_obstacle(spawn_position: Vector2) -> Node2D:
 
 	# Set random movement pattern if the obstacle supports it
 	if obstacle.has_method("set_movement_pattern"):
-		var patterns = MOVEMENT_PATTERNS
-		var weights = current_zone.get_pattern_weights() # Higher weight = more common
-
-		var total_weight = 0.0
-		for w in weights:
-			total_weight += w
-
-		var rand_val = randf() * total_weight
-		var cumulative_weight = 0.0
-		var selected_pattern = patterns[0]
-
-		for i in range(patterns.size()):
-			cumulative_weight += weights[i]
-			if rand_val <= cumulative_weight:
-				selected_pattern = patterns[i]
-				break
-
-		obstacle.set_movement_pattern(selected_pattern)
+		obstacle.set_movement_pattern(_pick_movement_pattern())
 
 	# Initialize the obstacle
 	obstacle.initialize(spawn_position)
@@ -243,6 +257,45 @@ func spawn_obstacle(spawn_position: Vector2) -> Node2D:
 
 	emit_signal("object_spawned", obstacle)
 	return obstacle
+
+# Reuse a pooled instance of `scene` or create one. Instances created with
+# `counted` are tracked for the max_active_obstacles cap.
+func _acquire_obstacle(scene: PackedScene, counted: bool) -> Node2D:
+	# Scenes outside the zone lists (bosses, minions) get a pool on first use
+	if not obstacle_pool.has(scene.resource_path):
+		obstacle_pool[scene.resource_path] = []
+
+	var obstacle = get_from_pool(scene.resource_path)
+	if not obstacle:
+		obstacle = scene.instantiate()
+		add_child(obstacle)
+		if counted:
+			_obstacle_instances.append(obstacle)
+	return obstacle
+
+# Weighted random movement pattern for the current zone (uniform if no zone)
+func _pick_movement_pattern() -> String:
+	var patterns = MOVEMENT_PATTERNS
+	if current_zone == null:
+		return patterns[randi() % patterns.size()]
+
+	var weights = current_zone.get_pattern_weights() # Higher weight = more common
+
+	var total_weight = 0.0
+	for w in weights:
+		total_weight += w
+
+	var rand_val = randf() * total_weight
+	var cumulative_weight = 0.0
+	var selected_pattern = patterns[0]
+
+	for i in range(patterns.size()):
+		cumulative_weight += weights[i]
+		if rand_val <= cumulative_weight:
+			selected_pattern = patterns[i]
+			break
+
+	return selected_pattern
 
 # Obstacles currently alive (is_active is cleared by deactivate(), which every
 # destroy / exit / return-to-pool path goes through)
