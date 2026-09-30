@@ -40,12 +40,27 @@ var blink_timer: float = 0.0
 var blink_toggle_timer: float = 0.0
 var is_sprite_visible: bool = true
 
-# Weapon upgrade variables
-var weapon_upgraded: bool = false
-@export var fire_cooldown: float = 0.2  # Time between shots
+# Weapon tiers:
+#   1 = center gun
+#   2 = center + left + right (straight)
+#   3 = tier 2 + two angled shots (±spread_angle_degrees) from the side guns
+signal weapon_tier_changed(tier: int)
+var weapon_tier: int = 1
+@export var max_weapon_tier: int = 3
+@export var fire_cooldown: float = 0.2  # Time between shots (current tier; see tier_fire_cooldowns)
+## Fire cooldown per weapon tier (index = tier - 1).
+@export var tier_fire_cooldowns: Array[float] = [0.2, 0.2, 0.15]
+## Angle (degrees from straight up) of the tier-3 angled side shots.
+@export var spread_angle_degrees: float = 18.0
 @export var fire_sound: AudioStream  # Export variable for the firing sound
 @export var projectile_scene: PackedScene
+## Side guns (tier 2+); falls back to projectile_scene.
 @export var upgraded_projectile_scene: PackedScene
+## Angled tier-3 shots; falls back to projectile_scene.
+@export var spread_projectile_scene: PackedScene
+
+const UPGRADE_FLASH_COLOR := Color(1, 0.5, 1)  # Pink (tier 2)
+const MAX_TIER_FLASH_COLOR := Color(0.4, 1, 1)  # Cyan (tier 3)
 
 # Gunpoint references
 @onready var center_gunpoint = $Gunpoints/CenterGunpoint
@@ -68,6 +83,8 @@ func _ready() -> void:
 	cooldown_time_remaining = 0.0
 
 	add_to_group("player")
+
+	set_weapon_tier(weapon_tier, false)
 
 	disable_movement()
 
@@ -279,22 +296,36 @@ func reset_position() -> void:
 	is_dead = false  # Reset the dead flag
 	end_blink()  # Ensure blink effect is reset
 
-# Function to upgrade weapon
+# Weapon upgrade pickup: one tier up, capped at max_weapon_tier
 func upgrade_weapon() -> void:
-	weapon_upgraded = true
-	
-	# Visual effect to indicate upgrade
-	var tween = create_tween()
-	tween.tween_property(self, "modulate", Color(1, 0.5, 1), 0.3)  # Flash pink
-	tween.tween_property(self, "modulate", Color(1, 1, 1), 0.3)    # Back to normal
-	
-	# Enable the side gunpoints
-	if left_gunpoint:
-		left_gunpoint.visible = true
-	if right_gunpoint:
-		right_gunpoint.visible = true
+	set_weapon_tier(weapon_tier + 1)
 
-# Modified fire_projectile method to use gunpoints
+# Set the weapon tier (clamped to 1..max_weapon_tier); applies the tier's
+# fire cooldown and side gun visibility. `flash` plays the upgrade flash when
+# the tier went up.
+func set_weapon_tier(tier: int, flash: bool = true) -> void:
+	var old_tier := weapon_tier
+	weapon_tier = clampi(tier, 1, maxi(max_weapon_tier, 1))
+
+	if not tier_fire_cooldowns.is_empty():
+		fire_cooldown = tier_fire_cooldowns[mini(weapon_tier, tier_fire_cooldowns.size()) - 1]
+
+	# Side guns are shown from tier 2
+	var sides_visible := weapon_tier >= 2
+	if left_gunpoint:
+		left_gunpoint.visible = sides_visible
+	if right_gunpoint:
+		right_gunpoint.visible = sides_visible
+
+	if flash and weapon_tier > old_tier:
+		var flash_color := MAX_TIER_FLASH_COLOR if weapon_tier >= 3 else UPGRADE_FLASH_COLOR
+		var tween = create_tween()
+		tween.tween_property(self, "modulate", flash_color, 0.3)
+		tween.tween_property(self, "modulate", Color(1, 1, 1), 0.3)  # Back to normal
+
+	if weapon_tier != old_tier:
+		weapon_tier_changed.emit(weapon_tier)
+
 func fire_projectile() -> void:
 	if not can_fire or not can_move or is_dead:
 		return
@@ -302,19 +333,26 @@ func fire_projectile() -> void:
 	if not projectile_scene:
 		print("No projectile scene assigned to player!")
 		return
-	
-	# Always fire from center gunpoint
+
+	# Tier 1+: center gun
 	_spawn_projectile(projectile_scene, center_gunpoint)
 
-	# Fire from side gunpoints if weapon is upgraded
-	if weapon_upgraded:
-		var side_projectile_scene = upgraded_projectile_scene if upgraded_projectile_scene else projectile_scene
-
+	# Tier 2+: straight shots from the side guns
+	if weapon_tier >= 2:
+		var side_scene := upgraded_projectile_scene if upgraded_projectile_scene else projectile_scene
 		if left_gunpoint:
-			_spawn_projectile(side_projectile_scene, left_gunpoint)
-
+			_spawn_projectile(side_scene, left_gunpoint)
 		if right_gunpoint:
-			_spawn_projectile(side_projectile_scene, right_gunpoint)
+			_spawn_projectile(side_scene, right_gunpoint)
+
+	# Tier 3: angled shots from the side guns
+	if weapon_tier >= 3:
+		var spread_scene := spread_projectile_scene if spread_projectile_scene else projectile_scene
+		var angle := deg_to_rad(spread_angle_degrees)
+		if left_gunpoint:
+			_spawn_projectile(spread_scene, left_gunpoint, Vector2.UP.rotated(-angle))
+		if right_gunpoint:
+			_spawn_projectile(spread_scene, right_gunpoint, Vector2.UP.rotated(angle))
 
 	# Play firing sound
 	if fire_audio_player and fire_audio_player.stream:
@@ -326,10 +364,10 @@ func fire_projectile() -> void:
 	cooldown_time_remaining = fire_cooldown
 
 # Get a pooled projectile under the current scene and launch it from gunpoint
-func _spawn_projectile(scene: PackedScene, gunpoint: Node2D) -> void:
+func _spawn_projectile(scene: PackedScene, gunpoint: Node2D, direction: Vector2 = Vector2.UP) -> void:
 	var parent = get_tree().current_scene if get_tree().current_scene else get_parent()
 	var projectile = ObjectPool.acquire(scene, parent)
-	projectile.initialize(gunpoint.global_position, Vector2.UP)
+	projectile.initialize(gunpoint.global_position, direction)
 
 func _on_fire_cooldown_timeout() -> void:
 	can_fire = true

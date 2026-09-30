@@ -34,12 +34,13 @@ var current_zone: ZoneDefinitionScript  # Obstacle scenes etc. come from here
 var is_spawning: bool = false
 var rng = RandomNumberGenerator.new()
 
-# Object pools
-var obstacle_pool = {}
-var collectible_pool = []
-# Every obstacle instance this manager created (active or pooled), used to
-# count active obstacles for GameConfig.max_active_obstacles
-var _obstacle_instances: Array[Node2D] = []
+# Obstacles this manager spawned that count toward
+# GameConfig.max_active_obstacles (every obstacle except bosses). Added on
+# spawn, removed in return_to_pool(); used as a set (values unused).
+var _active_obstacles: Dictionary = {}
+# Everything this manager spawned that has not been returned yet (obstacles,
+# bosses, collectibles); makes return_to_pool() idempotent.
+var _live_objects: Dictionary = {}
 
 func _ready() -> void:
 	# Lets other systems (e.g. the boss summoning minions) find this manager
@@ -66,16 +67,6 @@ func _ready() -> void:
 # main_level then selects the starting zone via set_spawn_zone().
 func configure(game_config: GameConfigScript) -> void:
 	config = game_config
-	initialize_obstacle_pools()
-
-func initialize_obstacle_pools() -> void:
-	# Create pools for each obstacle type used by any zone
-	if not config:
-		return
-	for zone in config.zones:
-		for scene in zone.obstacle_scenes:
-			if scene and not obstacle_pool.has(scene.resource_path):
-				obstacle_pool[scene.resource_path] = []
 
 # Start spawning objects
 func start_spawning() -> void:
@@ -162,21 +153,17 @@ func spawn_collectible() -> Node2D:
 	if not energy_collectible_scene:
 		return null
 
-	# Get collectible from pool or create new
-	var collectible = _take_reusable(collectible_pool)
-	if not collectible:
-		collectible = energy_collectible_scene.instantiate()
-		add_child(collectible)
+	var collectible = _acquire(energy_collectible_scene)
 
 	# Return it to the pool once it leaves the screen or is collected
-	if not collectible.has_meta("_spawn_pool_connected"):
-		collectible.set_meta("_spawn_pool_connected", true)
+	if _needs_connections(collectible):
 		collectible.screen_exited.connect(_on_object_exited.bind(collectible))
 		collectible.object_collected.connect(_on_object_exited.bind(collectible))
 
 	# Use the collectible-specific spawn position
 	var spawn_position = get_collectible_spawn_position()
 	collectible.initialize(spawn_position)
+	_live_objects[collectible] = true
 
 	emit_signal("object_spawned", collectible)
 	return collectible
@@ -208,14 +195,15 @@ func spawn_boss(scene: PackedScene) -> Node2D:
 	if not scene:
 		return null
 
-	var boss = _acquire_obstacle(scene, false)
+	var boss = _acquire(scene)
 
 	var spawn_position = Vector2(get_viewport_rect().size.x / 2.0, -250.0)
 	boss.initialize(spawn_position)
+	# Tracked for return_to_pool(), but never counted toward the cap
+	_live_objects[boss] = true
 
-	# Connected once per instance; reused instances keep their connections
-	if not boss.has_meta("_spawn_pool_connected"):
-		boss.set_meta("_spawn_pool_connected", true)
+	# Connected once per instance and manager; reused instances keep them
+	if _needs_connections(boss):
 		if boss.has_signal("destroyed"):
 			boss.destroyed.connect(_on_object_exited.bind(boss))
 
@@ -225,15 +213,27 @@ func spawn_boss(scene: PackedScene) -> Node2D:
 # Safety valve: too many obstacles alive to spawn another
 # (FormationManager / WaveManager tolerate a null spawn result)
 func _is_at_obstacle_cap() -> bool:
-	return config != null and config.max_active_obstacles > 0 \
-			and get_active_obstacle_count() >= config.max_active_obstacles
+	if config == null or config.max_active_obstacles <= 0:
+		return false
+	if _active_obstacles.size() >= config.max_active_obstacles:
+		_prune_freed()
+	return _active_obstacles.size() >= config.max_active_obstacles
+
+# Defensive: drop entries for nodes freed without going through
+# return_to_pool() (nothing does that today; pooled overflow is only freed
+# after it was returned, so it is no longer tracked here)
+func _prune_freed() -> void:
+	for dict in [_active_obstacles, _live_objects]:
+		for key in dict.keys():
+			if not is_instance_valid(key):
+				dict.erase(key)
 
 # Shared path of spawn_obstacle() / spawn_minion()
 func _spawn_capped_obstacle(scene: PackedScene, spawn_position: Vector2) -> Node2D:
 	if not scene or _is_at_obstacle_cap():
 		return null
 
-	var obstacle = _acquire_obstacle(scene, true)
+	var obstacle = _acquire(scene)
 
 	# Set random speed multiplier if the obstacle supports it
 	if obstacle.has_method("set_speed_multiplier"):
@@ -244,13 +244,14 @@ func _spawn_capped_obstacle(scene: PackedScene, spawn_position: Vector2) -> Node
 	if obstacle.has_method("set_movement_pattern"):
 		obstacle.set_movement_pattern(_pick_movement_pattern())
 
-	# Initialize the obstacle
+	# Initialize the obstacle (sets position, resets formation_id to -1, shows it)
 	obstacle.initialize(spawn_position)
+	_live_objects[obstacle] = true
+	_active_obstacles[obstacle] = true
 
 	# Return it to the pool once it leaves the screen or is destroyed
-	# (connected once per instance; reused instances keep their connections)
-	if not obstacle.has_meta("_spawn_pool_connected"):
-		obstacle.set_meta("_spawn_pool_connected", true)
+	# (connected once per instance and manager; reused instances keep them)
+	if _needs_connections(obstacle):
 		obstacle.screen_exited.connect(_on_object_exited.bind(obstacle))
 		if obstacle.has_signal("destroyed"):
 			obstacle.destroyed.connect(_on_object_exited.bind(obstacle))
@@ -258,20 +259,23 @@ func _spawn_capped_obstacle(scene: PackedScene, spawn_position: Vector2) -> Node
 	emit_signal("object_spawned", obstacle)
 	return obstacle
 
-# Reuse a pooled instance of `scene` or create one. Instances created with
-# `counted` are tracked for the max_active_obstacles cap.
-func _acquire_obstacle(scene: PackedScene, counted: bool) -> Node2D:
-	# Scenes outside the zone lists (bosses, minions) get a pool on first use
-	if not obstacle_pool.has(scene.resource_path):
-		obstacle_pool[scene.resource_path] = []
+# Take an instance of `scene` from the ObjectPool autoload (or a new one),
+# parented under this manager. It stays hidden until the caller runs
+# initialize(), which positions and shows it (acquire() re-shows reused nodes
+# before initialize() has moved them away from where they were released).
+func _acquire(scene: PackedScene) -> Node2D:
+	var node = ObjectPool.acquire(scene, self)
+	node.hide()
+	return node
 
-	var obstacle = get_from_pool(scene.resource_path)
-	if not obstacle:
-		obstacle = scene.instantiate()
-		add_child(obstacle)
-		if counted:
-			_obstacle_instances.append(obstacle)
-	return obstacle
+# True the first time `object` is spawned by THIS manager. Pooled instances
+# outlive a scene reload, and connections to the previous (freed) manager are
+# gone, so the flag stores the owning manager's instance id.
+func _needs_connections(object: Node) -> bool:
+	if object.get_meta("_spawn_pool_connected", 0) == get_instance_id():
+		return false
+	object.set_meta("_spawn_pool_connected", get_instance_id())
+	return true
 
 # Weighted random movement pattern for the current zone (uniform if no zone)
 func _pick_movement_pattern() -> String:
@@ -297,61 +301,24 @@ func _pick_movement_pattern() -> String:
 
 	return selected_pattern
 
-# Obstacles currently alive (is_active is cleared by deactivate(), which every
-# destroy / exit / return-to-pool path goes through)
+# Obstacles currently alive and counted toward max_active_obstacles
+# (bosses excluded)
 func get_active_obstacle_count() -> int:
-	var count := 0
-	for i in range(_obstacle_instances.size() - 1, -1, -1):
-		var obstacle = _obstacle_instances[i]
-		if not is_instance_valid(obstacle):
-			_obstacle_instances.remove_at(i)
-		elif obstacle.is_active:
-			count += 1
-	return count
+	return _active_obstacles.size()
 
 # Object exited screen callback
 func _on_object_exited(object: Node2D) -> void:
 	return_to_pool(object)
 
-# Object pool management
-# Pooled objects are not reused until POOL_REUSE_DELAY_FRAMES frames after they
-# were returned, so systems that still hold a reference (e.g. the formation
-# manager, which drops inactive members during its own _process) let go first.
-const POOL_REUSE_DELAY_FRAMES: int = 2
-
-func get_from_pool(scene_path: String) -> Node2D:
-	if obstacle_pool.has(scene_path):
-		return _take_reusable(obstacle_pool[scene_path])
-	return null
-
-func _take_reusable(pool: Array) -> Node2D:
-	var current_frame = Engine.get_process_frames()
-	for i in range(pool.size() - 1, -1, -1):
-		var obj = pool[i]
-		if not is_instance_valid(obj):
-			pool.remove_at(i)
-			continue
-		if current_frame - int(obj.get_meta("_pooled_frame", 0)) >= POOL_REUSE_DELAY_FRAMES:
-			pool.remove_at(i)
-			return obj
-	return null
-
+# Deactivate a spawned object and hand it back to the ObjectPool autoload,
+# which detaches it from the tree (deferred) until it is acquired again.
+# Idempotent: e.g. destroyed and exited in the same frame returns it once.
 func return_to_pool(object: Node2D) -> void:
-	var pool = null
-	if object is EnergyCollectible:
-		# Handle collectibles
-		pool = collectible_pool
-	else:
-		# Handle obstacles
-		var scene_path = object.scene_file_path
-		if scene_path and obstacle_pool.has(scene_path):
-			pool = obstacle_pool[scene_path]
-
-	if pool == null:
+	if not _live_objects.has(object):
 		return
-
+	_live_objects.erase(object)
+	_active_obstacles.erase(object)
+	if not is_instance_valid(object):
+		return
 	object.deactivate()
-	# Guard against double returns (e.g. destroyed and exited in the same frame)
-	if not pool.has(object):
-		object.set_meta("_pooled_frame", Engine.get_process_frames())
-		pool.append(object)
+	ObjectPool.release(object)

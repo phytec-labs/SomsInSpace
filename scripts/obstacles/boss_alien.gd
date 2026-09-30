@@ -57,8 +57,8 @@ var _summon_timer: float = 0.0
 var _contact_timer: float = 0.0
 var _attack_anim_timer: float = 0.0
 var _volley_step: int = 0  # Position in the alternating gun point cycle
-# Summoned minions: [node, its spawn-manager "_pooled_frame" meta at summon
-# time]. A changed meta means it was returned to the pool (and maybe reused).
+# Summoned minions: [node, its spawn_count at summon time]. A changed
+# spawn_count means it was returned to the pool and reused for another spawn.
 var _minions: Array = []
 
 var _entrance_tween: Tween
@@ -253,14 +253,14 @@ func _summon_minions() -> void:
 			global_position.y + 110.0)
 		var minion = spawn_manager.spawn_minion(minion_scene, pos)
 		if minion:
-			_minions.append([minion, minion.get_meta("_pooled_frame", -1)])
+			_minions.append([minion, minion.spawn_count])
 
 # Summoned minions still alive (prunes dead / pooled ones)
 func get_live_minion_count() -> int:
 	for i in range(_minions.size() - 1, -1, -1):
 		var minion = _minions[i][0]
 		if not is_instance_valid(minion) or not minion.is_active \
-				or minion.get_meta("_pooled_frame", -1) != _minions[i][1]:
+				or minion.spawn_count != _minions[i][1]:
 			_minions.remove_at(i)
 	return _minions.size()
 

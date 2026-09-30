@@ -1,7 +1,8 @@
-[gd_scene load_steps=9 format=3 uid="uid://fgrg1yvq87i7"]
+[gd_scene load_steps=10 format=3 uid="uid://fgrg1yvq87i7"]
 
 [ext_resource type="Script" uid="uid://cofp5vjifwmcm" path="res://scripts/main_level/player.gd" id="1_vp455"]
 [ext_resource type="PackedScene" uid="uid://dfjvynj27ebhu" path="res://scenes/effects/player_projectile_1.tscn" id="2_fcb3v"]
+[ext_resource type="PackedScene" path="res://scenes/effects/player_projectile_2.tscn" id="2_sprd3"]
 [ext_resource type="AudioStream" uid="uid://dlxidj4l5uuvv" path="res://audio/laser-1.mp3" id="3_tuyoq"]
 [ext_resource type="Texture2D" uid="uid://bbf8kqq1rn2vq" path="res://sprites/Explosion1.png" id="4_6ief2"]
 [ext_resource type="Texture2D" uid="uid://b77jlqemvprf3" path="res://sprites/weapon_laser.png" id="4_fjrip"]
@@ -23,6 +24,7 @@ collision_mask = 2
 script = ExtResource("1_vp455")
 fire_sound = ExtResource("3_tuyoq")
 projectile_scene = ExtResource("2_fcb3v")
+spread_projectile_scene = ExtResource("2_sprd3")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
 polygon = PackedVector2Array(-56, 24, -53, 8, -15, -28, -9, -58, -2, -79, 2, -79, 9, -58, 16, -25, 53, 8, 55, 25, 37, 45, 38, 58, 18, 53, -18, 53, -38, 59, -37, 46)

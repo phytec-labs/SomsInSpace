@@ -16,7 +16,8 @@ const FormationSettingsScript := preload("res://scripts/data/formation_settings.
 @export var start_height: int = 0
 
 @export_group("Features")
-## Spawn the one-per-run weapon upgrade when this zone is entered.
+## Spawn a weapon upgrade pickup (one tier up) once per run when this zone
+## is entered, unless the player's weapon is already at max tier.
 @export var spawns_weapon_upgrade: bool = false
 ## CloudManager spawns clouds while this zone is active.
 @export var has_clouds: bool = false

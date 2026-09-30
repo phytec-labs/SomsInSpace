@@ -17,6 +17,9 @@ const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
 ## Safety valve: SpawnManager skips obstacle spawns while this many are
 ## active (0 disables the cap).
 @export var max_active_obstacles: int = 150
+## Optional rule: a damaging hit (obstacle contact or enemy shot) also drops
+## the player's weapon one tier (min tier 1).
+@export var lose_weapon_tier_on_hit: bool = false
 
 # Returns the highest zone whose start_height is <= height (or the first zone)
 func get_zone_for_height(height: float) -> ZoneDefinitionScript:

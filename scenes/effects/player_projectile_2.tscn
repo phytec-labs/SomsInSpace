@@ -1,0 +1,24 @@
+[gd_scene load_steps=4 format=3 uid="uid://bspreadlaserq"]
+
+[ext_resource type="Script" uid="uid://cqd0furs3msmi" path="res://scripts/effects/projectile.gd" id="1_uxaaf"]
+[ext_resource type="Texture2D" path="res://sprites/Laser Sprites/15.png" id="2_sp3lz"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_sp3lz"]
+radius = 3.0
+height = 16.0
+
+[node name="Projectile" type="Area2D"]
+collision_layer = 8
+collision_mask = 2
+script = ExtResource("1_uxaaf")
+speed = 600.0
+damage = 12.0
+spin = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_sp3lz")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+rotation = -1.5708
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("2_sp3lz")

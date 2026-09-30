@@ -34,10 +34,26 @@ const ZONE_LABEL_MIN_WIDTH := 64.0
 @onready var weapon_sprite = $WeaponsPanel/MarginContainer/WeaponsContainer/WeaponSlot/WeaponSprite
 @onready var weapon_name = $WeaponsPanel/MarginContainer/WeaponsContainer/WeaponName
 
-# Weapon textures
+# Weapon textures / names per tier (index = tier - 1). Tier 3 has no art of
+# its own: it reuses the twin laser icon tinted with SPREAD_WEAPON_TINT.
 @export var basic_weapon_texture: Texture = preload("res://sprites/weapon_laser.png")
 @export var upgraded_weapon_texture: Texture = preload("res://sprites/weapon_twin_laser.png")
-var current_weapon_type: String = "basic"
+const WEAPON_NAMES: Array[String] = ["Laser", "Twin Laser", "Spread Laser"]
+const SPREAD_WEAPON_TINT := Color(0.45, 1.0, 1.0)
+var current_weapon_tier: int = 0
+
+# Threat indicator (next to the zone bar): wave ramp level as filled pips
+@onready var threat_indicator: Control = $ThreatIndicator
+@onready var threat_label: Label = $ThreatIndicator/ThreatLabel
+@onready var threat_pips_container: HBoxContainer = $ThreatIndicator/ThreatPips
+const THREAT_PIP_COUNT := 5
+const THREAT_PIP_SIZE := Vector2(18, 10)
+const THREAT_PIP_EMPTY_COLOR := Color(0.25, 0.25, 0.25, 0.8)
+const THREAT_LOW_COLOR := Color(1.0, 0.9, 0.2)   # Yellow (level 1)
+const THREAT_HIGH_COLOR := Color(1.0, 0.15, 0.1)  # Red (level THREAT_PIP_COUNT+)
+const THREAT_IDLE_LABEL_COLOR := Color(0.7, 0.7, 0.7)
+var threat_pips: Array[ColorRect] = []
+var current_threat_level: int = -1
 
 # Game config (zones / thresholds / progress bar range); set via configure()
 var config: GameConfigScript
@@ -78,8 +94,10 @@ func _ready() -> void:
 	update_zone("ground")
 	hide_boss_bar()
 
-	# Set initial weapon
-	update_weapon("basic")
+	# Set initial weapon / threat
+	update_weapon(1)
+	_build_threat_pips()
+	update_threat(0)
 
 # Called by main_level.gd with the GameConfig resource
 func configure(game_config: GameConfigScript) -> void:
@@ -214,21 +232,67 @@ func update_boss_health(current: float, max_health: float) -> void:
 func hide_boss_bar() -> void:
 	boss_bar.visible = false
 
-func update_weapon(weapon_type: String) -> void:
-	current_weapon_type = weapon_type
+# Weapon panel: tier 1 = Laser, 2 = Twin Laser, 3 = Spread Laser
+func update_weapon(tier: int) -> void:
+	tier = clampi(tier, 1, WEAPON_NAMES.size())
+	var changed := current_weapon_tier > 0 and tier != current_weapon_tier
+	current_weapon_tier = tier
 
-	match weapon_type:
-		"basic":
-			weapon_sprite.texture = basic_weapon_texture
-			weapon_name.text = "Basic Laser"
-		"upgraded":
-			weapon_sprite.texture = upgraded_weapon_texture
-			weapon_name.text = "Dual Laser"
+	weapon_sprite.texture = basic_weapon_texture if tier == 1 else upgraded_weapon_texture
+	weapon_sprite.self_modulate = SPREAD_WEAPON_TINT if tier >= 3 else Color(1, 1, 1)
+	weapon_name.text = WEAPON_NAMES[tier - 1]
 
-			# Add a small animation to highlight the upgrade
-			var tween = create_tween()
-			tween.tween_property(weapon_name, "modulate", Color(1, 1, 0), 0.3)
-			tween.tween_property(weapon_name, "modulate", Color(1, 1, 1), 0.3)
+	# Small highlight animation whenever the weapon changes
+	if changed:
+		var tween = create_tween()
+		tween.tween_property(weapon_name, "modulate", Color(1, 1, 0), 0.3)
+		tween.tween_property(weapon_name, "modulate", Color(1, 1, 1), 0.3)
+
+# --- Threat indicator ---
+
+func _build_threat_pips() -> void:
+	for child in threat_pips_container.get_children():
+		threat_pips_container.remove_child(child)
+		child.queue_free()
+	threat_pips.clear()
+	for i in THREAT_PIP_COUNT:
+		var pip := ColorRect.new()
+		pip.name = "Pip%d" % (i + 1)
+		pip.custom_minimum_size = THREAT_PIP_SIZE
+		pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pip.color = THREAT_PIP_EMPTY_COLOR
+		threat_pips_container.add_child(pip)
+		threat_pips.append(pip)
+
+# Color for a threat level (1 = yellow ... THREAT_PIP_COUNT+ = red)
+func _threat_color(level: int) -> Color:
+	var t := clampf(float(level - 1) / float(maxi(THREAT_PIP_COUNT - 1, 1)), 0.0, 1.0)
+	return THREAT_LOW_COLOR.lerp(THREAT_HIGH_COLOR, t)
+
+# Wave difficulty ramp level (0 = just entered the zone); fills one pip per level
+func update_threat(level: int) -> void:
+	level = maxi(level, 0)
+	if level == current_threat_level:
+		return
+	var rising := current_threat_level >= 0 and level > current_threat_level
+	current_threat_level = level
+
+	var color := _threat_color(level)
+	for i in threat_pips.size():
+		threat_pips[i].color = color if i < level else THREAT_PIP_EMPTY_COLOR
+	threat_label.text = "THREAT" if level <= THREAT_PIP_COUNT else "THREAT MAX"
+	threat_label.add_theme_color_override("font_color", color if level > 0 else THREAT_IDLE_LABEL_COLOR)
+
+	# Brief pulse when the threat goes up
+	if rising and threat_indicator.visible:
+		var tween = create_tween()
+		tween.tween_property(threat_indicator, "modulate", Color(1.6, 1.6, 1.6), 0.15)
+		tween.tween_property(threat_indicator, "modulate", Color(1, 1, 1), 0.35)
+
+# Hidden in zones without waves (the boss zone shows the boss bar instead)
+func set_threat_visible(value: bool) -> void:
+	threat_indicator.visible = value
 
 func _update_zone_marker() -> void:
 	var progress_ratio = min(_last_height / max_height, 1.0)

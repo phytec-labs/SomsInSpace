@@ -8,8 +8,13 @@ signal back_pressed
 # Preloaded (rather than relying on the global class_name cache) so the
 # script resolves even when .godot/ has not been regenerated.
 const MenuButtonGroupScript := preload("res://scripts/ui/menu_button_group.gd")
+const IdleReturnScript := preload("res://scripts/ui/idle_return.gd")
+
+## Kiosk: close the credits after this long without input.
+const IDLE_TIMEOUT_SECONDS := 30.0
 
 var menu_group: MenuButtonGroupScript
+var idle_return: IdleReturnScript
 
 func _ready() -> void:
 	# Highlight/touch handling for the single Back button. Touch activates on
@@ -25,6 +30,12 @@ func _ready() -> void:
 
 	# Connect visibility signal
 	visibility_changed.connect(_on_visibility_changed)
+
+	# Kiosk idle timeout (added last so its _input runs before siblings')
+	idle_return = IdleReturnScript.new()
+	idle_return.timeout_seconds = IDLE_TIMEOUT_SECONDS
+	add_child(idle_return)
+	idle_return.idle_timeout.connect(_on_back_button_pressed)
 
 func _input(event: InputEvent) -> void:
 	if not visible:

@@ -7,6 +7,9 @@ class_name Projectile
 @export var speed: float = 500.0
 @export var damage: float = 10.0
 @export var lifetime: float = 2.0
+## Spin while flying (round shots). Off = the sprite keeps facing `direction`
+## (streak-shaped shots such as the tier-3 spread laser).
+@export var spin: bool = true
 
 var direction: Vector2 = Vector2.UP
 var is_active: bool = false
@@ -49,13 +52,19 @@ func initialize(spawn_position: Vector2, projectile_direction: Vector2 = Vector2
 	set_deferred("monitoring", true)
 	set_deferred("monitorable", true)
 
-	# Simple rotation animation, restarted on every spawn
+	# Face the flight direction (the sprite is authored pointing up, so
+	# Vector2.UP -> rotation 0; angled shots are rotated to match)
 	if _spin_tween:
 		_spin_tween.kill()
-	rotation = 0.0
-	_spin_tween = create_tween()
-	_spin_tween.tween_property(self, "rotation", PI * 4, lifetime)
-	_spin_tween.set_ease(Tween.EASE_IN_OUT)
+		_spin_tween = null
+	var base_rotation := direction.angle() + PI / 2.0
+	rotation = base_rotation
+
+	# Simple rotation animation, restarted on every spawn
+	if spin:
+		_spin_tween = create_tween()
+		_spin_tween.tween_property(self, "rotation", base_rotation + PI * 4, lifetime)
+		_spin_tween.set_ease(Tween.EASE_IN_OUT)
 
 func _on_area_entered(area: Area2D) -> void:
 	if not is_active:

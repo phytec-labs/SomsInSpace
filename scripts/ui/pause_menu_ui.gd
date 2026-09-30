@@ -12,8 +12,13 @@ signal main_menu_pressed
 # Preloaded (rather than relying on the global class_name cache) so the
 # script resolves even when .godot/ has not been regenerated.
 const MenuButtonGroupScript := preload("res://scripts/ui/menu_button_group.gd")
+const IdleReturnScript := preload("res://scripts/ui/idle_return.gd")
+
+## Kiosk: abandon a paused run after this long without input.
+const IDLE_TIMEOUT_SECONDS := 60.0
 
 var menu_group: MenuButtonGroupScript
+var idle_return: IdleReturnScript
 
 func _ready() -> void:
 	# Must keep processing input while the tree is paused
@@ -30,6 +35,14 @@ func _ready() -> void:
 	menu_group.button_activated.connect(_on_button_activated)
 
 	visibility_changed.connect(_on_visibility_changed)
+
+	# Kiosk idle timeout. Inherits PROCESS_MODE_ALWAYS from this node, so it
+	# keeps counting while the tree is paused. The level's main_menu_pressed
+	# handler unpauses the tree before changing scene.
+	idle_return = IdleReturnScript.new()
+	idle_return.timeout_seconds = IDLE_TIMEOUT_SECONDS
+	add_child(idle_return)
+	idle_return.idle_timeout.connect(main_menu_pressed.emit)
 	hide()
 
 func _input(event: InputEvent) -> void:

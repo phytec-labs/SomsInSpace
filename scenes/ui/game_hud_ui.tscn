@@ -195,6 +195,39 @@ position = Vector2(40, 5)
 color = Color(1, 0.8, 0, 1)
 polygon = PackedVector2Array(-5, -5, 5, -5, 0, 5)
 
+[node name="ThreatIndicator" type="HBoxContainer" parent="."]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -76.0
+offset_right = 180.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="ThreatLabel" type="Label" parent="ThreatIndicator"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = ExtResource("2_y6bie")
+theme_override_font_sizes/font_size = 22
+text = "THREAT"
+vertical_alignment = 1
+
+[node name="ThreatPips" type="HBoxContainer" parent="ThreatIndicator"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
 [node name="WeaponsPanel" type="PanelContainer" parent="."]
 anchors_preset = 3
 anchor_left = 1.0
@@ -245,7 +278,7 @@ stretch_mode = 5
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_y6bie")
 theme_override_font_sizes/font_size = 20
-text = "Basic Laser"
+text = "Laser"
 horizontal_alignment = 1
 
 [node name="MessageControl" type="Control" parent="."]

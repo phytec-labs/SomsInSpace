@@ -20,8 +20,13 @@ signal main_menu_pressed
 # Preloaded (rather than relying on the global class_name cache) so the
 # script resolves even when .godot/ has not been regenerated.
 const MenuButtonGroupScript := preload("res://scripts/ui/menu_button_group.gd")
+const IdleReturnScript := preload("res://scripts/ui/idle_return.gd")
+
+## Kiosk: return to the main menu after this long without input.
+const IDLE_TIMEOUT_SECONDS := 60.0
 
 var menu_group: MenuButtonGroupScript
+var idle_return: IdleReturnScript
 var current_final_height: float = 0
 var current_final_score: int = 0
 var scoreboard_manager = null
@@ -68,6 +73,13 @@ func _ready():
 	
 	# Connect visibility signal
 	visibility_changed.connect(_on_visibility_changed)
+
+	# Kiosk idle timeout. Added last so its _input sees every event (touch,
+	# onscreen keyboard taps, keys) before siblings can consume it.
+	idle_return = IdleReturnScript.new()
+	idle_return.timeout_seconds = IDLE_TIMEOUT_SECONDS
+	add_child(idle_return)
+	idle_return.idle_timeout.connect(_on_idle_timeout)
 	
 	# Initially hide the scoreboard
 	set_ui_state(UIState.SCORE_INPUT)
@@ -119,6 +131,13 @@ func _on_button_activated(_index: int, button: Button) -> void:
 			retry_pressed.emit()
 		main_menu_button:
 			main_menu_pressed.emit()
+
+# Nobody touched the results screen: go back to the attract/main menu. An
+# unsubmitted name entry is abandoned (no score is saved).
+func _on_idle_timeout() -> void:
+	if name_input and name_input.has_focus():
+		name_input.release_focus()
+	main_menu_pressed.emit()
 
 func _on_visibility_changed() -> void:
 	if not visible:

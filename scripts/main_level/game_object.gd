@@ -26,6 +26,9 @@ var has_entered_screen: bool = false  # Objects spawned off-screen only count as
 # Animation the sprite starts with (autoplay, else the scene's current one);
 # replayed on every spawn so reused objects don't resume e.g. "attack"
 var _spawn_animation: StringName = &""
+# Incremented by every initialize(). Pooled instances are reused, so holders
+# of a reference compare this to tell "still the spawn I saw" from a reuse.
+var spawn_count: int = 0
 
 func _ready() -> void:
 	# Set up collision properties
@@ -79,7 +82,10 @@ func check_if_offscreen() -> void:
 		has_exited_screen = true  # Set flag to prevent repeated signals
 		emit_signal("screen_exited")
 
+# Called on every spawn: pooled instances are re-added to the tree without
+# _ready() running again, so all per-spawn state is reset here.
 func initialize(spawn_position: Vector2) -> void:
+	spawn_count += 1
 	position = spawn_position
 	is_active = true
 	is_being_collected = false

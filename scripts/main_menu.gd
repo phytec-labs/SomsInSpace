@@ -7,6 +7,10 @@ extends Control
 @onready var credits_panel = $MainMenuCredits
 
 func _ready() -> void:
+	# A finished run's idle pooled nodes (obstacles, shots, explosions, boss)
+	# aren't needed while the menu shows; the next run re-creates what it uses
+	ObjectPool.clear()
+
 	# Handle input configuration
 	configure_input()
 	

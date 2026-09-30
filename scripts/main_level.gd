@@ -48,9 +48,14 @@ const VICTORY_SCREEN_DELAY: float = 2.5
 var boss: Node2D = null
 var victory_bonus: int = 0
 
-# Weapon upgrade variables
+# Weapon upgrade pickups: one per zone with spawns_weapon_upgrade, per run
 @export var weapon_upgrade_scene: PackedScene
-var upgrade_spawned: bool = false
+var weapon_upgrades_spawned := {}  # zone id (String) -> true once its pickup spawned
+var _live_weapon_upgrades: Array = []  # Spawned pickups not yet collected
+
+# HUD threat indicator (wave manager ramp level; -1 = not shown yet)
+var wave_manager: Node = null
+var _last_threat_level: int = -1
 @onready var message_label = $UI/GameHUDUi/MessageControl/MarginContainer/Label
 
 func _ready() -> void:
@@ -65,6 +70,7 @@ func _ready() -> void:
 	countdown_time = config.countdown_time
 	game_hud.configure(config)
 	spawn_manager.configure(config)
+	wave_manager = spawn_manager.get("wave_manager")
 	_update_zone(0)
 
 	#Start background music
@@ -92,6 +98,7 @@ func _ready() -> void:
 	# Add GameHud to the "hud" group so it can be found by collectibles
 	if game_hud:
 		game_hud.add_to_group("hud")
+		game_hud.update_weapon(player.weapon_tier)
 
 	update_all_displays()
 
@@ -183,6 +190,17 @@ func process_game(delta: float) -> void:
 	var current_height: int = int(height_score)
 	update_spawn_difficulty(current_height)
 
+	_update_threat_display()
+
+# Push the wave manager's ramp level to the HUD (only when it changes)
+func _update_threat_display() -> void:
+	if wave_manager == null:
+		return
+	var level: int = wave_manager.get_ramp_level()
+	if level != _last_threat_level:
+		_last_threat_level = level
+		game_hud.update_threat(level)
+
 func update_all_displays() -> void:
 	game_hud.update_height(height_score)
 	game_hud.update_health(current_health)
@@ -203,6 +221,19 @@ func update_health(amount: float) -> void:
 		return
 	current_health = clamp(current_health + amount, 0, max_health)
 	update_health_display()
+
+	# Every damaging hit goes through here (obstacle contact via
+	# _on_object_hit, enemy shots call update_health directly)
+	if amount < 0.0 and config.lose_weapon_tier_on_hit and current_health > 0:
+		_drop_weapon_tier()
+
+# Optional rule (GameConfig.lose_weapon_tier_on_hit): a hit costs one tier
+func _drop_weapon_tier() -> void:
+	if player.weapon_tier <= 1:
+		return
+	player.set_weapon_tier(player.weapon_tier - 1)
+	game_hud.update_weapon(player.weapon_tier)
+	show_message("Weapon damaged!")
 
 func update_points(amount: int) -> void:  # New function to update points
 	points += amount
@@ -291,8 +322,9 @@ func create_player_explosion() -> void:
 	explosion.start()
 
 func update_spawn_difficulty(height: int) -> void:
-	# Spawn the weapon upgrade (once per run) in the zone that asks for it
-	if current_zone_def and current_zone_def.spawns_weapon_upgrade and not upgrade_spawned:
+	# Spawn the zone's weapon upgrade (once per zone per run) if it asks for one
+	if current_zone_def and current_zone_def.spawns_weapon_upgrade \
+			and not weapon_upgrades_spawned.has(current_zone):
 		spawn_weapon_upgrade()
 
 	_update_zone(height)
@@ -315,6 +347,10 @@ func _update_zone(height: float) -> void:
 	atmosphere_manager.set_zone_appearance(current_zone, zone.background_color, zone.star_visibility)
 	cloud_manager.set_zone(current_zone)
 	cloud_manager.set_clouds_enabled(zone.has_clouds)
+
+	# Threat indicator only where waves play (the boss zone has the boss bar)
+	game_hud.set_threat_visible(not zone.waves.is_empty())
+	_last_threat_level = -1
 
 	if zone.boss_scene:
 		_start_boss_fight(zone)
@@ -405,15 +441,23 @@ func _on_game_over_main_menu() -> void:
 func _is_run_over() -> bool:
 	return current_state == GameState.GAME_OVER or current_state == GameState.VICTORY
 
+# Spawn the current zone's weapon upgrade pickup, unless the weapon is
+# already maxed out (counting pickups still waiting to be collected); in that
+# case it is retried while the zone lasts (e.g. after losing a tier).
 func spawn_weapon_upgrade() -> void:
-	if not weapon_upgrade_scene or upgrade_spawned:
+	if not weapon_upgrade_scene or weapon_upgrades_spawned.has(current_zone):
+		return
+	_live_weapon_upgrades = _live_weapon_upgrades.filter(
+		func(pickup): return is_instance_valid(pickup) and not pickup.is_queued_for_deletion())
+	if player.weapon_tier + _live_weapon_upgrades.size() >= player.max_weapon_tier:
 		return
 
-	upgrade_spawned = true
+	weapon_upgrades_spawned[current_zone] = true
 
 	# Create the upgrade collectible
 	var upgrade = weapon_upgrade_scene.instantiate()
 	add_child(upgrade)
+	_live_weapon_upgrades.append(upgrade)
 
 	# Calculate spawn position - centered horizontally and just above screen
 	var viewport_rect = get_viewport_rect()
@@ -422,6 +466,9 @@ func spawn_weapon_upgrade() -> void:
 
 	# Initialize the collectible
 	upgrade.initialize(Vector2(spawn_x, spawn_y))
+
+	# Not spawned by the spawn manager, so wire its signals here (awards its points)
+	_on_object_spawned(upgrade)
 
 	# Show message to notify player
 	show_message("Weapon Upgrade Available!")

@@ -72,6 +72,7 @@ id = &"upper_atmosphere"
 display_name = "Upper Atmosphere"
 short_name = "Upper Atm."
 start_height = 5000
+spawns_weapon_upgrade = true
 obstacle_scenes = Array[PackedScene]([ExtResource("2_twsbg"), ExtResource("3_33nra"), ExtResource("4_574ry"), ExtResource("5_81i2r"), ExtResource("6_xlduk"), ExtResource("7_rd6pr"), ExtResource("8_ewvk7"), ExtResource("9_mthro")])
 waves = Array[ExtResource("11_yifx7")]([SubResource("Resource_q34x6"), SubResource("Resource_qn555")])
 formation_settings = SubResource("Resource_de37l")

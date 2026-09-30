@@ -23,8 +23,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if is_active:
-		# Move downwards
-		position.y += fall_speed * delta
+		# Move downwards (speed_multiplier lets subclasses fall slower/faster)
+		position.y += fall_speed * speed_multiplier * delta
 
 		# Animate the width for 3D effect
 		time_alive += delta
