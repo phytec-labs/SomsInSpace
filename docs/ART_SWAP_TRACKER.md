@@ -17,6 +17,29 @@ width into the margin; player 0.09, pickup 0.06), `rim_inner` / `rim_outer` /
 `sphere_center` (where the sphere's edge sits in the texture: 0.355 / 0.378 /
 (0.498, 0.494); re-measure them if the shield art or its padding changes).
 
+**Shield style switch.** `GameConfig.shield_style` (`data/game_config.tres`, Pickups group;
+main_level.gd hands it to `player.set_shield_style()`) picks the look of the player's
+active shield: `Sprite` = `ShieldRing/Dome` above; `Procedural` (default) =
+`ShieldRing/Field`, a 324x324 `ColorRect` (mouse ignored) at (-162, -168), centered on
+the Dome's (0, -6), drawn only by `shaders/shield_procedural.gdshader` (no texture). Both
+sit under `ShieldRing`, so the pulse, hit pop, last-2 s blink and end/death/landing hides
+apply to either. The shield pickup icon always uses the sprite. Procedural uniforms
+(shader defaults; `p = (UV - 0.5) * 2`, quad edge at 1): `edge_radius` 0.78 (= the
+126 local px sphere), `aa` 0.01; `fill_color` (0.15, 0.5, 1) / `fill_alpha` 0.14;
+`rim_color` (0.2, 0.62, 1) / `rim_glow` 1.1 / `rim_power` 2.5 (fresnel rim, also the halo
+color); `edge_color` (0.85, 0.97, 1) / `edge_width` 0.035 / `edge_strength` 0.9 (thin
+bright edge line); `highlight_strength` 0.25 (upper-left spot); `halo_width` 0.18 /
+`halo_strength` 0.7 (keep `edge_radius + halo_width` <= 1); `hex_color` (0.4, 0.85, 1) /
+`hex_scale` 2.6 / `hex_line_width` 0.03 / `hex_strength` 0.45 / `hex_drift` (0.03, -0.06);
+`shimmer_speed` 0.6 / `shimmer_strength` 0.6; hit ripple `ripple_duration` 0.5 (keep equal
+to `SHIELD_RIPPLE_DURATION` in player.gd) / `ripple_speed` 3.2 / `ripple_width` 0.15 /
+`ripple_strength` 1.5. `hit_pos` / `hit_time` are set by player.gd when a hit is absorbed
+(ripple from the shot / obstacle position, clamped onto the sphere; from the top if
+unknown).
+While shielded the hit area is the shield circle (radius 126 local, ~101 px on screen):
+`CollisionArea/ShieldShape` at (0, -6), `player.gd` `shield_hit_radius`; keep it equal to
+the drawn sphere edge if the shield art or `edge_radius` changes.
+
 Every placeholder in the code carries a `PLACEHOLDER_ART:` comment at the exact line to
 change. `grep -rn PLACEHOLDER_ART scripts scenes data` lists what is still standing in.
 This table is the human-readable view; keep both in sync when adding or swapping art.

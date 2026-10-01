@@ -438,6 +438,10 @@ rises: 8 s of shield is a fun offensive window, not just a free pass. The
 boss and the blimp survive contact as usual; each shielded contact hit (their
 `contact_hit_interval`, 0.5 s) deals `GameConfig.shield_ram_damage` (40) to
 them instead of hurting the player. A mine blast is simply absorbed.
+While shielded the hit area is the shield circle (radius 126 local, ~101 px on
+screen; `CollisionArea/ShieldShape`, `player.gd` `shield_hit_radius`): enemy
+shots are absorbed, enemies rammed and pickups collected at the sphere edge,
+the UFO beam catches the ship sooner, and no grazes count (`can_graze()`).
 
 Attract-mode demo: the autopilot chases energy, health and shield pickups
 but never a bomb (it steers around it), so the demo screen never empties.

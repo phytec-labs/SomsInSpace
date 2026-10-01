@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://fgrg1yvq87i7"]
+[gd_scene load_steps=17 format=3 uid="uid://fgrg1yvq87i7"]
 
 [ext_resource type="Script" uid="uid://cofp5vjifwmcm" path="res://scripts/main_level/player.gd" id="1_vp455"]
 [ext_resource type="PackedScene" uid="uid://dfjvynj27ebhu" path="res://scenes/effects/player_projectile_1.tscn" id="2_fcb3v"]
@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://bikfkvgj1jug6" path="res://sprites/player_ship_body2.png" id="5_tuyoq"]
 [ext_resource type="Texture2D" uid="uid://dhjo7aubwjeca" path="res://sprites/shield_dome_1.png" id="6_dome"]
 [ext_resource type="Shader" path="res://shaders/shield_bubble.gdshader" id="7_bubble"]
+[ext_resource type="Shader" path="res://shaders/shield_procedural.gdshader" id="8_field"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_17f3c"]
 particles_animation = true
@@ -30,8 +31,15 @@ shader_parameter/rim_outer = 0.378
 shader_parameter/glow_width = 0.09
 shader_parameter/sphere_center = Vector2(0.498, 0.494)
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_field"]
+resource_local_to_scene = true
+shader = ExtResource("8_field")
+
 [sub_resource type="CircleShape2D" id="CircleShape2D_graze"]
 radius = 95.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_shield"]
+radius = 126.0
 
 [node name="Player" type="CharacterBody2D"]
 z_index = 1
@@ -50,6 +58,11 @@ collision_mask = 2
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="CollisionArea"]
 polygon = PackedVector2Array(-56, 24, -53, 8, -15, -28, -9, -58, -2, -79, 2, -79, 9, -58, 16, -25, 53, 8, 55, 25, 37, 45, 38, 58, 18, 53, -18, 53, -38, 59, -37, 46)
+
+[node name="ShieldShape" type="CollisionShape2D" parent="CollisionArea"]
+position = Vector2(0, -6)
+shape = SubResource("CircleShape2D_shield")
+disabled = true
 
 [node name="GrazeArea" type="Area2D" parent="." groups=["graze"]]
 collision_layer = 16
@@ -201,5 +214,14 @@ material = SubResource("ShaderMaterial_bubble")
 position = Vector2(0, -6)
 scale = Vector2(0.5258, 0.5258)
 texture = ExtResource("6_dome")
+
+[node name="Field" type="ColorRect" parent="ShieldRing"]
+visible = false
+material = SubResource("ShaderMaterial_field")
+offset_left = -162.0
+offset_top = -168.0
+offset_right = 162.0
+offset_bottom = 156.0
+mouse_filter = 2
 
 [node name="ProjectileAudioPlayer" type="AudioStreamPlayer2D" parent="."]

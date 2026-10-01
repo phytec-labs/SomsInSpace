@@ -152,6 +152,7 @@ func _ready() -> void:
 	countdown_time = config.countdown_time
 	game_hud.configure(config)
 	_apply_selected_ship()
+	player.set_shield_style(config.shield_style)
 	spawn_manager.configure(config)
 	wave_manager = spawn_manager.get("wave_manager")
 	_update_zone(0)
@@ -319,14 +320,16 @@ func update_health_display() -> void:
 func update_points_display() -> void:
 	game_hud.update_points(points)
 
-func update_health(amount: float) -> void:
+# `at`: global position of the hit (enemy shot / obstacle), when known; only
+# used for the shield's ripple
+func update_health(amount: float, at: Vector2 = Vector2.INF) -> void:
 	# No damage once the run has ended (stray shots after victory / game over)
 	if amount < 0.0 and current_state != GameState.PLAYING:
 		return
 	# Shield bubble: the hit is absorbed (no health loss, the combo survives,
 	# no weapon tier loss); the shield flashes and keeps going
 	if amount < 0.0 and player.is_shielded():
-		_absorb_shield_hit()
+		_absorb_shield_hit(at)
 		return
 	current_health = clamp(current_health + amount, 0, max_health)
 	update_health_display()
@@ -370,9 +373,10 @@ func heal(amount: float) -> float:
 	spawn_score_popup(text, player.global_position + Vector2(0, -70), HEAL_COLOR)
 	return healed
 
-# A damaging hit met the shield (update_health): pop the ring, small shake
-func _absorb_shield_hit() -> void:
-	player.shield_absorb_hit()
+# A damaging hit met the shield (update_health): pop the ring (ripple from
+# `at` if known), small shake
+func _absorb_shield_hit(at: Vector2 = Vector2.INF) -> void:
+	player.shield_absorb_hit(at)
 	shake(SHAKE_SHIELD, SHAKE_SHIELD_TIME)
 
 # Optional rule (GameConfig.lose_weapon_tier_on_hit): a hit costs one tier
@@ -606,7 +610,7 @@ func _on_object_hit(object: Node2D) -> void:
 		_on_shielded_contact(object)
 		return
 	if not player.is_blinking:
-		update_health(-object.damage)
+		update_health(-object.damage, object.global_position)
 		player.start_blink()  # Start the blink effect
 
 # Contact with an obstacle while shielded: no health loss, the ring pops.
@@ -617,7 +621,7 @@ func _on_object_hit(object: Node2D) -> void:
 #    GameConfig.shield_ram_damage per contact hit (their contact rate limit)
 #  - mine blast (the mine detonated itself): absorbed, nothing else
 func _on_shielded_contact(object: Obstacle) -> void:
-	_absorb_shield_hit()
+	_absorb_shield_hit(object.global_position)
 	if object.is_being_collected:
 		shield_ram_kills += 1
 		award_kill_points(absi(object.points), object)

@@ -90,17 +90,22 @@ func _on_area_entered(area: Area2D) -> void:
 		# Invulnerable (blinking) or dead player: absorb the shot without damage
 		var invulnerable = ("is_blinking" in player and player.is_blinking) or \
 			("is_dead" in player and player.is_dead)
+		var shielded = player.has_method("is_shielded") and player.is_shielded()
 
-		if not invulnerable:
-			# Update player health and trigger hit animation (a shielded
-			# player's hit is absorbed inside update_health: no damage)
+		# Shielded (even while blinking): the shot meets the sphere edge,
+		# update_health absorbs it there (pop + ripple, no damage)
+		if shielded:
 			var level = get_tree().get_first_node_in_group("level")
 			if level and level.has_method("update_health"):
-				level.update_health(-damage)
+				level.update_health(-damage, global_position)
+		elif not invulnerable:
+			# Update player health and trigger hit animation
+			var level = get_tree().get_first_node_in_group("level")
+			if level and level.has_method("update_health"):
+				level.update_health(-damage, global_position)
 
-			# Start player blinking (invulnerability), unless the shield took it
-			var shielded = player.has_method("is_shielded") and player.is_shielded()
-			if not shielded and player.has_method("start_blink"):
+			# Start player blinking (invulnerability)
+			if player.has_method("start_blink"):
 				player.start_blink()
 
 		# Destroy the projectile

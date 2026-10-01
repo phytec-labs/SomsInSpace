@@ -44,6 +44,11 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 @export var health_pickup_amount: float = 25.0
 ## Seconds a shield bubble lasts (re-collecting refreshes it to this).
 @export var shield_duration: float = 8.0
+## Look of the player's active shield: Sprite = the hex dome art
+## (ShieldRing/Dome, shield_bubble.gdshader); Procedural = shader only
+## (ShieldRing/Field, shield_procedural.gdshader: rim glow, hex grid, hit
+## ripple). The shield pickup icon always uses the sprite.
+@export_enum("Sprite", "Procedural") var shield_style: int = 1
 ## Drain (UFO beam) damage multiplier while shielded (the beam is escapable,
 ## so the shield only halves it).
 @export_range(0.0, 1.0) var shield_drain_factor: float = 0.5

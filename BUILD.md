@@ -116,6 +116,9 @@ Useful to know when leaving it running on a booth:
   `~/.local/share/godot/app_userdata/Soms-In-Space-GoDot-4-mobile/highscores.save`.
   Delete that file to clear the board. A save from an older scoring version
   is discarded on first launch.
+- **Shield look:** `shield_style` in `data/game_config.tres` (Pickups group)
+  switches the player's active shield between the hex dome art (`Sprite`) and
+  the shader-only sphere (`Procedural`, the default). Re-export after changing it.
 
 ## Project layout
 

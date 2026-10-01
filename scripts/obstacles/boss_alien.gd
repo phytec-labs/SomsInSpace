@@ -287,7 +287,10 @@ func take_damage(amount: float) -> void:
 
 # Touching the boss hurts the player, but the boss survives
 func handle_player_collision() -> void:
-	if not is_active or _dying or _standing_down:
+	# _contact_timer: at most one contact hit per contact_hit_interval, also
+	# when the player leaves and re-enters (each re-entry is a new
+	# area_entered; matters for shielded rams, which skip the damage blink)
+	if not is_active or _dying or _standing_down or _contact_timer > 0.0:
 		return
 	_contact_timer = contact_hit_interval
 	emit_signal("object_hit")

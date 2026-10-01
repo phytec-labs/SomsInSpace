@@ -37,6 +37,22 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 # pop / warning blink drive ShieldRing's scale, modulate and visibility; the
 # shader multiplies by modulate last, so they apply on top of the look.
 @onready var shield_ring: Node2D = get_node_or_null("ShieldRing")
+# Procedural look (shield_style = Procedural): sibling "Field" ColorRect,
+# 324x324 at (-162, -168), i.e. centered on the Dome's (0, -6), with
+# shaders/shield_procedural.gdshader (edge_radius 0.78 of the half-size =
+# the same 126 local px sphere radius; the halo fits inside the quad).
+@onready var shield_dome: CanvasItem = get_node_or_null("ShieldRing/Dome")
+@onready var shield_field: Control = get_node_or_null("ShieldRing/Field")
+# While shielded the hit area is the shield circle: CollisionArea/ShieldShape
+# (CircleShape2D at the ShieldRing center (0, -6)) is enabled next to the hull
+# polygon (which stays enabled and lies inside it), so enemies, enemy shots,
+# pickups and the UFO beam meet the drawn sphere edge. Disabled whenever the
+# shield is off (end_shield(): timeout, die, fly_to, reset, scene start).
+@onready var shield_shape: CollisionShape2D = get_node_or_null("CollisionArea/ShieldShape")
+## Radius (local px) of the shield hit circle: the drawn sphere edge, the same
+## for both looks (Dome rim 0.378 x 634 x 0.5258 = 126; Field edge_radius
+## 0.78 x 162 = 126). ~101 px on screen at the level's 0.8 player scale.
+@export var shield_hit_radius: float = 126.0
 
 # Emitted when a fly_to() tween reaches its target
 signal arrived
@@ -81,6 +97,19 @@ var shield_duration: float = 0.0       # Length of the current shield (HUD bar)
 var shield_hits_absorbed: int = 0      # Observability (tests / tuning)
 var _shield_anim_time: float = 0.0
 var _shield_flash_left: float = 0.0
+
+## Player shield look: Sprite (ShieldRing/Dome, hex dome art) or Procedural
+## (ShieldRing/Field, shader only). main_level.gd applies
+## GameConfig.shield_style through set_shield_style().
+@export_enum("Sprite", "Procedural") var shield_style: int = 1
+const SHIELD_STYLE_SPRITE := 0
+const SHIELD_STYLE_PROCEDURAL := 1
+# Procedural hit ripple: seconds since the absorbed hit (accumulated in
+# _process_shield, so it freezes while paused); the shader's hit_time uniform
+# is only written while a ripple plays.
+const SHIELD_RIPPLE_DURATION := 0.5    # Matches the shader's ripple_duration
+const SHIELD_RIPPLE_IDLE := 100.0      # hit_time value meaning "no ripple"
+var _shield_ripple_time: float = SHIELD_RIPPLE_IDLE
 
 # Weapon tiers:
 #   1 = center gun
@@ -145,6 +174,9 @@ func _ready() -> void:
 
 	if graze_area:
 		graze_area.add_to_group("graze")
+	if shield_shape and shield_shape.shape is CircleShape2D:
+		(shield_shape.shape as CircleShape2D).radius = shield_hit_radius
+	set_shield_style(shield_style)
 	end_shield()
 	disable_movement()
 
@@ -254,23 +286,92 @@ func activate_shield(duration: float = 8.0) -> void:
 	shield_time_left = duration
 	_shield_anim_time = 0.0
 	_shield_flash_left = 0.0
+	_stop_shield_ripple()
 	_update_shield_ring()
+	_set_shield_hitbox(true)
+	_update_graze_area()
+
+# Shield circle hit area on/off. Deferred: shape changes are not allowed
+# inside physics callbacks (the shield pickup is collected from one).
+func _set_shield_hitbox(on: bool) -> void:
+	if shield_shape:
+		shield_shape.set_deferred("disabled", not on)
+
+# Shows the Dome sprite (SHIELD_STYLE_SPRITE) or the procedural Field
+# (SHIELD_STYLE_PROCEDURAL) under ShieldRing; everything else (pulse, pop,
+# blink, end) animates ShieldRing itself, so it applies to either look.
+func set_shield_style(style: int) -> void:
+	shield_style = style
+	var procedural := style == SHIELD_STYLE_PROCEDURAL and shield_field != null
+	if shield_dome:
+		shield_dome.visible = not procedural
+	if shield_field:
+		shield_field.visible = procedural
+	_stop_shield_ripple()
+
+func _is_procedural_shield() -> bool:
+	return shield_field != null and shield_field.visible
 
 func is_shielded() -> bool:
 	return shield_time_left > 0.0 and not is_dead
 
-# A damaging hit was absorbed (main_level.gd): brief pop, shield keeps going
-func shield_absorb_hit() -> void:
+# A damaging hit was absorbed (main_level.gd): brief pop, shield keeps going.
+# `at` (global position of the shot / obstacle, if known) starts the
+# procedural look's ripple there; without it the ripple starts at the top.
+func shield_absorb_hit(at: Vector2 = Vector2.INF) -> void:
 	if not is_shielded():
 		return
 	shield_hits_absorbed += 1
 	_shield_flash_left = SHIELD_FLASH_TIME
+	if _is_procedural_shield():
+		_start_shield_ripple(at)
 	_update_shield_ring()
+
+# Ripple origin in the Field shader's p space ((UV - 0.5) * 2), clamped onto
+# the sphere (a rammed obstacle's center is usually outside it)
+func _start_shield_ripple(at: Vector2) -> void:
+	var mat := shield_field.material as ShaderMaterial
+	if mat == null:
+		return
+	# Uniform left at its shader default: may read back as null
+	var er = mat.get_shader_parameter("edge_radius")
+	var edge_radius: float = float(er) if er != null else 0.78
+	var p := Vector2(0.0, -edge_radius)
+	if at.is_finite():
+		var local: Vector2 = shield_field.get_global_transform().affine_inverse() * at
+		var size := shield_field.size
+		if size.x > 0.0 and size.y > 0.0:
+			p = (local / size - Vector2(0.5, 0.5)) * 2.0
+			p = p.limit_length(edge_radius)
+	mat.set_shader_parameter("hit_pos", p)
+	_shield_ripple_time = 0.0
+	mat.set_shader_parameter("hit_time", 0.0)
+
+func _advance_shield_ripple(delta: float) -> void:
+	if _shield_ripple_time >= SHIELD_RIPPLE_IDLE:
+		return
+	_shield_ripple_time += delta
+	if _shield_ripple_time > SHIELD_RIPPLE_DURATION:
+		_stop_shield_ripple()
+	elif shield_field and shield_field.material:
+		(shield_field.material as ShaderMaterial).set_shader_parameter("hit_time", _shield_ripple_time)
+
+func _stop_shield_ripple() -> void:
+	_shield_ripple_time = SHIELD_RIPPLE_IDLE
+	if shield_field and shield_field.material is ShaderMaterial:
+		(shield_field.material as ShaderMaterial).set_shader_parameter("hit_time", SHIELD_RIPPLE_IDLE)
 
 # Shield off now (time out, death, end of run, scene reload)
 func end_shield() -> void:
 	shield_time_left = 0.0
 	_shield_flash_left = 0.0
+	if _shield_ripple_time < SHIELD_RIPPLE_IDLE:
+		_stop_shield_ripple()
+	# Back to the hull polygon only. Something overlapping just the circle
+	# gets an area_exited (no hit); something already over the hull stays
+	# overlapped (no new area_entered).
+	_set_shield_hitbox(false)
+	_update_graze_area()
 	if shield_ring:
 		shield_ring.visible = false
 		shield_ring.scale = Vector2.ONE
@@ -289,6 +390,7 @@ func _process_shield(delta: float) -> void:
 	if shield_time_left <= 0.0 or is_dead:
 		end_shield()
 		return
+	_advance_shield_ripple(delta)
 	_update_shield_ring()
 
 # Dome visuals from the shield state: pulse, hit flash, warning blink
@@ -313,14 +415,16 @@ func _update_shield_ring() -> void:
 		or int(_shield_anim_time * SHIELD_BLINK_RATE) % 2 == 0
 
 # Grazes only count while the ship is flying under player control and can be
-# hit (not blinking / dead / countdown / victory / fly_to). Deferred: this
-# runs from physics callbacks (a projectile hit starts the blink).
+# hit (not blinking / dead / countdown / victory / fly_to / shielded: the
+# GrazeArea lies inside the shield circle, which eats the shot first).
+# Deferred: this runs from physics callbacks (a projectile hit starts the
+# blink).
 func _update_graze_area() -> void:
 	if graze_area:
-		graze_area.set_deferred("monitorable", can_move and not is_blinking and not is_dead)
+		graze_area.set_deferred("monitorable", can_graze())
 
 func can_graze() -> bool:
-	return can_move and not is_blinking and not is_dead
+	return can_move and not is_blinking and not is_dead and not is_shielded()
 
 func update_sprite_visibility(visible: bool) -> void:
 	# If player is dead, sprites should remain hidden
