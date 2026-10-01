@@ -1,0 +1,46 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://dclry8hpn55n1"]
+
+[ext_resource type="Texture2D" uid="uid://b6lali5tl33uo" path="res://sprites/health_pickup_sheet.png" id="1_sheet"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_50pdn"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dsmd2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(256, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4gml7"]
+atlas = ExtResource("1_sheet")
+region = Rect2(512, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_t6gku"]
+atlas = ExtResource("1_sheet")
+region = Rect2(768, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x6t0t"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1024, 0, 256, 256)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_50pdn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_dsmd2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4gml7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_t6gku")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_x6t0t")
+}],
+"loop": 1,
+"name": &"default",
+"speed": 8.0
+}]

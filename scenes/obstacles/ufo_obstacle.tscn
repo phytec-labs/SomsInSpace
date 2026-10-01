@@ -18,7 +18,7 @@ script = ExtResource("1_ufo")
 points = -80
 damage = 20.0
 base_speed = 0.0
-health = 80.0
+health = 170.0
 
 [node name="Beam" type="Node2D" parent="."]
 show_behind_parent = true

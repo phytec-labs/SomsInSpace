@@ -224,7 +224,7 @@ Tier-1 damage per shot: balanced (phyCORE-AM62x) 10 every 0.2 s, light
 (i.MX 93) 8.5 every 0.16 s, heavy (i.MX 8M Plus) 12.5 every 0.23 s. Tier 2
 adds two side shots (3 per volley), tier 3 two angled 12-damage shots. Base
 health that differs from 10: drone 5, mine 8, asteroid 30 / 15 / 6 (large /
-medium / small), UFO 80 (200 in upper_atmosphere, 240 in space), blimp 270
+medium / small), UFO 170 (425 in upper_atmosphere, 510 in space), blimp 270
 (540 in the atmosphere, its only zone).
 
 Big targets, balanced ship, sustained fire (headless, ship tracking the
@@ -233,8 +233,8 @@ target from 250-800 px below; seconds from the first hit to the kill):
 | Target | Health | Tier 1 | Tier 2 | Tier 3 |
 |---|---|---|---|---|
 | Blimp (atmosphere) | 540 (was 320) | ~10.8 s (54 hits) | ~4.0-4.4 s (was ~2.7-3.3 s) | ~3.3-4.1 s |
-| UFO (upper_atmosphere) | 200 (was 100) | | ~2.2-2.4 s median (was ~1.2 s) | ~1.7-2.3 s (was ~0.6-0.8 s) |
-| UFO (space) | 240 (was 120) | | ~2.5 s (was ~1.1-1.3 s) | ~1.9-2.9 s (was ~0.9-1.1 s) |
+| UFO (upper_atmosphere) | 425 (was 200, before that 100) | | ~4.6 s median, 3.9-5.6 s (was ~2.1-2.4 s) | ~4.3 s median, 3.2-4.7 s (was ~1.7-2.5 s) |
+| UFO (space) | 510 (was 240, before that 120) | | ~5.1 s median, 4.7-6.3 s (was ~2.5 s) | ~4.3 s median, 3.4-5.2 s (was ~1.9-2.9 s) |
 
 The Player node is scaled 0.8 in the level, so the balanced ship's wing guns
 sit at about +-30 px on screen. The blimp's hull (capsule radius 40, ~94 px
@@ -243,7 +243,26 @@ wide sprite) takes all three tier-2 shots while the ship is within about
 radius-30 hull only within about +-6 px). The tier-3 angled shots mostly
 miss it, so tier 3 is only a little faster. The UFO is 200 px wide, so all
 three tier-2 shots land; its sideways patrol and the ~1.5 s shot travel time
-cost some hits. Either way the UFO dies well inside its 12 s hover.
+cost some hits. (UFO rows: 16 trials per cell, ship 1050 px from the top
+tracking the saucer every frame, base 170 measured 2026-10.)
+
+UFO, casual player (same ship at y 1050; the saucer flies in from above as in
+a real spawn; the ship moves at its own speed toward the saucer's x plus a
+wobble re-rolled every 0.7 s; fires 1.2 s on / 0.8 s off = 60%; 40 trials per
+cell). Seconds from the start of the hover to the kill (hits taken during the
+fly-in count), and how often it ends its 12 s hover alive and leaves:
+
+| Zone (health) | Aim wobble | Tier 2 | Tier 3 |
+|---|---|---|---|
+| upper_atmosphere (425) | +-60 px | median 6.9 s (4.4-11.4), escaped 0/40 | median 5.1 s (2.7-8.2), escaped 0/40 |
+| upper_atmosphere (425) | +-100 px | median 7.5 s (4.6-11.9), escaped 4/40 | median 5.3 s (2.9-10.3), escaped 0/40 |
+| space (510) | +-60 px | median 7.6 s (4.8-11.7), escaped 1/40 | median 6.0 s (3.6-9.9), escaped 0/40 |
+| space (510) | +-100 px | median 7.7 s (5.3-11.5), escaped 4/40 | median 6.3 s (3.1-10.2), escaped 0/40 |
+
+A casual tier-3 player always kills it inside the hover; at tier 2 a sloppy
+player lets about 1 in 10 escape (acceptable: it is a bonus target, not a
+gate). Tier 3 is only ~10-25% faster than tier 2 because the angled shots
+mostly miss the 52 px tall hull.
 
 ### FormationSettings (`scripts/data/formation_settings.gd`)
 
@@ -269,7 +288,7 @@ The values play-testing usually touches, and where they live:
 | `enemy_health_multiplier` | each `data/zones/<zone>.tres` | ground 1.0, atmosphere 2.0, upper_atmosphere 2.5, space 3.0, orbit 1.0 | Hits to kill every non-boss enemy in the zone (table above) |
 | Boss health | `scenes/obstacles/boss_alien.tscn` `health` | 750 | Fight length; phases change at 2/3 and 1/3 of it automatically (~16.5 s with the sweeping tier-2 bot) |
 | Blimp health | `scenes/obstacles/blimp_obstacle.tscn` `health` | 270 (x 2.0 in atmosphere = 540) | Mini-boss length (~4.0-4.4 s of sustained tier-2 fire, ~10-12 s for the casual bot) |
-| UFO health | `scenes/obstacles/ufo_obstacle.tscn` `health` | 80 (x 2.5 = 200 upper_atmosphere, x 3.0 = 240 space) | ~2.3 s of sustained tier-2 fire; must die inside its 12 s hover |
+| UFO health | `scenes/obstacles/ufo_obstacle.tscn` `health` | 170 (x 2.5 = 425 upper_atmosphere, x 3.0 = 510 space) | ~4.3 s of sustained tier-3 fire in space (~5 s tier 2); a casual player (60% fire, loose aim) needs ~5-8 s of its 12 s hover; raise it and the casual escape rate climbs fast |
 | Mini-boss timing | `data/zones/atmosphere.tres`, group "Mini-boss" | 2.5 s after the upgrade is collected, fallback 18 s zone time, holds waves for at most 8 s | When the blimp arrives and how long the sequencer pauses for it |
 | `first_fire_delay` | each `WaveGroup` | 0.6 s | Formation's first volley / ripple after it appears on screen |
 | `fire_interval` | each `WaveGroup` | 1.2-2.5 s | Time between formation volleys / ripples |
@@ -343,7 +362,8 @@ scroll 0, seeds 1-3), measured 2026-09 with the zone health multipliers. They
 vary by a few seconds between runs (mirror rolls, physics). They were measured
 before the blimp became the zone's mini-boss (it was then a wave of its own);
 the mini-boss now adds its hold to whichever wave is playing when it arrives
-(see the timeline below). The bot usually kills the UFO within a few seconds;
+(see the timeline below). The bot usually kills the UFO within a few seconds
+(at 200 hp; at today's 425 / 510 see the UFO tables above);
 a UFO left alive lives ~22 s, which does not hold its wave (see above).
 C = `completion_delay`; beat = `beat_after`. Groups are ON_CLEAR unless an
 AFTER_DELAY value is given.

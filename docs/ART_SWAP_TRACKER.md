@@ -2,7 +2,9 @@
 
 **Conventions.** Full-size art sources live in `art_archive/masters/` (Godot ignores
 `art_archive/`); the game uses downscaled copies in `sprites/`: enemies and pickups 512 px
-tall (the shield sphere 512 px plus a 12% transparent margin for its glow: 634x634), the
+tall (the shield sphere 512 px plus a 12% transparent margin for its glow: 634x634), animated
+pickup icons as horizontal sheets of 256x256 cells (frame-to-frame anchor fixed in the
+cell center, >= 6 px transparent padding per cell; the `sheet` entries in the tool), the
 UFO, the blimp and the docking station 1024 px wide, the ships at their 1024x1536 canvas
 (not downscaled). Regenerate the copies with `tools/resize_art.gd` (see BUILD.md, "Art
 pipeline") and re-fit the sprite scale as `old scale x old size / new size`. Downscaled
@@ -13,11 +15,12 @@ Enemy art is rim-lit and brightened per zone by the enemy shader on the dark ski
 does not need its own light outline or glow to read on a dark background; keep the art's
 own (dark) outline.
 
-**Shield look.** The shield sphere (player bubble and pickup icon) is drawn through
-`shaders/shield_bubble.gdshader`; its look is tuned per instance with the ShaderMaterial
+**Shield look.** The player's shield sphere in the `Sprite` style (`ShieldRing/Dome`) is
+drawn through `shaders/shield_bubble.gdshader` (the pickup icon no longer uses it: it is
+the animated `shield_icon` sheet, whose art carries its own glow); its look is tuned per instance with the ShaderMaterial
 uniforms, no art change needed: `interior_strength` (hex pattern opacity inside the sphere;
-player 0.55, pickup 0.8), `rim_color` / `rim_glow` (edge ring and halo), `glow_width` (halo
-width into the margin; player 0.09, pickup 0.06), `rim_inner` / `rim_outer` /
+player 0.55), `rim_color` / `rim_glow` (edge ring and halo), `glow_width` (halo
+width into the margin; player 0.09), `rim_inner` / `rim_outer` /
 `sphere_center` (where the sphere's edge sits in the texture: 0.355 / 0.378 /
 (0.498, 0.494); re-measure them if the shield art or its padding changes).
 
@@ -27,7 +30,7 @@ active shield: `Sprite` = `ShieldRing/Dome` above; `Procedural` (default) =
 `ShieldRing/Field`, a 324x324 `ColorRect` (mouse ignored) at (-162, -168), centered on
 the Dome's (0, -6), drawn only by `shaders/shield_procedural.gdshader` (no texture). Both
 sit under `ShieldRing`, so the pulse, hit pop, last-2 s blink and end/death/landing hides
-apply to either. The shield pickup icon always uses the sprite. Procedural uniforms
+apply to either. The shield pickup icon is its own animated sheet (see the tracker row). Procedural uniforms
 (shader defaults; `p = (UV - 0.5) * 2`, quad edge at 1): `edge_radius` 0.78 (= the
 126 local px sphere), `aa` 0.01; `fill_color` (0.15, 0.5, 1) / `fill_alpha` 0.14;
 `rim_color` (0.2, 0.62, 1) / `rim_glow` 1.1 / `rim_power` 2.5 (fresnel rim, also the halo
@@ -87,8 +90,8 @@ not yet wired), `swapped` (final art in place, marker removed).
 | Docking flash + "DOCKED" label | `scripts/effects/docking_station.gd` (`DockFlash`, `DockedLabel`) | White Polygon2D flash over the landing pad (0.2 s), gold m5x7 "DOCKED" label pop under the station | None (code-only effect) | code-only |
 | Score / graze popups, combo HUD, screen shake | `scenes/effects/juice_score_popup.tscn`, `scenes/ui/game_hud_ui.tscn` `ComboBox`, `scripts/effects/juice_camera_shake.gd` | m5x7 text with outline, ProgressBar, camera offset | None (code-only effects) | code-only |
 | Spawn telegraph marker | `scenes/effects/spawn_telegraph.tscn` `Chevron` Polygon2D + `Label` (marker in `scripts/effects/spawn_telegraph.gd`) | Yellow Polygon2D chevron (60x40 px, rotated toward the entry direction) plus a yellow "!" Label with black outline, blinked in code | 96x96 transparent PNG sheet, 2-3 frames (e.g. pulse / arrow bob), yellow warning chevron + "!" pointing down (code rotates it toward the entry heading); replace both nodes with an AnimatedSprite2D or a Sprite2D with hframes | placeholder |
-| Health cell pickup | `scenes/collectibles/health_pickup.tscn` Sprite2D: set `texture`, delete the `Backing` / `Border` / `Cross` children (marker in `scripts/collectibles/health_pickup.gd`) | Polygon2D dark rounded square (56 px) with a green Line2D border and a green Polygon2D cross | 256x256 transparent PNG icon (drawn at Sprite2D scale ~0.22, ~56 px on screen), green cross on a dark rounded tile; same style as the shield and bomb icons | placeholder |
-| Shield bubble pickup | `scenes/collectibles/shield_pickup.tscn` Sprite2D `texture` / `scale` (note in `scripts/collectibles/shield_pickup.gd`) | — | `sprites/shield_dome_1.png` (634x634: full hex sphere 512 px + 12% margin, master 1254x1254) at Sprite2D scale 0.1148 = ~55 px visible sphere, with `shield_bubble.gdshader` (`interior_strength` 0.8, `glow_width` 0.06; see "Shield look"); the pickup spin (scale.x) animates it | swapped |
+| Health cell pickup | `scenes/collectibles/health_pickup.tscn` `AnimatedSprite2D` `sprite_frames` / `scale` (note in `scripts/collectibles/health_pickup.gd`) | Polygon2D dark rounded square (56 px) with a green Line2D border and a green Polygon2D cross | `sprites/health_pickup_sheet.png` (1280x256: 5 cells of 256x256, each centered on the red cross; repacked from the 2172x724 master `health_pickup_sprite_sheet.png`, 576 master px per cell) via `sprites/health_pickup.tres`, looping 0-1-2-3-4 at 8 fps; the canister "breathes" (1.27x wider in frame 2, intended, not normalized). Scale 0.3675 (25% smaller than the first 0.49 pass, user request): canister ~42 px wide in frames 0/4, ~54 px in frame 2, sparkles/base up to ~75x84 px. No spin (`spin = false`); collision circle shrunk with the art, r 28 -> 21 (42 px, the smallest canister width). Sheet imported with mipmaps like the shield sheet | swapped |
+| Shield bubble pickup | `scenes/collectibles/shield_pickup.tscn` `AnimatedSprite2D` `sprite_frames` / `scale` (note in `scripts/collectibles/shield_pickup.gd`) | — | `sprites/shield_icon_sheet.png` (1280x256: 5 cells of 256x256, the hex sphere centered and the same size in every cell, rim radius ~90 px; repacked from the 2172x724 glow-pulse master `shield_icon_sprite_sheet.png`, 512 master px per cell) via `sprites/shield_icon.tres`, looping 0-1-2-3-4 at 8 fps; scale 0.3 = ~55 px sphere on screen (glow up to ~72 px). No shader material (the art has its own glow), no spin (`spin = false`); collision circle r 28 unchanged | swapped |
 | Screen-clear bomb pickup | `scenes/collectibles/bomb_pickup.tscn` Sprite2D `texture` / `scale` / `position` (note in `scripts/collectibles/bomb_pickup.gd`) | — | `sprites/bomb_collectible_1.png` (560x512, master 1312x1199) at Sprite2D scale 0.1, ~56x51 px canvas, offset (6, -6) so the round body sits on the pickup center / spin axis; collision circle r 28 unchanged (optional later: 2-frame spark flicker as hframes) | swapped |
 | Player shield ring | `scenes/player.tscn` `ShieldRing/Dome` Sprite2D (note in `scripts/main_level/player.gd`); code drives ShieldRing's scale / modulate / visibility (pulse, hit pop, last-2 s blink) | — | `sprites/shield_dome_1.png` (634x634 full sphere, master 1254x1254) at scale 0.5258, position (0, -6) (within 5 local px of each ship's art center): sphere radius 126 local px, ~10 px outside the largest ship's farthest corner (and still outside at the -5% pulse); ~204 px sphere on screen at the Player's 0.8, halo to ~251 px. `shield_bubble.gdshader` with `interior_strength` 0.55 (faded hex pattern), cyan-white rim ring + halo (see "Shield look"). Old half-dome art kept in `art_archive/art_old/shield_dome_half.png` | swapped |
 | Bomb screen flash, shield HUD indicator | `scripts/main_level.gd` `_start_bomb_flash()` (white ColorRect under `UI`, 0.25 s), `scenes/ui/game_hud_ui.tscn` `ShieldBox` | ColorRect fade, m5x7 "SHIELD" label + ProgressBar | None (code-only effects) | code-only |

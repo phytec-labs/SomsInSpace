@@ -8,6 +8,10 @@ class_name EnergyCollectible
 @export var fall_speed: float = 100.0  # Speed at which collectible falls
 @export var collect_sound: AudioStream = preload("res://audio/retro-coin-1.mp3")
 @export var sound_pitch_variation: float = 0.1
+# Width-flip "coin spin" (scale.x follows |cos(time_alive * rotation_speed)|);
+# off for pickups with their own animation (shield pickup), whose scale.x
+# then stays at base_scale
+@export var spin: bool = true
 
 var base_scale: float = -1.0  # Captured on first spawn; scale.x is animated
 var time_alive: float = 0.0
@@ -33,8 +37,9 @@ func _process(delta: float) -> void:
 
 		# Animate the width for 3D effect
 		time_alive += delta
-		var scale_factor = abs(cos(time_alive * rotation_speed))
-		scale.x = base_scale * scale_factor
+		if spin:
+			var scale_factor = abs(cos(time_alive * rotation_speed))
+			scale.x = base_scale * scale_factor
 
 		# Check if off-screen
 		check_if_offscreen()

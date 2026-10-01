@@ -152,7 +152,10 @@ Full-size art sources live in `art_archive/masters/` (ignored by Godot); the
 game uses downscaled copies in `sprites/` (enemies and pickups 512 px tall,
 UFO, blimp and docking station 1024 px wide; the ships keep their 1024x1536
 canvas). An entry can add a transparent margin (`pad`, e.g. the shield sphere's
-12% for its shader glow). After
+12% for its shader glow). A `sheet` entry repacks an animation strip whose frames are
+not on a grid (the shield and health pickup icons) into a uniform horizontal sheet of
+square cells: per frame a column span and a center that stays fixed across frames, a
+common extent, and a minimum padding the run checks. After
 adding or changing a master, add or adjust its row in the `ART` table of
 `tools/resize_art.gd`, then regenerate and re-import:
 
