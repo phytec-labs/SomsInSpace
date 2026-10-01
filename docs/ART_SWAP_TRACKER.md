@@ -8,6 +8,10 @@ UFO, the blimp and the docking station 1024 px wide, the ships at their 1024x153
 pipeline") and re-fit the sprite scale as `old scale x old size / new size`. Downscaled
 enemy and pickup textures import with mipmaps (`mipmaps/generate=true`) and their sprites
 use `texture_filter = 4` (linear with mipmaps), otherwise the mipmaps are never sampled.
+Enemy art is rim-lit and brightened per zone by the enemy shader on the dark skies
+(upper atmosphere, space, orbit; see WAVE_DESIGN.md, "Enemy readability"), so enemy art
+does not need its own light outline or glow to read on a dark background; keep the art's
+own (dark) outline.
 
 **Shield look.** The shield sphere (player bubble and pickup icon) is drawn through
 `shaders/shield_bubble.gdshader`; its look is tuned per instance with the ShaderMaterial

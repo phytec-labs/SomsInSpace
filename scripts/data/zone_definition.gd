@@ -32,6 +32,20 @@ const FormationSettingsScript := preload("res://scripts/data/formation_settings.
 ## Starfield opacity in this zone (0 = no stars, 1 = full).
 @export_range(0.0, 1.0) var star_visibility: float = 0.0
 
+@export_group("Enemy Readability")
+## Rim light on every enemy's silhouette edge (inside the sprite, a constant
+## Obstacle.rim_screen_px wide on screen) so dark enemies separate from a dark
+## sky. Applied per spawn; enemies alive at a zone change blend to the new
+## zone's values (SpawnManager.readability_blend_seconds). The boss takes
+## enemy_brighten but not the rim (Obstacle.use_zone_rim off on its scene).
+@export var enemy_rim_color: Color = Color(0.75, 0.95, 1.0, 1.0)
+## How far rim pixels are pushed toward enemy_rim_color (0 = off).
+@export_range(0.0, 1.0) var enemy_rim_strength: float = 0.0
+## Enemy shading: 0 = the original look (the enemy shader squares the art's
+## colours: darker and punchier, good on the light ground sky), 1 = the art's
+## own colours (dark tones lifted the most, whites unchanged).
+@export_range(0.0, 1.0) var enemy_brighten: float = 0.0
+
 @export_group("Spawning")
 ## Random obstacle pool for legacy SpawnManager.spawn_obstacle() callers only;
 ## wave groups always name their own enemy_scene.

@@ -35,6 +35,9 @@ var bomb_pickup_scene: PackedScene
 @export_group("Enemy Settings")
 @export var enemy_speed_multi_min: float = 0.8
 @export var enemy_speed_multi_max: float = 1.2
+## Seconds over which enemies alive at a zone change blend their rim light /
+## brighten to the new zone's values (the sky wipe takes 2.5 s)
+@export var readability_blend_seconds: float = 1.5
 
 # Game state variables
 var current_collectible_time: float
@@ -120,6 +123,12 @@ func set_spawn_zone(zone: ZoneDefinitionScript) -> void:
 	# Update wave manager
 	if wave_manager:
 		wave_manager.set_zone(zone)
+
+	# Enemies already flying blend to the new zone's readability values
+	for obstacle in _active_obstacles.keys():
+		if is_instance_valid(obstacle) and obstacle.has_method("blend_readability_to"):
+			obstacle.blend_readability_to(zone.enemy_rim_color, zone.enemy_rim_strength,
+				zone.enemy_brighten, readability_blend_seconds)
 
 	# Adjust collectible spawn time / chance based on zone
 	current_collectible_time = base_collectible_time * zone.collectible_time_scale
@@ -294,6 +303,10 @@ func spawn_boss(scene: PackedScene) -> Node2D:
 	# Bosses carry their own health; the zone multiplier never applies
 	if "health_scale" in boss:
 		boss.health_scale = 1.0
+	# The zone's rim light / brighten do apply (the boss shader has them)
+	if current_zone and boss.has_method("set_readability"):
+		boss.set_readability(current_zone.enemy_rim_color,
+			current_zone.enemy_rim_strength, current_zone.enemy_brighten)
 
 	var spawn_position = Vector2(get_viewport_rect().size.x / 2.0, -250.0)
 	boss.initialize(spawn_position)
@@ -347,6 +360,14 @@ func _spawn_capped_obstacle(scene: PackedScene, spawn_position: Vector2, random_
 	# come from another zone); initialize() computes health from it
 	if "health_scale" in obstacle:
 		obstacle.health_scale = current_zone.enemy_health_multiplier if current_zone else 1.0
+	# Zone readability (rim light / brighten), also re-applied on every spawn;
+	# initialize() writes it to the sprite's shader
+	if obstacle.has_method("set_readability"):
+		if current_zone:
+			obstacle.set_readability(current_zone.enemy_rim_color,
+				current_zone.enemy_rim_strength, current_zone.enemy_brighten)
+		else:
+			obstacle.set_readability(Color.WHITE, 0.0, 0.0)
 
 	# Initialize the obstacle (sets position, resets formation_id to -1, shows it)
 	obstacle.initialize(spawn_position)

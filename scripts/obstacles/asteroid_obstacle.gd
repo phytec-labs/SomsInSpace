@@ -67,6 +67,8 @@ func set_size_level(level: int) -> void:
 	points = int(_pick(size_points, i, points))
 	rotation_speed = randf_range(min_spin, max_spin) / _pick(size_scales, i, 1.0)
 	rotation_speed *= -1.0 if randf() < 0.5 else 1.0
+	# Constant on-screen rim width for the new size
+	refresh_rim_width()
 
 func _pick(values, index: int, fallback: float) -> float:
 	return float(values[index]) if index < values.size() else fallback

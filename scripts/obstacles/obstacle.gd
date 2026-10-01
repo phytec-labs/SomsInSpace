@@ -112,7 +112,38 @@ var _base_rotation: float = 0.0
 @export var hit_sound: AudioStream = preload("res://audio/retro-coin-1.mp3")
 @export var hit_sound_pitch: float = 2.4
 @export var hit_sound_volume_db: float = -16.0
+
+# --- Zone readability (rim light + brighter shading on dark skies) ---
+# Values come from the zone (ZoneDefinition.enemy_rim_* / enemy_brighten):
+# SpawnManager calls set_readability() before every initialize() and
+# blend_readability_to() on the enemies alive at a zone change. They drive
+# the rim_* / brighten uniforms of the hit flash shader, or of the sprite's
+# own shader if it declares them (the boss's hue-shift shader).
+@export_group("Readability")
+## Rim light width in screen pixels; converted per spawn to texture pixels
+## of this sprite (rim_width_px = rim_screen_px / sprite global scale)
+@export var rim_screen_px: float = 2.0
+## Take the zone's rim light (off for the boss: its big pixel-art silhouette
+## reads clearly once brightened, and a rim there looks like an outline).
+## The zone's brighten always applies.
+@export var use_zone_rim: bool = true
 @export_group("")
+
+var rim_color: Color = Color(0.75, 0.95, 1.0, 1.0)
+var rim_strength: float = 0.0
+var brighten: float = 0.0
+# Running zone-change blend (seconds left / total), from the values below
+var _readability_blend_left: float = 0.0
+var _readability_blend_total: float = 0.0
+var _rim_color_from: Color = Color.WHITE
+var _rim_color_to: Color = Color.WHITE
+var _rim_strength_from: float = 0.0
+var _rim_strength_to: float = 0.0
+var _brighten_from: float = 0.0
+var _brighten_to: float = 0.0
+# Cache for _readability_material() when there is no hit flash material
+var _rim_checked_material: Material = null
+var _rim_material: ShaderMaterial = null
 
 # Set by subclasses that flash themselves on hits (BossAlien): the base class
 # then neither assigns the flash material nor flashes / punches the sprite
@@ -343,6 +374,14 @@ func initialize(spawn_position: Vector2) -> void:
 	formation_id = -1
 	formation_offset = Vector2.ZERO
 	formation_local_position = Vector2.ZERO
+
+	# Zone readability: the values set_readability() stored for this spawn
+	# (no blend carried over from a previous life), rim width for the scale
+	# this spawn ended up with (subclasses that change scale later call
+	# refresh_rim_width() themselves, e.g. AsteroidObstacle.set_size_level())
+	_readability_blend_left = 0.0
+	_apply_readability()
+	refresh_rim_width()
 
 # Hook for per-spawn randomization (size, spin, ...). Called from initialize()
 # after state has been reset; override in subclasses.
@@ -596,10 +635,13 @@ func _setup_hit_flash() -> void:
 		_hit_material = target.material
 
 func _shader_has_flash(shader: Shader) -> bool:
+	return _shader_has_uniform(shader, "flash")
+
+func _shader_has_uniform(shader: Shader, uniform_name: String) -> bool:
 	if shader == null:
 		return false
 	for uniform in shader.get_shader_uniform_list():
-		if uniform.get("name") == "flash":
+		if uniform.get("name") == uniform_name:
 			return true
 	return false
 
@@ -631,6 +673,13 @@ func _update_hit_feedback(delta: float) -> void:
 			scale = _hit_base_scale
 		else:
 			scale = _hit_base_scale * lerpf(1.0, hit_punch_scale, _punch_time / hit_punch_duration)
+	if _readability_blend_left > 0.0:
+		_readability_blend_left = maxf(_readability_blend_left - delta, 0.0)
+		var t := 1.0 - _readability_blend_left / _readability_blend_total
+		rim_color = _rim_color_from.lerp(_rim_color_to, t)
+		rim_strength = lerpf(_rim_strength_from, _rim_strength_to, t)
+		brighten = lerpf(_brighten_from, _brighten_to, t)
+		_apply_readability()
 
 # Back to rest: no flash, resting scale, bar hidden (spawn and deactivate)
 func _reset_hit_feedback() -> void:
@@ -642,6 +691,85 @@ func _reset_hit_feedback() -> void:
 	_punch_time = 0.0
 	if _health_bar:
 		_health_bar.hide_bar()
+
+# --- Zone readability ---
+
+# The zone's values for the next spawn (SpawnManager, before initialize(),
+# which applies them). Rim strength 0 = no rim; brighten 0 = the original
+# shading, 1 = the art's own colours (see hit_flash.gdshader).
+func set_readability(color: Color, strength: float, lift: float) -> void:
+	rim_color = color
+	rim_strength = strength
+	brighten = lift
+	_readability_blend_left = 0.0
+
+# Zone change while alive: blend from the current values to the new zone's
+# over `seconds` (0 = at once). Driven by _update_hit_feedback().
+func blend_readability_to(color: Color, strength: float, lift: float, seconds: float) -> void:
+	if seconds <= 0.0 or not is_active:
+		set_readability(color, strength, lift)
+		_apply_readability()
+		return
+	_rim_color_from = rim_color
+	_rim_strength_from = rim_strength
+	_brighten_from = brighten
+	_rim_color_to = color
+	_rim_strength_to = strength
+	_brighten_to = lift
+	_readability_blend_total = seconds
+	_readability_blend_left = seconds
+
+# Writes the current values to the sprite's shader (no-op for sprites with
+# neither the hit flash material nor a shader declaring the uniforms)
+func _apply_readability() -> void:
+	var mat := _readability_material()
+	if mat == null:
+		return
+	mat.set_shader_parameter("rim_color", rim_color)
+	mat.set_shader_parameter("rim_strength", rim_strength if use_zone_rim else 0.0)
+	mat.set_shader_parameter("brighten", brighten)
+
+# The material carrying the rim_* / brighten uniforms: the hit flash material,
+# else the sprite's own ShaderMaterial if its shader declares rim_strength
+# (the boss's hue-shift shader); null = no readability for this enemy
+func _readability_material() -> ShaderMaterial:
+	if _hit_material:
+		return _hit_material
+	var target := _get_flash_target()
+	if target == null:
+		return null
+	if target.material != _rim_checked_material:
+		_rim_checked_material = target.material
+		_rim_material = null
+		if target.material is ShaderMaterial \
+				and _shader_has_uniform(target.material.shader, "rim_strength"):
+			_rim_material = target.material
+	return _rim_material
+
+# Rim width in texture pixels so the rim is rim_screen_px wide on screen at
+# the sprite's current global scale (mean of |x| and |y|). Call after a
+# per-spawn scale change; the hit punch is ignored.
+func refresh_rim_width() -> void:
+	var mat := _readability_material()
+	if mat == null:
+		return
+	var target := _get_flash_target() as Node2D
+	if target == null or not target.is_inside_tree():
+		return
+	var s := target.get_global_transform().get_scale().abs()
+	if _punch_time > 0.0 and scale.x != 0.0:
+		s *= _hit_base_scale.x / scale.x
+	var mean := (s.x + s.y) * 0.5
+	if mean <= 0.0:
+		return
+	mat.set_shader_parameter("rim_width_px", rim_screen_px / mean)
+
+# Current rim width uniform (tests / debugging)
+func get_rim_width_px() -> float:
+	var mat := _readability_material()
+	if mat == null:
+		return 0.0
+	return float(mat.get_shader_parameter("rim_width_px"))
 
 # Mini bar for tanky spawns: shown from the first non-lethal hit on
 func _update_health_bar() -> void:

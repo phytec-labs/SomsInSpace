@@ -278,6 +278,39 @@ The values play-testing usually touches, and where they live:
 | `max_active_obstacles` | `data/game_config.tres` | 60 | Hard cap on live obstacles (safety valve) |
 | `max_formations_on_screen` | `data/game_config.tres`, overridden per zone in `data/zones/<zone>.tres` | 3; atmosphere and upper_atmosphere 4 | How many formations may overlap |
 
+### Enemy readability
+
+Dark enemies on the dark upper-atmosphere and space skies get two per-zone
+shader effects (group "Enemy Readability" on each `data/zones/<zone>.tres`,
+applied by `shaders/hit_flash.gdshader`, the per-enemy material that also
+does the hit flash; the hit flash still goes to pure white on top):
+
+| Field | ground | atmosphere | upper_atmosphere | space | orbit |
+|---|---|---|---|---|---|
+| `enemy_brighten` | 0 | 0 | 1.0 | 1.0 | 1.0 |
+| `enemy_rim_strength` | 0 | 0.2 | 0.45 | 0.55 | 0.55 |
+| `enemy_rim_color` | - | warm white (1, 0.96, 0.88) | cool white-cyan (0.75, 0.95, 1) | pale blue (0.7, 0.85, 1) | as space |
+
+- `enemy_brighten`: 0 = the original enemy shading (the shader multiplied
+  the texture in twice, i.e. the art's colours squared: darker and punchier,
+  which suits the light ground sky; ground looks exactly as before), 1 = the
+  art's own colours. In between blends the two.
+- `enemy_rim_strength` / `enemy_rim_color`: an inner rim light along each
+  enemy's silhouette edge (inside the sprite, so canvas-edge art gets one
+  too), a constant `Obstacle.rim_screen_px` = 2 screen px wide whatever the
+  sprite's scale (the shader width is recomputed per spawn as
+  `rim_screen_px / sprite global scale`; asteroid size changes refresh it).
+  0 = off. Sprite-sheet frames (alien, plane) are clamped to their own frame.
+- SpawnManager sets the zone's values on every spawn (pooled reuse included);
+  enemies still flying at a zone change blend to the new zone's values over
+  `SpawnManager.readability_blend_seconds` (1.5 s; the sky wipe takes 2.5 s).
+- The boss takes the zone's brighten (its hue-shift shader has the same
+  uniforms: 1 = the intended bright magenta, 0 = the old dark maroon) but not
+  the rim (`use_zone_rim = false` on the boss scene; a rim on its big
+  pixel-art silhouette reads as an outline). Any enemy can opt out the same way.
+- Cost: both effects sit behind uniform branches; brighten < 1 costs one extra
+  texture sample (the original shader's cost), the rim four more samples.
+
 ## Adding or editing a wave
 
 1. Open the zone in the Godot inspector (`data/zones/<zone>.tres`), then open

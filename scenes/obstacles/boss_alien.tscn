@@ -5,13 +5,28 @@
 [ext_resource type="SpriteFrames" uid="uid://jguv2molmqfr" path="res://sprites/alien_1.tres" id="3_frames"]
 
 [sub_resource type="Shader" id="Shader_boss"]
-code = "// Hue-shifts the green alien sprite (toward magenta/purple) and adds a
-// white hit flash.
+code = "// Hue-shifts the green alien sprite (toward magenta/purple), adds the
+// zone readability brighten / rim light (same uniforms and math as
+// res://shaders/hit_flash.gdshader, driven by Obstacle from the zone) and a
+// white hit flash (last).
 shader_type canvas_item;
 
 uniform float hue_shift : hint_range(0.0, 1.0) = 0.6;
 uniform float saturation : hint_range(0.0, 2.0) = 1.2;
 uniform float flash : hint_range(0.0, 1.0) = 0.0;
+uniform vec4 rim_color : source_color = vec4(0.75, 0.95, 1.0, 1.0);
+uniform float rim_strength : hint_range(0.0, 1.0) = 0.0;
+uniform float rim_width_px = 10.0;
+uniform float brighten : hint_range(0.0, 1.0) = 0.0;
+
+// 1 inside the current frame's region (lo .. hi), 0 outside
+float inside_rect(vec2 uv, vec2 lo, vec2 hi) {
+	vec2 s = step(lo, uv) * step(uv, hi);
+	return s.x * s.y;
+}
+
+// Texture alpha at UV + offset, 0 outside the frame
+#define RIM_TAP(offset) (texture(TEXTURE, clamp(UV + (offset), lo, hi)).a * inside_rect(UV + (offset), lo, hi))
 
 vec3 hue_rotate(vec3 c, float angle) {
 	const vec3 k = vec3(0.57735);
@@ -20,12 +35,30 @@ vec3 hue_rotate(vec3 c, float angle) {
 }
 
 void fragment() {
-	vec4 tex = texture(TEXTURE, UV);
+	// Incoming COLOR is already texture * modulate in Godot 4
+	vec4 tex = COLOR;
 	vec3 col = hue_rotate(tex.rgb, hue_shift * 6.2831853);
 	float grey = dot(col, vec3(0.299, 0.587, 0.114));
 	col = clamp(mix(vec3(grey), col, saturation), 0.0, 1.0);
+	// brighten 0 = the original look (times the green texture once more: a
+	// dark maroon), 1 = the intended bright magenta
+	if (brighten < 1.0) {
+		vec4 extra = mix(texture(TEXTURE, UV), vec4(1.0), brighten);
+		col *= extra.rgb;
+		tex.a *= extra.a;
+	}
+	if (rim_strength > 0.0) {
+		vec2 lo = REGION_RECT.xy;
+		vec2 hi = REGION_RECT.xy + REGION_RECT.zw;
+		vec2 d = TEXTURE_PIXEL_SIZE * rim_width_px;
+		float m = RIM_TAP(vec2(d.x, 0.0));
+		m = min(m, RIM_TAP(vec2(-d.x, 0.0)));
+		m = min(m, RIM_TAP(vec2(0.0, d.y)));
+		m = min(m, RIM_TAP(vec2(0.0, -d.y)));
+		col = mix(col, rim_color.rgb, clamp(1.0 - m, 0.0, 1.0) * rim_strength);
+	}
 	col = mix(col, vec3(1.0), flash);
-	COLOR = vec4(col, tex.a) * COLOR;
+	COLOR = vec4(col, tex.a);
 }
 "
 
@@ -48,6 +81,7 @@ shoot_chance = 1.0
 accuracy = 0.85
 max_aim_angle = 60.0
 points = -500
+use_zone_rim = false
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 material = SubResource("ShaderMaterial_boss")
