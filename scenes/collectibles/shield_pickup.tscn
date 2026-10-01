@@ -1,8 +1,19 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/collectibles/shield_pickup.gd" id="1_script"]
 [ext_resource type="AudioStream" uid="uid://ba7lcd7dluclr" path="res://audio/retro-coin-1.mp3" id="2_sound"]
 [ext_resource type="Texture2D" uid="uid://dhjo7aubwjeca" path="res://sprites/shield_dome_1.png" id="3_dome"]
+[ext_resource type="Shader" path="res://shaders/shield_bubble.gdshader" id="4_bubble"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bubble"]
+shader = ExtResource("4_bubble")
+shader_parameter/interior_strength = 0.8
+shader_parameter/rim_color = Color(0.78, 0.96, 1, 1)
+shader_parameter/rim_glow = 1.0
+shader_parameter/rim_inner = 0.355
+shader_parameter/rim_outer = 0.378
+shader_parameter/glow_width = 0.06
+shader_parameter/sphere_center = Vector2(0.498, 0.494)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_pickup"]
 radius = 28.0
@@ -20,7 +31,8 @@ shape = SubResource("CircleShape2D_pickup")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture_filter = 4
-scale = Vector2(0.1072, 0.1072)
+material = SubResource("ShaderMaterial_bubble")
+scale = Vector2(0.1148, 0.1148)
 texture = ExtResource("3_dome")
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]

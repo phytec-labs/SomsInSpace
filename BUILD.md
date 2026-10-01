@@ -135,7 +135,7 @@ Useful to know when leaving it running on a booth:
 
 ## Placeholder art
 
-Several features (ships, newer enemies, pickups, docking station) run on
+Several features (some enemies, pickups and effects) run on
 stand-in art. [docs/ART_SWAP_TRACKER.md](docs/ART_SWAP_TRACKER.md) lists each
 one with the art it needs, and every spot in the code is tagged:
 
@@ -147,7 +147,9 @@ grep -rn PLACEHOLDER_ART scripts scenes data
 
 Full-size art sources live in `art_archive/masters/` (ignored by Godot); the
 game uses downscaled copies in `sprites/` (enemies and pickups 512 px tall,
-UFO and blimp 1024 px wide; the ships keep their 1024x1536 canvas). After
+UFO, blimp and docking station 1024 px wide; the ships keep their 1024x1536
+canvas). An entry can add a transparent margin (`pad`, e.g. the shield sphere's
+12% for its shader glow). After
 adding or changing a master, add or adjust its row in the `ART` table of
 `tools/resize_art.gd`, then regenerate and re-import:
 

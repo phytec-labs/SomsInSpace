@@ -14,10 +14,11 @@ backlog:
   done, ship art still needed
 - New enemies: drone swarm, blimp mini-boss, UFO with tractor beam, splitting asteroid,
   space mine: wishlist #5, code done, art still needed
-- Victory docking with a PHYTEC station (mock built from primitives): wishlist #4, code
-  done, art still needed
+- Victory docking with a PHYTEC station: wishlist #4, done (station art wired; the ship
+  lands on its central pad: shrink-to-pad flight, green touchdown ring, flash, DOCKED)
 - Pickups: health cell, shield bubble, screen-clear bomb, weighted per zone: wishlist #7,
-  code done, icons and shield ring art still needed (weapon tier icons still open)
+  code done, shield and bomb icons and the shield bubble wired (health and weapon tier
+  icons still open)
 - Juice: screen shake, floating score popups, combo multiplier, near-miss graze bonus
 - Wave rework: choreographed formations, spawn telegraphs, richer bullet patterns (fire
   patterns), more waves per zone
@@ -50,10 +51,10 @@ backlog:
 | 1 | Real boss instead of a tinted alien | Mothership sheet: idle, attack, hurt, death | Grid sheet, 6 to 8 frames per animation, ~512x384 per frame, facing down, transparent | open (boss uses the tinted alien) |
 | 2 | "Choose your SoM" ship select on the main menu, each ship with its own speed, fire rate, and health | 3 ship sprites (e.g. phyCORE-AM62x, i.MX 8M, i.MX 93) plus a small name badge each | 1024x1536 each, facing up, engine at bottom center, same silhouette scale as the current ship | code done, art needed |
 | 3 | Zone parallax backgrounds so the climb feels like travel | Ground skyline or launch site, aurora band for upper atmosphere, Earth horizon curve for space, a space station for orbit | 720 px wide strips, horizontally tileable where they scroll, transparent above the horizon, 1 to 3 layers per zone | open |
-| 4 | Victory moment: dock with a PHYTEC station | Station sprite and a short docking clamp animation | ~800x600 station, 4 to 6 frame clamp sheet | code done (primitive mock), art needed |
+| 4 | Victory moment: dock with a PHYTEC station | Station sprite (landing pad; clamps dropped for a landing), optional animated pad lights | `space_station_1.png` delivered; optional 2 to 4 frame pad-light loop | done (art wired) |
 | 5 | New enemy types. Ground: drone swarm that flocks. Atmosphere: blimp mini-boss with turrets. Space: UFO with a tractor beam, splitting asteroid, blinking space mine | One PNG per enemy, sheets for the UFO beam and mine blink; asteroid in 3 sizes | 256 to 512 px, facing down; beam as a vertical strip ~64x400; mine 2 to 4 blink frames | code done, art needed |
 | 6 | Damage states on enemies and the player | Smoke or crack overlay frames | 2 to 3 frames per enemy family, same canvas size as the enemy | open |
-| 7 | New pickups: shield bubble, screen-clear bomb, health cell; distinct icons for weapon tiers 2 and 3 | 5 pickup icons and a shield ring sprite | Icons 256x256 in a consistent style; shield ring ~300x300 with soft alpha edge | code done for shield / bomb / health, art needed; weapon tier icons open |
+| 7 | New pickups: shield bubble, screen-clear bomb, health cell; distinct icons for weapon tiers 2 and 3 | 5 pickup icons and a shield ring sprite | Icons 256x256 in a consistent style; shield ring ~300x300 with soft alpha edge | code done for shield / bomb / health; shield (sphere + shader rim glow) and bomb art wired, health icon and weapon tier icons open |
 | 8 | HUD polish: pause, heart, threat skull, three weapon tier icons | 6 icons | 128x128, one color plus alpha so code can tint them | open |
 | 9 | Menu title | Game logo | ~600x200 transparent, plus a version with the PHYTEC mark for the kiosk | open |
 | 10 | Sound and music | Boss loop, victory jingle, game-over sting, menu blip, power-up, player hit, boss roar and hit, warning klaxon, tier-3 shot | OGG for loops, MP3 or OGG for one-shots, 1 to 3 s each | open |

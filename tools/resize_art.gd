@@ -9,12 +9,15 @@
 # (the other side follows the aspect ratio). Optional "crop" (Rect2i, master
 # pixels) is applied first; optional "erase" (Array of Rect2i, master pixels)
 # clears those areas to transparent before cropping (e.g. neighbouring sheet
-# parts that poke into the crop). Lanczos filtering, alpha preserved, output is
-# RGBA8 PNG. Existing outputs are overwritten; their .import files (uid,
+# parts that poke into the crop). Optional "pad" (fraction of the resized art's
+# longer side) adds that much transparent margin on every side after resizing,
+# with the art centered (e.g. room for a shader glow around it). Lanczos
+# filtering, alpha preserved, output is RGBA8 PNG. Existing outputs are overwritten; their .import files (uid,
 # mipmap settings) are kept, so scenes stay wired.
 #
 # Conventions (docs/ART_SWAP_TRACKER.md): enemies and pickups 512 px tall,
-# UFO / blimp 1024 px wide; ships stay at their 1024x1536 canvas (not listed).
+# UFO / blimp / station 1024 px wide; ships stay at their 1024x1536 canvas (not
+# listed).
 extends SceneTree
 
 const MASTERS := "res://art_archive/masters/"
@@ -34,7 +37,9 @@ var ART: Array[Dictionary] = [
 		"crop": Rect2i(0, 44, 1536, 590),
 		"erase": [Rect2i(1085, 600, 451, 424)]},
 	{"src": "bomb_collectible_1.png", "dst": "bomb_collectible_1.png", "height": 512},
-	{"src": "shield_dome_1.png", "dst": "shield_dome_1.png", "height": 512},
+	# Full sphere; 12% margin so the shield_bubble.gdshader rim glow has room
+	{"src": "shield_dome_1.png", "dst": "shield_dome_1.png", "height": 512, "pad": 0.12},
+	{"src": "space_station_1.png", "dst": "space_station_1.png", "width": 1024},
 ]
 
 func _init() -> void:
@@ -81,6 +86,14 @@ func _process_entry(entry: Dictionary) -> bool:
 	img.fix_alpha_edges()
 	if tw != w or th != h:
 		img.resize(tw, th, Image.INTERPOLATE_LANCZOS)
+	if entry.has("pad"):
+		var margin := roundi(float(entry["pad"]) * maxi(tw, th))
+		var padded := Image.create_empty(tw + 2 * margin, th + 2 * margin, false, Image.FORMAT_RGBA8)
+		padded.fill(Color(0, 0, 0, 0))
+		padded.blit_rect(img, Rect2i(0, 0, tw, th), Vector2i(margin, margin))
+		img = padded
+		tw = img.get_width()
+		th = img.get_height()
 	var err := img.save_png(dst_path)
 	if err != OK:
 		push_error("resize_art: cannot write %s (error %d)" % [dst_path, err])

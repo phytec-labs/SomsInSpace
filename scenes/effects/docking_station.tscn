@@ -1,12 +1,16 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/effects/docking_station.gd" id="1_dock"]
+[ext_resource type="Texture2D" uid="uid://icw1xacg6hfn" path="res://sprites/space_station_1.png" id="2_hull"]
 
 [node name="DockingStation" type="Node2D"]
 position = Vector2(360, -300)
 script = ExtResource("1_dock")
 
-[node name="DockPoint" type="Marker2D" parent="."]
-position = Vector2(0, 90)
+[node name="Hull" type="Sprite2D" parent="."]
+texture_filter = 4
+scale = Vector2(0.6641, 0.6641)
+texture = ExtResource("2_hull")
 
-[node name="NavTimer" type="Timer" parent="."]
+[node name="DockPoint" type="Marker2D" parent="."]
+position = Vector2(0, 1)

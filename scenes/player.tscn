@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://fgrg1yvq87i7"]
+[gd_scene load_steps=14 format=3 uid="uid://fgrg1yvq87i7"]
 
 [ext_resource type="Script" uid="uid://cofp5vjifwmcm" path="res://scripts/main_level/player.gd" id="1_vp455"]
 [ext_resource type="PackedScene" uid="uid://dfjvynj27ebhu" path="res://scenes/effects/player_projectile_1.tscn" id="2_fcb3v"]
@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://b77jlqemvprf3" path="res://sprites/weapon_laser.png" id="4_fjrip"]
 [ext_resource type="Texture2D" uid="uid://bikfkvgj1jug6" path="res://sprites/player_ship_body2.png" id="5_tuyoq"]
 [ext_resource type="Texture2D" uid="uid://dhjo7aubwjeca" path="res://sprites/shield_dome_1.png" id="6_dome"]
+[ext_resource type="Shader" path="res://shaders/shield_bubble.gdshader" id="7_bubble"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_17f3c"]
 particles_animation = true
@@ -18,6 +19,16 @@ particles_anim_loop = false
 [sub_resource type="Gradient" id="Gradient_rkppw"]
 offsets = PackedFloat32Array(0, 0.262443, 0.997738)
 colors = PackedColorArray(0.424785, 0.172459, 0.664428, 1, 0.270588, 0.270588, 1, 0.717647, 1, 1, 1, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bubble"]
+shader = ExtResource("7_bubble")
+shader_parameter/interior_strength = 0.55
+shader_parameter/rim_color = Color(0.78, 0.96, 1, 1)
+shader_parameter/rim_glow = 1.0
+shader_parameter/rim_inner = 0.355
+shader_parameter/rim_outer = 0.378
+shader_parameter/glow_width = 0.09
+shader_parameter/sphere_center = Vector2(0.498, 0.494)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_graze"]
 radius = 95.0
@@ -186,8 +197,9 @@ z_index = 2
 
 [node name="Dome" type="Sprite2D" parent="ShieldRing"]
 texture_filter = 4
-position = Vector2(0, -39)
-scale = Vector2(0.3897, 0.3897)
+material = SubResource("ShaderMaterial_bubble")
+position = Vector2(0, -6)
+scale = Vector2(0.5258, 0.5258)
 texture = ExtResource("6_dome")
 
 [node name="ProjectileAudioPlayer" type="AudioStreamPlayer2D" parent="."]

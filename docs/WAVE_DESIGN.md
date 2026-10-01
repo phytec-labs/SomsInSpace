@@ -43,7 +43,10 @@ see "Mini-boss" below. After the last wave
 the zone loops from the first wave. `one_shot` groups that already spawned
 during this visit are skipped. Changing zone restarts the sequence at wave 0
 with ramp 0. Formations already flying keep flying. Zones without waves (the
-orbit/boss zone) spawn nothing.
+orbit/boss zone) spawn nothing. Defeating the boss ends the run with the
+victory landing (~7.5 s to the results: station descends, the ship shrinks
+onto its landing pad, touchdown ring + flash + shake, DOCKED); the timeline
+and its exported timings are in `scripts/effects/docking_station.gd`.
 
 ### Difficulty ramp (adds speed, never bodies)
 

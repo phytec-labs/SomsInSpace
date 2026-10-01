@@ -29,15 +29,22 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 # controllable and vulnerable (see _update_graze_area()).
 @onready var graze_area: Area2D = get_node_or_null("GrazeArea")
 # Shield bubble (shown while shielded; see activate_shield()). Its child
-# "Dome" Sprite2D (sprites/shield_dome_1.png, 518x512, at 0.3897, offset up
-# so the dome covers the nose, rim ~40 px below the ship center); the pulse /
-# hit pop / warning blink drive ShieldRing's scale, modulate and visibility.
+# "Dome" Sprite2D (sprites/shield_dome_1.png, 634x634 full sphere, at 0.5258,
+# at (0, -6): within 5 local px of each ship's art center (y -10.8 / -2.1 /
+# -5.2); sphere radius 126 local px, ~10 px outside the farthest corner of
+# the largest ship, still outside at the -5% pulse) uses
+# shaders/shield_bubble.gdshader (faded interior, rim glow). The pulse / hit
+# pop / warning blink drive ShieldRing's scale, modulate and visibility; the
+# shader multiplies by modulate last, so they apply on top of the look.
 @onready var shield_ring: Node2D = get_node_or_null("ShieldRing")
 
 # Emitted when a fly_to() tween reaches its target
 signal arrived
 var _fly_tween: Tween
 var is_flying: bool = false
+# Scale as placed in the level (0.8); fly_to(end_scale) shrinks the ship for
+# the victory landing, reset_position() restores it
+var _base_scale: Vector2 = Vector2.ONE
 
 # State variables
 var can_move: bool = false
@@ -115,6 +122,7 @@ const MAX_TIER_FLASH_COLOR := Color(0.4, 1, 1)  # Cyan (tier 3)
 
 func _ready() -> void:
 	initial_position = position
+	_base_scale = scale
 	target_position = position
 
 	assert(collision_polygon != null, "CollisionPolygon2D node not found")
@@ -493,6 +501,7 @@ func reset_position() -> void:
 	velocity = Vector2.ZERO
 	is_touch_active = false
 	is_dead = false  # Reset the dead flag
+	scale = _base_scale
 	end_blink()  # Ensure blink effect is reset
 	end_shield()
 
@@ -613,7 +622,10 @@ func die() -> void:
 # `duration` seconds, ignoring player input, with the main thrusters on (plus
 # the directional thruster opposite the travel direction). Thrusters go off and
 # `arrived` is emitted on arrival. Input stays disabled afterwards.
-func fly_to(target: Vector2, duration: float) -> void:
+# `end_scale` > 0 also shrinks the ship from its current scale to that uniform
+# scale over the flight, mostly in the second half (reads as descending onto
+# the landing pad); only a scene reload or reset_position() restores it.
+func fly_to(target: Vector2, duration: float, end_scale: float = -1.0) -> void:
 	if is_dead:
 		return
 	if _fly_tween:
@@ -635,9 +647,13 @@ func fly_to(target: Vector2, duration: float) -> void:
 	main_thruster.emitting = true  # (update_thrusters ties these to can_move)
 	main_thruster2.emitting = true
 
+	var time := maxf(duration, 0.01)
 	_fly_tween = create_tween()
-	_fly_tween.tween_property(self, "global_position", target, maxf(duration, 0.01)) \
+	_fly_tween.tween_property(self, "global_position", target, time) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if end_scale > 0.0:
+		_fly_tween.parallel().tween_property(self, "scale", Vector2(end_scale, end_scale), time) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	_fly_tween.tween_callback(_on_fly_arrived)
 
 func _on_fly_arrived() -> void:

@@ -89,8 +89,8 @@ const SHAKE_MEDIUM := 0.6        # Mine detonation, asteroid split
 const SHAKE_MEDIUM_TIME := 0.3
 const SHAKE_LARGE := 0.85        # Player hit, boss phase change
 const SHAKE_LARGE_TIME := 0.4
-const SHAKE_CLAMP := 0.75        # Docking clamps close
-const SHAKE_CLAMP_TIME := 0.35
+const SHAKE_TOUCHDOWN := 0.75    # Ship touches down on the station pad
+const SHAKE_TOUCHDOWN_TIME := 0.35
 const SHAKE_GRAZE := 0.25
 const SHAKE_GRAZE_TIME := 0.1
 const SHAKE_BOMB := 1.0          # Screen-clear bomb
@@ -807,7 +807,8 @@ func _on_boss_defeated() -> void:
 	show_message("ORBIT REACHED!")
 
 	# Docking sequence: the station waits for the boss death sequence,
-	# descends, the ship flies into the port, clamps close, DOCKED; then
+	# descends, the ship flies over its pad and shrinks onto it (landing),
+	# touchdown (ring pulse, flash, shake), DOCKED; then
 	# _on_docking_finished awards the bonus and shows the results. All of it
 	# runs on node-bound tweens, so nothing resumes if the level is freed.
 	_start_docking()
@@ -817,17 +818,18 @@ func _start_docking() -> void:
 	docking_station.position = Vector2(get_viewport_rect().size.x / 2.0, docking_station.start_y)
 	add_child(docking_station)
 	docking_station.ready_for_ship.connect(_on_station_ready_for_ship)
-	docking_station.clamps_closed.connect(_on_station_clamps_closed)
+	docking_station.touchdown.connect(_on_station_touchdown)
 	docking_station.docking_finished.connect(_on_docking_finished, CONNECT_ONE_SHOT)
 	docking_station.play_docking(player)
 
 func _on_station_ready_for_ship() -> void:
 	if current_state != GameState.VICTORY or not is_instance_valid(docking_station):
 		return
-	player.fly_to(docking_station.get_dock_position(), docking_station.ship_fly_time)
+	player.fly_to(docking_station.get_dock_position(), docking_station.ship_fly_time,
+		docking_station.landing_scale)
 
-func _on_station_clamps_closed() -> void:
-	shake(SHAKE_CLAMP, SHAKE_CLAMP_TIME)
+func _on_station_touchdown() -> void:
+	shake(SHAKE_TOUCHDOWN, SHAKE_TOUCHDOWN_TIME)
 
 func _on_docking_finished() -> void:
 	if not is_inside_tree() or current_state != GameState.VICTORY:

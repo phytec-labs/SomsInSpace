@@ -25,7 +25,7 @@ path when adding it back to a scene or script.
 ## masters/
 
 Full-size sources of art the game uses (jets, drone, mine, UFO, zeppelin sheet,
-bomb icon, shield dome). The game uses downscaled copies in `sprites/` (same
+bomb icon, shield sphere, docking station). The game uses downscaled copies in `sprites/` (same
 basenames, except the blimp: `sprites/zeppelin_1.png` is the zeppelin cut out of
 `zeppelin_weapon_combined.png`, whose six weapon modules are not used yet).
 To regenerate the game copies after editing a master:
@@ -43,3 +43,5 @@ would import them at full size.
 
 The previous pixel-art versions of `jet_1.png`, `jet_2.png` and `jet_8.png`,
 replaced by the new jet_1 / jet_2 / jet_3 art.
+`shield_dome_half.png` is the previous half-dome shield master (1261x1247),
+replaced by the full sphere in `masters/shield_dome_1.png`.
