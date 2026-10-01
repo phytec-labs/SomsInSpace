@@ -28,11 +28,20 @@
 //   faster ring set, so being caught reads clearly. A second layer instead
 //   of scaling the ring speed: scaling TIME * speed by a changing value
 //   would make the rings jump.
+// - charge (0..1, ufo_obstacle.gd: the bolt charging while the player stays
+//   in the beam) escalates the look: the core narrows and heats toward white
+//   (charge_color), the rings brighten, and bright bands run down the beam
+//   (their position is driven by charge itself, charge_bands passes from 0 to
+//   1, so they never jump when the value changes). Mostly in the core: the
+//   cone's outline stays matched to the BeamArea polygon.
+// - bolt (1 -> 0 over 0.15 s when the bolt fires): the whole beam flashes
+//   white, brightest in a narrow column down the middle.
 // - COLOR (modulate) is multiplied last, so the code-driven fade in/out and
 //   alpha pulse in ufo_obstacle.gd apply on top. Standard alpha blending.
 //
 // GLES3 / Mobile safe and cheap: no texture reads, no derivatives, no loops;
-// ~10 sin/fract/smoothstep groups per fragment.
+// ~10 sin/fract/smoothstep groups per fragment; charge / bolt work sits
+// behind uniform branches (free while idle).
 shader_type canvas_item;
 
 // Cone half-width at the emitter / at the bottom of the quad (fractions of
@@ -71,6 +80,12 @@ uniform float shimmer_strength : hint_range(0.0, 1.0) = 0.3;
 
 // 0 = idle, 1 = the player is caught (driven by ufo_obstacle.gd)
 uniform float capture : hint_range(0.0, 1.0) = 0.0;
+// Bolt charge 0..1 and bolt flash 1 -> 0 (driven by ufo_obstacle.gd)
+uniform float charge : hint_range(0.0, 1.0) = 0.0;
+uniform float bolt : hint_range(0.0, 1.0) = 0.0;
+// Color the core heats toward while charging; bands sweeping down per charge
+uniform vec4 charge_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform float charge_bands : hint_range(0.0, 8.0) = 3.0;
 
 // Soft band of half-width w around the middle of each period of `phase`
 float ring_band(float phase, float w) {
@@ -91,9 +106,16 @@ void fragment() {
 	float xn = abs(x) / max(hw, 0.001);
 	float cone = 1.0 - smoothstep(1.0 - 0.5 * edge_softness, 1.0 + 0.5 * edge_softness, xn);
 
-	// Core: bright center line, also used for the ring curvature
+	// Core: bright center line, also used for the ring curvature. Charging
+	// narrows it (higher power) and makes it stronger.
 	float across = clamp(1.0 - xn * xn, 0.0, 1.0);
 	float core = across * across * core_strength * (1.0 + 1.2 * capture);
+	float hot = 0.0;
+	if (charge > 0.0 || bolt > 0.0) {
+		float a4 = across * across;
+		hot = a4 * a4 * (charge * 2.2 + bolt * 4.0);
+		core += hot;
+	}
 
 	// Vertical falloff, soft start and soft end
 	float fall = pow(max(1.0 - v, 0.0), fade_power);
@@ -112,6 +134,15 @@ void fragment() {
 	// Capture: a denser, faster ring set fades in
 	float rings2 = ring_band(s * ring_count * 1.7 + t * ring_speed * 2.6, ring_width * 0.8);
 	rings += rings2 * ring_strength * capture;
+	rings *= 1.0 + 1.2 * charge;
+	// Charge bands: bright bands sweeping down the beam as the charge rises
+	// (charge_bands of them pass from charge 0 to 1), tighter and brighter
+	// near full charge
+	if (charge > 0.0) {
+		float band_pos = fract(charge * charge_bands);
+		float d = abs(v - band_pos);
+		rings += (1.0 - smoothstep(0.0, 0.06, d)) * (0.8 + 1.6 * charge) * charge;
+	}
 	// Rings are strongest across the middle of the cone, fading at the sides
 	rings *= 0.4 + 0.6 * across;
 
@@ -125,7 +156,15 @@ void fragment() {
 	float a_core = beam_alpha * core;
 	float a_ring = beam_alpha * rings;
 	float a_sum = (a_body + a_core + a_ring) * cone * fall;
-	vec3 rgb = (beam_color.rgb * a_body + core_color.rgb * (a_core + 0.6 * a_ring)
+	vec3 core_rgb = mix(core_color.rgb, charge_color.rgb, clamp(charge * 1.2 + bolt, 0.0, 1.0));
+	vec3 rgb = (beam_color.rgb * a_body + core_rgb * (a_core + 0.6 * a_ring)
 		+ beam_color.rgb * 0.4 * a_ring) / max(a_body + a_core + a_ring, 0.0001);
+	// Bolt: the whole cone flashes white (kept to the beam's own falloff, with
+	// a floor so the flash reaches the end of the beam)
+	if (bolt > 0.0) {
+		float reach = 1.0 - smoothstep(1.0 - end_fade, 1.0, v);
+		rgb = mix(rgb, vec3(1.0), bolt);
+		a_sum = max(a_sum, bolt * cone * reach * (0.55 + 0.45 * across));
+	}
 	COLOR = vec4(rgb, clamp(a_sum, 0.0, 1.0)) * COLOR;
 }

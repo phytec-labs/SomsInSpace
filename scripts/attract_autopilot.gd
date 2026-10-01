@@ -19,6 +19,11 @@
 # demo shoots it down instead of letting it hold the waves. Dodges, pickup
 # fetches (the weapon upgrade first) and bomb avoidance still override it.
 #
+# UFO beam: the cruise line sits below the tractor beam, but a fetch can climb
+# into it. While a UFO's bolt is charging on the ship (`is_charging()`), the
+# ship escapes sideways, BEAM_ESCAPE_X from the saucer's x (overrides any
+# other dodge), well before the bolt fires.
+#
 # Fetch: a pickup worth climbing for pulls the target off the cruise line to
 # the pickup itself (the ship flies there at its own speed; re-aimed every
 # scan since the weapon upgrade sways), then the ship drops back to the
@@ -70,6 +75,9 @@ const DODGE_SHIFT := 120.0
 const DODGE_HOLD := 0.35
 ## Enemies closer than this (vertically) are dodged instead of tracked
 const RAM_DISTANCE := 230.0
+## Caught in a UFO beam with the bolt charging: target x this far from the
+## saucer's x (the beam is at most ~80 px wide each side of it)
+const BEAM_ESCAPE_X := 210.0
 ## Keep the target this far from the screen edges
 const EDGE_MARGIN := 60.0
 ## Ignored pickups (bomb) are kept at least this far sideways from the ship
@@ -112,6 +120,8 @@ var _fetch_pos: Vector2 = Vector2.ZERO
 var _fetch_time: float = 0.0
 # Pickup instance id -> _time until which it is not fetched (timed out)
 var _fetch_blocked: Dictionary = {}
+# Observability (tests): scans that triggered a beam escape
+var beam_escapes: int = 0
 
 
 func setup(p_level: Node) -> void:
@@ -206,6 +216,8 @@ func _scan() -> void:
 			if above < RAM_DISTANCE and absf(pos.x - ship.x) < DODGE_SHIFT and is_obstacle:
 				_start_dodge(ship.x, pos.x)
 				continue
+			if is_obstacle and child.has_method("is_charging") and child.is_charging():
+				_start_beam_escape(ship.x, pos.x, view.x)
 			if is_obstacle and child.get("is_miniboss") == true and _is_miniboss_on_screen(pos, view):
 				miniboss_x = pos.x
 			var dist := ship.distance_squared_to(pos)
@@ -341,6 +353,20 @@ func _start_dodge(ship_x: float, threat_x: float) -> void:
 		dir = -dir
 	_dodge_x = clampf(ship_x + dir * DODGE_SHIFT, EDGE_MARGIN, view_w - EDGE_MARGIN)
 	_dodge_time_left = DODGE_HOLD
+
+
+# Leave a charging UFO beam: sideways, away from the saucer's x (to the other
+# side when that is off screen); replaces a running dodge
+func _start_beam_escape(ship_x: float, ufo_x: float, view_w: float) -> void:
+	var dir := signf(ship_x - ufo_x)
+	if dir == 0.0:
+		dir = 1.0 if ufo_x < view_w * 0.5 else -1.0
+	var x := ufo_x + dir * BEAM_ESCAPE_X
+	if x < EDGE_MARGIN or x > view_w - EDGE_MARGIN:
+		x = ufo_x - dir * BEAM_ESCAPE_X
+	_dodge_x = clampf(x, EDGE_MARGIN, view_w - EDGE_MARGIN)
+	_dodge_time_left = DODGE_HOLD
+	beam_escapes += 1
 
 
 ## True for a pickup the demo must not collect (the screen-clear bomb).

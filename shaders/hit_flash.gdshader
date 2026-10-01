@@ -17,6 +17,12 @@
 //                (art colours squared: darker, more saturated; unchanged
 //                look for the ground zone), 1 = the art's own colours. Lifts
 //                dark tones the most; whites stay white.
+//   hue_shift    Per enemy scene (Obstacle.hue_shift export), radians; 0 =
+//                off (default; skipped by a uniform branch, so other enemies
+//                pay nothing). Rotates the hue of the sprite's colour around
+//                the grey axis (luma roughly kept), after the brighten step
+//                and before the rim and the flash. Used as a stand-in for a
+//                second colour of the same art (scout saucer).
 //
 // Rim: an INNER rim (inside the silhouette, so art that fills its canvas to
 // the edge still gets one). A pixel is rim when any of the 4 neighbours at
@@ -30,7 +36,7 @@
 // at a 2 px rim).
 //
 // Order: COLOR (= texture * modulate, so modulate tints still apply) ->
-// brighten -> rim -> flash. Alpha is always texture alpha * modulate alpha.
+// brighten -> hue_shift -> rim -> flash. Alpha is always texture alpha * modulate alpha.
 //
 // Cost (Mobile / GL ES 3), on top of the engine's own texture sample: both
 // features sit behind uniform branches. brighten < 1: +1 sample (the original
@@ -42,6 +48,7 @@ uniform vec4 rim_color : source_color = vec4(0.75, 0.95, 1.0, 1.0);
 uniform float rim_strength : hint_range(0.0, 1.0) = 0.0;
 uniform float rim_width_px = 10.0;
 uniform float brighten : hint_range(0.0, 1.0) = 0.0;
+uniform float hue_shift = 0.0;
 
 // 1 inside the region rect (lo .. hi), 0 outside
 float inside_rect(vec2 uv, vec2 lo, vec2 hi) {
@@ -67,6 +74,14 @@ void fragment() {
 		vec4 extra = mix(texture(TEXTURE, UV), vec4(1.0), brighten);
 		col *= extra.rgb;
 		tex.a *= extra.a;
+	}
+
+	// Hue rotation around the grey axis (Rodrigues); uniform branch
+	if (hue_shift != 0.0) {
+		vec3 k = vec3(0.57735);
+		float c = cos(hue_shift);
+		col = col * c + cross(k, col) * sin(hue_shift) + k * dot(k, col) * (1.0 - c);
+		col = max(col, vec3(0.0));
 	}
 
 	// Skipped for 1-4 px textures (untextured Polygon2D children sharing the

@@ -29,6 +29,10 @@ backlog:
   phase. Code done; missile, pickup icon and enemy missile art still needed (the orb is
   procedural)
 - Animated bomb pickup icon (6-frame sheet) wired
+- UFO weapons: the mini-boss saucer fires a telegraphed pulse ring while it hovers and
+  charges a bolt down its beam on a player who stays caught; scout saucers (60% size,
+  three-shot fan volleys) replaced the satellites in space. Code done; the scouts wait for
+  a second-colour UFO render (`ufo_2`, a hue shift stands in)
 
 ## How art plugs in today
 
@@ -75,7 +79,7 @@ a PHYTEC product story: pick your module, see its stats, fly it.
 - Combo multiplier for kill streaks (done)
 - Near-miss bonus points for grazing bullets (done)
 - Chained explosions when enemies die close together
-- Richer enemy bullet patterns (rings, spirals, aimed bursts) (partly done: volley / ripple fire patterns, boss volleys, homing zeppelin missiles, seeker orbs bursting into rings)
+- Richer enemy bullet patterns (rings, spirals, aimed bursts) (partly done: volley / ripple fire patterns, boss volleys, homing zeppelin missiles, seeker orbs bursting into rings, UFO pulse rings, scout fans)
 - More wave and formation definitions per zone (all data in `data/zones/*.tres`) (done: wave rework)
 - Ship banking when moving sideways
 - Attract-mode demo that plays itself on the main menu until someone touches the screen (done)

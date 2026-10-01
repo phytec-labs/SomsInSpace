@@ -151,7 +151,9 @@ Formation fire sets `Obstacle.fire_controlled`, which disables the random
 shooting. Only members on screen fire. Members whose scene has
 `can_shoot = false` never fire (e.g. `satellite_obstacle_*`); use a shooting
 variant for a firing formation (`satellite_turret_obstacle.tscn`: satellite_1
-with `can_shoot`, a `GunPoint1` and aimed shots).
+with `can_shoot`, a `GunPoint1` and aimed shots). A member may override
+`shoot()` to fire a pattern instead of one aimed shot: the scout saucer fires
+a three-shot fan on each volley (see "UFO weapons and scout saucers").
 Blimp, UFO and boss minions manage their own shooting and are never
 fire-controlled.
 
@@ -224,8 +226,9 @@ Tier-1 damage per shot: balanced (phyCORE-AM62x) 10 every 0.2 s, light
 (i.MX 93) 8.5 every 0.16 s, heavy (i.MX 8M Plus) 12.5 every 0.23 s. Tier 2
 adds two side shots (3 per volley), tier 3 two angled 12-damage shots. Base
 health that differs from 10: drone 5, mine 8, asteroid 30 / 15 / 6 (large /
-medium / small), UFO 170 (425 in upper_atmosphere, 510 in space), blimp 270
-(540 in the atmosphere, its only zone).
+medium / small), UFO 170 (425 in upper_atmosphere, 510 in space), scout
+saucer 50 (150 in space, its only zone), blimp 270 (540 in the atmosphere, its
+only zone).
 
 Big targets, balanced ship, sustained fire (headless, ship tracking the
 target from 250-800 px below; seconds from the first hit to the kill):
@@ -235,6 +238,7 @@ target from 250-800 px below; seconds from the first hit to the kill):
 | Blimp (atmosphere) | 540 (was 320) | ~10.8 s (54 hits) | ~4.0-4.4 s (was ~2.7-3.3 s) | ~3.3-4.1 s |
 | UFO (upper_atmosphere) | 425 (was 200, before that 100) | | ~4.6 s median, 3.9-5.6 s (was ~2.1-2.4 s) | ~4.3 s median, 3.2-4.7 s (was ~1.7-2.5 s) |
 | UFO (space) | 510 (was 240, before that 120) | | ~5.1 s median, 4.7-6.3 s (was ~2.5 s) | ~4.3 s median, 3.4-5.2 s (was ~1.9-2.9 s) |
+| Scout saucer (space) | 150 | | ~1.55 s median, 1.0-1.55 s | ~1.33 s median, 0.8-1.5 s |
 
 The Player node is scaled 0.8 in the level, so the balanced ship's wing guns
 sit at about +-30 px on screen. The blimp's hull (capsule radius 40, ~94 px
@@ -244,7 +248,10 @@ radius-30 hull only within about +-6 px). The tier-3 angled shots mostly
 miss it, so tier 3 is only a little faster. The UFO is 200 px wide, so all
 three tier-2 shots land; its sideways patrol and the ~1.5 s shot travel time
 cost some hits. (UFO rows: 16 trials per cell, ship 1050 px from the top
-tracking the saucer every frame, base 170 measured 2026-10.)
+tracking the saucer every frame, base 170 measured 2026-10. Scout row: 8
+trials per cell, a stationary scout at y 300, ship 1050 px from the top
+within +-28 px of its x, continuous fire, seconds from the first hit; the
+scout's 120 px capsule takes all three tier-2 shots, so tier 3 adds little.)
 
 UFO, casual player (same ship at y 1050; the saucer flies in from above as in
 a real spawn; the ship moves at its own speed toward the saucer's x plus a
@@ -291,6 +298,8 @@ The values play-testing usually touches, and where they live:
 | Zeppelin missiles | `scripts/obstacles/blimp_obstacle.gd` group "Blimp Missiles" | pair every 4.5 s, max 4 live | See "Missiles" |
 | Blimp health | `scenes/obstacles/blimp_obstacle.tscn` `health` | 270 (x 2.0 in atmosphere = 540) | Mini-boss length (~4.0-4.4 s of sustained tier-2 fire, ~10-12 s for the casual bot) |
 | UFO health | `scenes/obstacles/ufo_obstacle.tscn` `health` | 170 (x 2.5 = 425 upper_atmosphere, x 3.0 = 510 space) | ~4.3 s of sustained tier-3 fire in space (~5 s tier 2); a casual player (60% fire, loose aim) needs ~5-8 s of its 12 s hover; raise it and the casual escape rate climbs fast |
+| UFO weapons | `scripts/obstacles/ufo_obstacle.gd` group "UFO Weapons" | ring of 12 at 150 px/s every 3.0 s (first 1.5 s into the hover, 0.4 s tell); bolt 25 after 1.5 s in the beam, 2.0 s cooldown | See "UFO weapons and scout saucers" |
+| Scout saucer | `scenes/obstacles/scout_ufo_obstacle.tscn` (`health` 50, fan exports in `scout_ufo_obstacle.gd`), group in `data/zones/space.tres` "Minefield" | 150 in space; fan of 3 at +-18 deg, 360 px/s; VOLLEY every 2.2 s, hold 4 s | ~1.3 s of sustained tier-3 fire each |
 | Mini-boss timing | `data/zones/atmosphere.tres`, group "Mini-boss" | 2.5 s after the upgrade is collected, fallback 18 s zone time, holds waves for at most 8 s | When the blimp arrives and how long the sequencer pauses for it |
 | `first_fire_delay` | each `WaveGroup` | 0.6 s | Formation's first volley / ripple after it appears on screen |
 | `fire_interval` | each `WaveGroup` | 1.2-2.5 s | Time between formation volleys / ripples |
@@ -449,12 +458,17 @@ delays 0.8-1.0 s.
 | 7 Swarm Strike | 6 × drone SWARM `swoop_left`, AFTER_DELAY 1.0 → 3 × jet_8 LINE `dive_center` (spread 100) RIPPLE 1.2, AFTER_DELAY 1.0 → 4 × jet_1 V `loop_left` RIPPLE 1.8, beat 0.6 | 0.8 |
 | 8 Crossfire | 5 × jet_9 WAVE `side_sweep_left` (spread 70) RIPPLE 1.6, AFTER_DELAY 1.5 → 5 × jet_9 WAVE `side_sweep_left` force_mirror RIPPLE 1.6, beat 0.6 | 1.0 |
 
-### Space (spread 110; loop ≈ 46-51 s)
+### Space (spread 110; loop ≈ 46-51 s, measured with the satellites)
+
+Satellites belong to the upper atmosphere only: the space "Minefield" wave's
+two satellite sweeps were replaced by one V of scout saucers (2026-10), and
+the zone's legacy `obstacle_scenes` list names the scout instead of the
+satellites.
 
 | Wave | Groups | C |
 |---|---|---|
 | 1 Alien Swoop | 5 × alien V `swoop_left` VOLLEY 2.0, beat 0.8 | 1.0 |
-| 2 Minefield | 5 × mine LINE `top_straight` (spread 130), NONE, AFTER_DELAY 0.5 → 3 × satellite_3 DIAGONAL `side_sweep_left` (spread 90), AFTER_DELAY 1.5 → 3 × satellite_4 DIAGONAL `side_sweep_left` force_mirror, beat 0.8 | 1.0 |
+| 2 Minefield | 5 × mine LINE `top_straight` (spread 130), NONE, AFTER_DELAY 0.5 → 3 × scout saucer V `hover_top` (spread 150) hold 4 s VOLLEY 2.2 (first 0.6 s), beat 0.8 | 1.0 |
 | 3 Saucer Rocks | 1 × UFO (scene_override, does not hold the wave), AFTER_DELAY 1.0 → 2 × asteroid LINE `dive_center` (spread 160), AFTER_DELAY 2.5 → 2 × asteroid LINE `dive_center` force_mirror, beat 0.8 | 1.0 |
 | 4 Alien Ring | 8 × alien CIRCLE `hover_top` hold 6 s (spread 110) RIPPLE 1.5, beat 0.8 | 1.0 |
 | 5 Jet Pincer | 3 × jet_8 V `pincer_left` (no mirror) VOLLEY 2.0, AFTER_DELAY 0 → 3 × jet_9 V `pincer_left` force_mirror VOLLEY 2.0, AFTER_DELAY 1.5 → 8 × drone SWARM `loop_left` (380 px/s), beat 0.8 | 1.5 |
@@ -498,6 +512,104 @@ shot down / 0.0 burst / 0.1 reached the player per fight, survival 10/10 ->
 10/10 (lowest end health 90 -> 50). Tier 2: 46.0 s, health lost 78 (healed
 53), 2.5 orbs burst per fight, 10/10 survive (lowest 35). Light ship (70
 health) at tier 3: 19.7 s, 10/10 survive (lowest 45).
+
+## UFO weapons and scout saucers
+
+### UFO mini-boss (`scripts/obstacles/ufo_obstacle.gd`, group "UFO Weapons")
+
+Both weapons work only while the saucer HOVERS (never while flying in or
+leaving) and while the run is on; all timing is `_process` /
+`_physics_process` delta, so they freeze while paused, and every value resets
+on `initialize()` / `deactivate()` (pooled reuse).
+
+- **Pulse ring.** `ring_first_delay` (1.5 s) after the hover starts, then every
+  `ring_interval` (3.0 s): a `ring_telegraph` (0.4 s) tell, two quick pulses of
+  the sprite's `self_modulate` toward `ring_telegraph_color` (the hull and
+  lights flare; the hit flash still mixes to white after it in the shader),
+  then `ring_bullets` (12) shots of `ring_scene` (`enemy_projectile_3.tscn`,
+  the seeker-burst bullet) leave the hull's rim (`ring_rim_radius` 96 x 34
+  ellipse) evenly spaced at `ring_speed` (150 px/s, `ring_lifetime` 9 s, both
+  set per shot; the shot restores its authored 500 px/s when pooled). Every
+  other ring is rotated by half a spacing (15 deg), so the gaps move. A full
+  12 s hover fires 4 rings (1.5, 4.5, 7.5, 10.5 s); no tell is shown for a
+  ring the hover would end before.
+- **Charged bolt.** While the player stays inside the beam the charge rises
+  over `charge_time` (1.5 s); outside the beam it drains in
+  `charge_decay_time` (0.3 s). At full charge the beam fires: a
+  `bolt_flash_time` (0.15 s) white flash down the whole beam and
+  `bolt_damage` (25) through `level.update_health(-25, at)`: the shield
+  absorbs it (pop + ripple, combo kept), the hit blink protects (no damage
+  while blinking), otherwise the combo resets, the screen shakes as for any
+  hit, the tier-loss option applies and the player starts blinking. Then
+  `bolt_cooldown` (2.0 s) before charging can start again. The pull (220 px/s)
+  and the drain (4 HP/s, halved by the shield) are unchanged.
+- **Beam look.** The beam shader's `charge` uniform (the charge, 0..1) heats
+  and narrows the core toward white and sends three bright bands down the
+  beam as it rises; `bolt` (1 -> 0 over the flash) turns the whole cone white.
+  See docs/ART_SWAP_TRACKER.md, "Beam look".
+- **Escape time** (headless, ship starting on the beam's center line, dragged
+  straight sideways at the same height, the pull acting; UFO at y 180, beam
+  80-160 px wide): mid-height (y 460) 0.52 s balanced (300 px/s), 0.60 s
+  heavy (240), 0.43 s light (380); at y 380 / 560: 0.48 / 0.53, 0.57 / 0.63,
+  0.42 / 0.46 s. `charge_time` 1.5 s leaves the slowest ship ~0.9 s to react.
+- Attract demo: the autopilot cruises below the beam (it ends at y ~710); if a
+  pickup fetch takes it into a beam and the bolt starts charging
+  (`is_charging()`), it escapes sideways 210 px from the saucer's x.
+
+### Scout saucer (`scenes/obstacles/scout_ufo_obstacle.tscn`)
+
+A medium formation enemy for the space zone only (it replaced the
+satellites there). An ordinary pooled formation member (no beam, no hover
+state machine): the mini-boss art at 60% size (Sprite2D scale 0.1247, ~126 px
+wide), capsule 120 x 32 at y+4, `GunPoint1` at the underside emitter (0, 22).
+Base health 50 (150 in space: ~1.3 s of sustained tier-3 fire), contact
+damage 20, 40 points, no mini health bar (`show_health_bar = false`). Zone rim
+and brighten, hit flash, sparks, pooling, the obstacle cap and combo points
+work as for any enemy.
+
+Weapon: each `shoot()` (the formation's VOLLEY calls it on every scout at
+once) fires a fan of `fan_bullets` (3) shots at -18 / 0 / +18 deg
+(`fan_spread_degrees`) around straight down from `GunPoint1`, red
+`enemy_projectile_1.tscn` shots at `fan_speed` 360 px/s (other enemy shots
+fly at 500) with `fan_lifetime` 4 s, both set per shot.
+
+Placeholder colour: until the second-colour art (`ufo_2`) arrives, the scout
+sets `hue_shift = -1.9` (radians) on its hit flash material, which rotates
+the purple lights to teal and the beige hull to a cool lavender-grey (see the
+shader note in `shaders/hit_flash.gdshader`; 0 = off, skipped by a uniform
+branch for every other enemy). Swap: texture `sprites/ufo_2.png`, `hue_shift`
+0 (docs/ART_SWAP_TRACKER.md).
+
+### Balance (casual bot, balanced ship, tier 3)
+
+Bot: fires ~60% of the time, aims at the nearest target with +-60 px wobble,
+sidesteps shots within 120 px ahead and enemies within 140 px, reacts to
+being caught in a beam after 0.4 s (steers 200 px sideways), fetches nearby
+health / shield / missile pickups; `--fixed-fps 60`, 30 seeds per cell
+(UFO) / 30 seeds (hold), before = commit 3cbe1b6.
+
+UFO alone in space (510 health; the run continues until its last ring shot
+is gone):
+
+| Bot cruise height | Kill time median (range) | Health lost avg (max), before -> after | Rings | Bolts fired / hit | Beam escapes before a bolt |
+|---|---|---|---|---|---|
+| y 1024 (80%, default) | 7.8 s (5.0-14.2), unchanged | 0 (0) -> 7.3 (20) | 57 in 30 fights | 0 / 0 | 0 (never in the beam) |
+| y 768 (60%) | 5.1 s (3.7-10.6), unchanged | 10.1 (26) -> 14.3 (52) | 37 | 3 / 3 | 85 |
+
+Space zone held 60 s from its first wave (waves, the UFO of "Saucer Rocks",
+pickups on; health 100):
+
+| | Health lost avg (min-max) | Healed by pickups avg | Deaths | Kills avg | Satellites killed / escaped | Scouts killed / escaped | Peak obstacles | Peak enemy shots (avg of run peaks) | Formations max |
+|---|---|---|---|---|---|---|---|---|---|
+| Before (satellites, UFO without weapons) | 78.2 (10-160) | 21.0 | 6 / 30 | 54.8 | 216 / 126 | - | 14 | 13 (10.8) | 3 |
+| After (scouts, UFO ring + bolt) | 81.2 (35-125) | 26.5 | 3 / 30 | 52.5 | - | 159 / 5 | 14 | 29 (21.6) | 3 |
+
+The 60 s space hold already cost this bot ~78 health before the change (more
+than the ~45 the zone was meant to cost a casual player); the scouts and the
+UFO weapons leave it about where it was (+3, within run-to-run noise; fewer
+deaths). The ring alone barely touches a player who stays low: its shots
+spread out with distance and arrive slowly; it bites near the saucer, where
+the beam pulls the ship.
 
 ## Pickups
 

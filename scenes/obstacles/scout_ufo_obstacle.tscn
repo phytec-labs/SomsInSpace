@@ -1,0 +1,34 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/obstacles/scout_ufo_obstacle.gd" id="1_scout"]
+[ext_resource type="Texture2D" uid="uid://dwk274htx5r4v" path="res://sprites/ufo_1.png" id="2_tex"]
+[ext_resource type="PackedScene" uid="uid://s0g3ppigvp73" path="res://scenes/effects/enemy_projectile_1.tscn" id="3_proj"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_scout"]
+radius = 16.0
+height = 120.0
+
+[node name="ScoutUfo" type="Area2D"]
+collision_layer = 2
+script = ExtResource("1_scout")
+points = -40
+damage = 20.0
+base_speed = 80.0
+health = 50.0
+can_shoot = true
+projectile_scene = ExtResource("3_proj")
+show_health_bar = false
+hue_shift = -1.9
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 4
+scale = Vector2(0.1247, 0.1247)
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 4)
+rotation = 1.5708
+shape = SubResource("CapsuleShape2D_scout")
+
+[node name="GunPoint1" type="Marker2D" parent="."]
+position = Vector2(0, 22)

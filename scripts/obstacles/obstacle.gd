@@ -127,6 +127,11 @@ var _base_rotation: float = 0.0
 ## reads clearly once brightened, and a rim there looks like an outline).
 ## The zone's brighten always applies.
 @export var use_zone_rim: bool = true
+## Hue rotation (radians) of the sprite's colours in the hit flash shader
+## (its `hue_shift` uniform; 0 = off, no cost). A stand-in for a second
+## colour of shared art (the scout saucer); set once per instance in
+## _setup_hit_flash().
+@export var hue_shift: float = 0.0
 @export_group("")
 
 var rim_color: Color = Color(0.75, 0.95, 1.0, 1.0)
@@ -625,6 +630,8 @@ func _setup_hit_flash() -> void:
 	if target.material == null:
 		_hit_material = ShaderMaterial.new()
 		_hit_material.shader = HIT_FLASH_SHADER
+		if hue_shift != 0.0:
+			_hit_material.set_shader_parameter("hue_shift", hue_shift)
 		target.material = _hit_material
 		# Untextured placeholder art drawn by children (mine polygons) flashes
 		# with the sprite
