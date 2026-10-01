@@ -78,8 +78,12 @@ layout_mode = 1
 
 [node name="MainMenuCredits" parent="." unique_id=490287164 instance=ExtResource("8_y1lt2")]
 z_index = 2
-layout_mode = 0
-anchors_preset = 0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="ShipSelectUi" parent="." unique_id=199494767 instance=ExtResource("9_shipsel")]
 z_index = 2
