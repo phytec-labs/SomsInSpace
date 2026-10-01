@@ -37,8 +37,9 @@ then `completion_delay` seconds, then the next wave starts. Exception: a
 `scene_override` group released `AFTER_DELAY` (the UFO leading an escort) does
 not hold the wave. The single keeps flying on its own (and keeps its formation
 slot while alive), but the wave completes once its formation groups are
-cleared. A `scene_override` group released `ON_CLEAR` (the blimp) still holds
-the wave: it is a deliberate mini-boss beat. After the last wave
+cleared. A `scene_override` group released `ON_CLEAR` still holds the wave.
+The zone's mini-boss (the atmosphere blimp) is not in the wave list at all;
+see "Mini-boss" below. After the last wave
 the zone loops from the first wave. `one_shot` groups that already spawned
 during this visit are skipped. Changing zone restarts the sequence at wave 0
 with ramp 0. Formations already flying keep flying. Zones without waves (the
@@ -56,6 +57,46 @@ orbit/boss zone) spawn nothing.
 
 Counts never change. Self-moving singles (blimp, UFO) keep their own speeds.
 The HUD threat indicator shows the ramp level (`WaveManager.get_ramp_level()`).
+
+### Mini-boss (zone-level, anchored to the weapon upgrade)
+
+A zone can name one mini-boss (`ZoneDefinition` group "Mini-boss"; today only
+the atmosphere: the blimp). It is not a wave group, so its arrival no longer
+depends on how fast the earlier waves are cleared. Once per zone visit:
+
+1. **Schedule**: when the zone's weapon upgrade is collected,
+   `main_level.gd` (`_on_weapon_upgrade_collected()`, only for the pickup
+   spawned in the current zone) calls
+   `spawn_manager.wave_manager.notify_weapon_upgrade_collected()`; the
+   mini-boss is due `miniboss_delay_after_upgrade` (2.5 s) later. If that has
+   not happened by zone time `miniboss_fallback_zone_time` (18 s; the player
+   ignores the pickup, or the zone spawned none because the weapon is already
+   at max tier), it is due then. Whichever comes first wins.
+2. **Telegraph**: the usual marker at the top center shows during the last
+   `telegraph_seconds` before it is due.
+3. **Spawn** (exactly when due): `FormationManager.create_single_group()`
+   with a runtime scene_override group at the `hover_top` start (360, -102),
+   like the old one_shot wave group: pooled, subject to the obstacle cap
+   (retried every 0.25 s), zone health multiplier applied, `object_spawned`
+   emitted, and it takes a formation slot while alive. It does not wait for a
+   free formation slot (so it keeps its 2.5 s promise): if the zone's cap is
+   already full it is briefly one formation over it (seen in 2 of 3 seeds:
+   4 wave formations + the blimp). The sequencer itself never exceeds the
+   cap, and counts the mini-boss. `WaveManager.miniboss_spawned` is emitted.
+4. **Hold** (`miniboss_holds_waves`): while it is alive, the sequencer
+   finishes the group it is releasing (slot wait / telegraph) but starts no
+   new group or wave (state `HOLD`); formations already on screen keep
+   flying. When it is dead or gone, the sequence resumes after a 0.6 s beat
+   (`MINIBOSS_RESUME_BEAT`, x the ramp's beat multiplier). The hold never
+   lasts past `miniboss_hold_max_seconds` (8 s) after the spawn: then the
+   sequencer resumes at once and releases groups alongside the live
+   mini-boss (which still takes a formation slot).
+
+A zone change cancels a mini-boss that is still pending (or telegraphing); a
+live one keeps flying like any formation and no longer holds the new zone's
+sequencer. All timing runs on `WaveManager.zone_time` (an accumulator in
+`_process()`), so pausing freezes it. The blimp's energy + health cell drops
+are unchanged.
 
 ## Data model
 
@@ -151,6 +192,16 @@ boss minions. Ramp: `ramp_interval_seconds` (25), `ramp_speed_multiplier` (1.1),
 `max_speed_multiplier` (1.6), `ramp_beat_multiplier` (0.9),
 `min_beat_multiplier` (0.5).
 
+Mini-boss fields (group "Mini-boss"; see "Mini-boss" above):
+
+| Field | Default | Atmosphere | Meaning |
+|---|---|---|---|
+| `miniboss_scene` | null | `blimp_obstacle.tscn` | Self-moving mini-boss spawned once per zone visit at the top center; null = none |
+| `miniboss_delay_after_upgrade` | 2.5 | 2.5 | Seconds from collecting the zone's weapon upgrade to the spawn (telegraph in the last 0.5 s) |
+| `miniboss_fallback_zone_time` | 18.0 | 18.0 | Zone time at which it spawns anyway (upgrade not collected / none spawned); 0 = no fallback |
+| `miniboss_holds_waves` | true | true | No new group is released while it is alive |
+| `miniboss_hold_max_seconds` | 8.0 | 8.0 | Hold cap, counted from the spawn: past it the waves resume alongside the live mini-boss; 0 = hold until it is gone |
+
 `enemy_health_multiplier` (group "Difficulty") scales the health of every
 obstacle the SpawnManager spawns in the zone: formation members,
 scene_override singles (blimp, UFO), mines, asteroids and their split pieces,
@@ -170,7 +221,26 @@ Tier-1 damage per shot: balanced (phyCORE-AM62x) 10 every 0.2 s, light
 (i.MX 93) 8.5 every 0.16 s, heavy (i.MX 8M Plus) 12.5 every 0.23 s. Tier 2
 adds two side shots (3 per volley), tier 3 two angled 12-damage shots. Base
 health that differs from 10: drone 5, mine 8, asteroid 30 / 15 / 6 (large /
-medium / small), UFO 40, blimp 160 (320 in the atmosphere, its only zone).
+medium / small), UFO 80 (200 in upper_atmosphere, 240 in space), blimp 270
+(540 in the atmosphere, its only zone).
+
+Big targets, balanced ship, sustained fire (headless, ship tracking the
+target from 250-800 px below; seconds from the first hit to the kill):
+
+| Target | Health | Tier 1 | Tier 2 | Tier 3 |
+|---|---|---|---|---|
+| Blimp (atmosphere) | 540 (was 320) | ~10.8 s (54 hits) | ~4.0-4.4 s (was ~2.7-3.3 s) | ~3.3-4.1 s |
+| UFO (upper_atmosphere) | 200 (was 100) | | ~2.2-2.4 s median (was ~1.2 s) | ~1.7-2.3 s (was ~0.6-0.8 s) |
+| UFO (space) | 240 (was 120) | | ~2.5 s (was ~1.1-1.3 s) | ~1.9-2.9 s (was ~0.9-1.1 s) |
+
+The Player node is scaled 0.8 in the level, so the balanced ship's wing guns
+sit at about +-30 px on screen. The blimp's hull (capsule radius 40, ~94 px
+wide sprite) takes all three tier-2 shots while the ship is within about
++-15 px of its center (2 per volley at +-20 px and beyond; the earlier
+radius-30 hull only within about +-6 px). The tier-3 angled shots mostly
+miss it, so tier 3 is only a little faster. The UFO is 200 px wide, so all
+three tier-2 shots land; its sideways patrol and the ~1.5 s shot travel time
+cost some hits. Either way the UFO dies well inside its 12 s hover.
 
 ### FormationSettings (`scripts/data/formation_settings.gd`)
 
@@ -195,7 +265,9 @@ The values play-testing usually touches, and where they live:
 |---|---|---|---|
 | `enemy_health_multiplier` | each `data/zones/<zone>.tres` | ground 1.0, atmosphere 2.0, upper_atmosphere 2.5, space 3.0, orbit 1.0 | Hits to kill every non-boss enemy in the zone (table above) |
 | Boss health | `scenes/obstacles/boss_alien.tscn` `health` | 750 | Fight length; phases change at 2/3 and 1/3 of it automatically (~16.5 s with the sweeping tier-2 bot) |
-| Blimp health | `scenes/obstacles/blimp_obstacle.tscn` `health` | 160 (x 2.0 in atmosphere = 320) | Mini-boss length (~2 s of sustained tier-2 fire) |
+| Blimp health | `scenes/obstacles/blimp_obstacle.tscn` `health` | 270 (x 2.0 in atmosphere = 540) | Mini-boss length (~4.0-4.4 s of sustained tier-2 fire, ~10-12 s for the casual bot) |
+| UFO health | `scenes/obstacles/ufo_obstacle.tscn` `health` | 80 (x 2.5 = 200 upper_atmosphere, x 3.0 = 240 space) | ~2.3 s of sustained tier-2 fire; must die inside its 12 s hover |
+| Mini-boss timing | `data/zones/atmosphere.tres`, group "Mini-boss" | 2.5 s after the upgrade is collected, fallback 18 s zone time, holds waves for at most 8 s | When the blimp arrives and how long the sequencer pauses for it |
 | `first_fire_delay` | each `WaveGroup` | 0.6 s | Formation's first volley / ripple after it appears on screen |
 | `fire_interval` | each `WaveGroup` | 1.2-2.5 s | Time between formation volleys / ripples |
 | `first_shot_delay` | `Obstacle` export (per scene) | 0.5 s (blimp 0.8 s) | Individual shooters' first shot after spawning (only once on screen) |
@@ -232,19 +304,52 @@ The values play-testing usually touches, and where they live:
 Times are bot loop times at ramp 0 (headless harness, invulnerable bot sweeping
 side to side, balanced ship, tier-2 auto-fire, `--fixed-fps 60`, zone held with
 scroll 0, seeds 1-3), measured 2026-09 with the zone health multipliers. They
-vary by a few seconds between runs (mirror rolls, physics). The sweeping bot
-needs ~25 s to kill the blimp (a player aiming at it needs a few seconds), so
-the atmosphere's first loop is much longer than later ones. The bot usually
-kills the UFO within ~2 s; a UFO left alive lives ~22 s, which no longer holds
-its wave (see above).
+vary by a few seconds between runs (mirror rolls, physics). They were measured
+before the blimp became the zone's mini-boss (it was then a wave of its own);
+the mini-boss now adds its hold to whichever wave is playing when it arrives
+(see the timeline below). The bot usually kills the UFO within a few seconds;
+a UFO left alive lives ~22 s, which does not hold its wave (see above).
 C = `completion_delay`; beat = `beat_after`. Groups are ON_CLEAR unless an
 AFTER_DELAY value is given.
 
 In a normal run (100 m/s) a zone lasts ground 15 s, atmosphere 35 s,
 upper_atmosphere 50 s, space 35 s, so only the first waves of each list are
-seen: atmosphere Jet Swoop, Pincer, Crossfire Lite and the Blimp (from ~27 s);
-upper_atmosphere Jet Loop, Meteor Dive, Saucer Escort, Meteor Storm and
-Satellite Grid (from ~39-46 s). Keep that in mind when inserting a wave.
+seen: atmosphere Jet Swoop, Pincer, Crossfire Lite (the blimp arrives in the
+middle of them, see below); upper_atmosphere Jet Loop, Meteor Dive, Saucer
+Escort, Meteor Storm and Satellite Grid (from ~39-46 s). Keep that in mind
+when inserting a wave.
+
+#### Normal-run timeline (blimp and UFO beats)
+
+Headless, `--fixed-fps 60`, normal scroll (100 m/s), balanced ship, seeds
+1-3, "casual" bot: sweeps / tracks the nearest enemy at ship speed, fires 60%
+of the time (1.2 s on, 0.8 s off), aims at a blimp / UFO once it is on screen
+(+-20 px wobble), fetches each weapon upgrade 2 s after it settles. Seconds
+from the start of the run (the 3 s countdown excluded):
+
+| Event | Before (blimp = wave 4) | After (mini-boss) |
+|---|---|---|
+| Atmosphere entry | 15.0 | 15.0 |
+| Upgrade spawn / settled / collected | 15.0 / 23.8 / 27.3-27.4 | same |
+| Blimp spawn | 45.2-46.6 (18-19 s after the upgrade, 4-5 s before the next zone's upgrade) | 29.8-29.9 (2.50 s after the upgrade) |
+| Blimp first visible / center on screen | +0.4 s / +3.8-4.1 s after spawn | same |
+| Blimp killed (tier 2 at spawn) | 54.4-57.6 (6.5-9.7 s of fire; 320 hp; killed after upper_atmosphere started) | 40.1 / 40.4 / 42.0 (9.9-12.1 s of fire; 540 hp, larger hull) |
+| Sequencer hold (no new group) | wave held until the blimp died or the zone changed | seeds 1-2: none (the next release came after the 8 s cap); seed 3: 30.7-37.9 (ended by the 8 s cap) |
+| Upper atmosphere entry, upgrade spawn / collected | 50.0, 50.0 / 62.3-62.4 | same |
+| First UFO spawn / kill (tier 3) | 69.2-71.2 / +1.1-3.0 s (100 hp) | 69.4-70.2 / +1.5-4.0 s (200 hp) |
+
+Other cases (after): the bot never collects the upgrade -> blimp at zone time
+18.0 (run time 33.0); atmosphere entered at tier 3 (no upgrade spawns) ->
+blimp at 33.0, killed 9.5 s later; a bot that never shoots the blimp -> the
+hold ends 8.0 s after its spawn and groups are released alongside it while
+it lives; the bot stops at tier 2 -> first UFO (200 hp) killed 2.9 s after
+spawning (it hovers 12 s). Exactly one blimp per atmosphere visit in every
+run.
+
+Attract demo (autopilot focuses a mini-boss on screen, seeds 1-4 and 9): the
+blimp arrives 2.5 s after the demo takes the upgrade, lives 8.5-14.9 s
+(median 12.9 s; dodges and pickup fetches take 7-43% / 0-29% of that time)
+and holds the waves 6.8-7.4 s.
 
 ### Ground (spread 90; loop ≈ 14 s)
 
@@ -254,20 +359,21 @@ Satellite Grid (from ~39-46 s). Keep that in mind when inserting a wave.
 | 2 Planes | 4 × plane_1 V_SHAPE `swoop_left` (mirror), NONE, beat 0.4 | 0.5 |
 | 3 Swarm | 6 × drone SWARM `side_sweep_left` (mirror), NONE, beat 0.6 | 1.0 |
 
-### Atmosphere (spread 100, formation cap 4; first loop ≈ 68-73 s with the blimp, then ≈ 41-48 s)
+### Atmosphere (spread 100, formation cap 4; loop ≈ 41-48 s, plus the mini-boss hold in the loop it arrives in)
 
 Groups follow each other quickly (AFTER_DELAY 1.0-1.5 s) so three, sometimes
 four, formations share the screen; beats are 0.6 s and completion delays
-0.8 s.
+0.8 s. The blimp is the zone's mini-boss (not in this list): it enters 2.5 s
+after the weapon upgrade is collected (at the latest at 18 s zone time) and
+holds new groups while it is alive, for at most 8 s.
 
 | Wave | Groups | C |
 |---|---|---|
 | 1 Jet Swoop | 5 × jet_1 V `swoop_left` RIPPLE 2.0, AFTER_DELAY 1.5 → 3 × balloon_5 LINE `top_straight` (spread 120), NONE, AFTER_DELAY 1.0 | 0.8 |
 | 2 Pincer | 3 × jet_2 DIAGONAL `pincer_left` (no mirror) VOLLEY 2.5, AFTER_DELAY 0 → 3 × jet_2 DIAGONAL `pincer_left` force_mirror VOLLEY 2.5, AFTER_DELAY 1.0 → 6 × drone SWARM `swoop_left`, AFTER_DELAY 1.0 → 3 × balloon_5 LINE `top_straight` (spread 120), beat 0.6 | 0.8 |
 | 3 Crossfire Lite | 4 × jet_1 V `swoop_left` RIPPLE 2.0, AFTER_DELAY 1.0 → 4 × balloon_5 LINE `top_straight` (spread 120), AFTER_DELAY 1.5 → 6 × drone SWARM `side_sweep_left`, beat 0.6 | 0.8 |
-| 4 Blimp | 1 × blimp (scene_override, enters at top center), one_shot, beat 0.6 (ON_CLEAR: the mini-boss beat) | 1.0 |
-| 5 Drone Loop | 7 × drone SWARM `loop_left`, AFTER_DELAY 1.2 → 4 × plane_1 V `swoop_left`, AFTER_DELAY 1.0 → 3 × balloon_5 LINE `top_straight` (spread 120), beat 0.6 | 0.8 |
-| 6 Turrets | 4 × balloon_3 LINE `hover_top` hold 6 s (spread 120) VOLLEY 2.0, AFTER_DELAY 1.5 → 4 × jet_2 V `swoop_left` RIPPLE 2.0, AFTER_DELAY 1.5 → 6 × drone SWARM `side_sweep_left`, beat 0.6 | 1.0 |
+| 4 Drone Loop | 7 × drone SWARM `loop_left`, AFTER_DELAY 1.2 → 4 × plane_1 V `swoop_left`, AFTER_DELAY 1.0 → 3 × balloon_5 LINE `top_straight` (spread 120), beat 0.6 | 0.8 |
+| 5 Turrets | 4 × balloon_3 LINE `hover_top` hold 6 s (spread 120) VOLLEY 2.0, AFTER_DELAY 1.5 → 4 × jet_2 V `swoop_left` RIPPLE 2.0, AFTER_DELAY 1.5 → 6 × drone SWARM `side_sweep_left`, beat 0.6 | 1.0 |
 
 ### Upper atmosphere (spread 100, formation cap 4; loop ≈ 75-82 s)
 

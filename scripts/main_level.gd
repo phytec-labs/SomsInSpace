@@ -499,7 +499,20 @@ func _on_object_collected(object: Node2D) -> void:
 	if object is EnergyCollectible:
 		# Add points based on the collectible's value
 		update_points(object.points)  # Use the points property from GameObject class
+		if object.get_pickup_type() == &"weapon":
+			_on_weapon_upgrade_collected(object)
 		_apply_pickup(object.get_pickup_type())
+
+# A weapon upgrade was collected: if it is the current zone's pickup, tell the
+# wave manager, which schedules the zone's mini-boss (the blimp in the
+# atmosphere) ZoneDefinition.miniboss_delay_after_upgrade later
+func _on_weapon_upgrade_collected(upgrade: Node) -> void:
+	if current_state != GameState.PLAYING or wave_manager == null:
+		return
+	if String(upgrade.get_meta(&"zone_id", "")) != current_zone:
+		return  # Collected after its zone ended
+	if wave_manager.has_method("notify_weapon_upgrade_collected"):
+		wave_manager.notify_weapon_upgrade_collected()
 
 # Effect of a collected pickup (points are awarded by the caller). Only
 # during play (e.g. a pickup drifting into the docking ship does nothing).
@@ -872,6 +885,8 @@ func spawn_weapon_upgrade() -> void:
 
 	# Create the upgrade collectible
 	var upgrade = weapon_upgrade_scene.instantiate()
+	# The zone it belongs to (its collection schedules that zone's mini-boss)
+	upgrade.set_meta(&"zone_id", current_zone)
 	add_child(upgrade)
 	_live_weapon_upgrades.append(upgrade)
 

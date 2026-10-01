@@ -5,8 +5,8 @@
 [ext_resource type="PackedScene" uid="uid://ck2emogghwdgk" path="res://scenes/effects/enemy_projectile_2.tscn" id="3_proj"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_blimp"]
-radius = 30.0
-height = 172.0
+radius = 40.0
+height = 229.0
 
 [node name="Blimp" type="Area2D"]
 collision_layer = 2
@@ -14,7 +14,7 @@ script = ExtResource("1_blimp")
 points = -150
 damage = 25.0
 base_speed = 25.0
-health = 160.0
+health = 270.0
 first_shot_delay = 0.8
 projectile_scene = ExtResource("3_proj")
 projectile_speed = 200.0
@@ -24,18 +24,18 @@ max_aim_angle = 45.0
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture_filter = 4
 rotation = 1.5707964
-scale = Vector2(0.18, 0.18)
+scale = Vector2(0.24, 0.24)
 texture = ExtResource("2_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, 4)
+position = Vector2(0, 5)
 shape = SubResource("CapsuleShape2D_blimp")
 
 [node name="GunPoint1" type="Marker2D" parent="."]
-position = Vector2(-31, 21)
+position = Vector2(-41, 28)
 
 [node name="GunPoint2" type="Marker2D" parent="."]
-position = Vector2(0, 30)
+position = Vector2(0, 40)
 
 [node name="GunPoint3" type="Marker2D" parent="."]
-position = Vector2(31, 21)
+position = Vector2(41, 28)

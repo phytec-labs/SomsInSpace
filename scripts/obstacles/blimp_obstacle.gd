@@ -6,17 +6,22 @@
 # limited like the boss) and drops one energy collectible plus one health cell
 # when shot down.
 #
-# Spawned once per atmosphere visit by a one_shot WaveGroup with
-# scene_override (see data/zones/atmosphere.tres). Pause-safe: all timing is
-# accumulated in _process().
+# Spawned once per atmosphere visit as the zone's mini-boss
+# (ZoneDefinition.miniboss_scene in data/zones/atmosphere.tres): the
+# WaveManager brings it in 2.5 s after the zone's weapon upgrade is collected
+# (or at 18 s zone time) and holds new wave groups while it is alive (at
+# most 8 s, ZoneDefinition.miniboss_hold_max_seconds).
+# Pause-safe: all timing is accumulated in _process().
 #
 # Art: sprites/zeppelin_1.png (1024x393, the zeppelin cut from
 # art_archive/masters/zeppelin_weapon_combined.png, drawn top-down with the
 # nose to the right) on a Sprite2D rotated 90 deg so the nose points down at
-# the player, scale 0.18 (~69x184 px on screen), untinted. Hull: vertical
-# CapsuleShape2D r 30 / height 172 at (0, 4) (the side pods poke out ~5 px).
-# GunPoint1/3 sit on the forward side pods (x -+31, y 21), GunPoint2 on the
-# gondola's front cockpit (0, 30).
+# the player, scale 0.24 (~94x246 px on screen), untinted. Hull: vertical
+# CapsuleShape2D r 40 / height 229 at (0, 5) (the side pods poke out ~7 px);
+# wide enough that all three tier-2 shots of a ship centered under it land
+# (the wing guns sit at about +-30 px on screen). GunPoint1/3 sit on the
+# forward side pods (x -+41, y 28), GunPoint2 on the gondola's front cockpit
+# (0, 40).
 extends Obstacle
 class_name BlimpObstacle
 
@@ -25,8 +30,8 @@ class_name BlimpObstacle
 @export var shot_interval: float = 1.4
 # The first shot comes Obstacle.first_shot_delay after spawning (0.8 s in
 # blimp_obstacle.tscn), once the turret mount is on screen.
-# Health: the scene's base (160) times the zone's enemy_health_multiplier
-# (atmosphere 2.0 -> 320), applied by the SpawnManager like any obstacle.
+# Health: the scene's base (270) times the zone's enemy_health_multiplier
+# (atmosphere 2.0 -> 540), applied by the SpawnManager like any obstacle.
 ## Side-to-side drift amplitude (px) and angular frequency (rad/s)
 @export var drift_amplitude: float = 60.0
 @export var drift_frequency: float = 0.5
@@ -38,6 +43,10 @@ class_name BlimpObstacle
 @export var collectible_drops: int = 1
 ## Health cells dropped when shot down (in addition to the energy)
 @export var health_drops: int = 1
+
+## Read (duck-typed, via get()) by the attract-mode autopilot, which focuses
+## its aim on a mini-boss while it is on screen
+var is_miniboss: bool = true
 
 var _shot_timer: float = 0.0
 var _gun_step: int = 0

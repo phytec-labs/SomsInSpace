@@ -16,6 +16,20 @@
 # flying on their own), then completion_delay, then the next wave. Past the last wave it
 # loops (one_shot groups already spawned this visit are skipped).
 #
+# Mini-boss (ZoneDefinition "Mini-boss", e.g. the atmosphere blimp): not part
+# of the wave list. Once per zone visit it spawns miniboss_delay_after_upgrade
+# seconds after the zone's weapon upgrade was collected (main_level.gd calls
+# notify_weapon_upgrade_collected()), or at miniboss_fallback_zone_time,
+# whichever comes first; telegraph marker first, then a scene_override single
+# at the hover_top start (FormationManager.create_single_group(), so pooling,
+# the obstacle cap, zone health scaling and object_spawned all apply and it
+# takes a formation slot while alive). While it is alive and
+# miniboss_holds_waves is set, no new group is released (the group being
+# released finishes); the sequence resumes MINIBOSS_RESUME_BEAT after it died
+# or left, or right away once miniboss_hold_max_seconds have passed since it
+# spawned (it then flies alongside the waves, still taking a formation slot). A zone change cancels a pending mini-boss; a live one keeps flying
+# like any formation (and no longer holds the new zone's waves).
+#
 # Difficulty ramp: the longer the player stays in a zone, the higher the ramp
 # level; it multiplies formation speeds up and beats / delays down (see
 # ZoneDefinition "Difficulty Ramp"). Counts never change. The Resources are
@@ -39,12 +53,18 @@ const TELEGRAPH_INSET: float = 44.0
 const DEFAULT_MAX_FORMATIONS: int = 3
 const DEFAULT_TELEGRAPH_SECONDS: float = 0.5
 const MIN_TELEGRAPH_SECONDS: float = 0.3
+# Mini-boss entry point (top center) and the pause before the sequence
+# resumes after it died / left (scaled by the ramp's beat multiplier)
+const MINIBOSS_PATH: StringName = &"hover_top"
+const MINIBOSS_RESUME_BEAT: float = 0.6
 
 # ramp_level: difficulty level (time spent in the zone) when the wave started
 signal wave_started(wave: WaveDefinitionScript, wave_index: int, ramp_level: int)
 signal wave_completed
 # A group was spawned (formation_id = -1 never emitted); for tests / debugging
 signal group_spawned(group: WaveGroupScript, formation_id: int, mirrored: bool)
+# The zone's mini-boss spawned (tracked as formation_id)
+signal miniboss_spawned(formation_id: int)
 
 enum State {
 	IDLE,         # Not spawning / zone without waves
@@ -53,6 +73,16 @@ enum State {
 	TELEGRAPH,    # Marker showing; spawn when _timer runs out
 	CLEAR,        # Waiting for _wait_formation to be cleared
 	WAVE_CLEAR,   # Waiting for every formation of the wave to be cleared
+	HOLD,         # Mini-boss alive: no new group until it is gone, then _after_hold
+}
+
+# Mini-boss of the current zone visit (runs alongside the wave state machine)
+enum MinibossState {
+	NONE,       # Zone has none
+	PENDING,    # Waiting for its spawn time (upgrade collected + delay, or fallback)
+	TELEGRAPH,  # Marker showing; spawns at _miniboss_spawn_at
+	ALIVE,      # Spawned; _miniboss_formation not cleared yet
+	DONE,       # Spawned and gone (dead / left) this visit
 }
 
 @onready var formation_manager = $"../FormationManager" if has_node("../FormationManager") else null
@@ -78,6 +108,16 @@ var _wave_formations: Array[int] = []  # Formations spawned by the current wave
 # WaveGroups with one_shot that already spawned something during the current
 # zone visit (used as a set; cleared by set_zone())
 var _spent_one_shot_groups: Dictionary = {}
+# Sequencer step to run once the mini-boss hold ends (State.HOLD)
+var _after_hold: Callable = Callable()
+
+var _miniboss_state: MinibossState = MinibossState.NONE
+# Zone time at which the mini-boss spawns (INF: not scheduled yet); once it
+# spawned, its spawn time (the hold cap counts from it)
+var _miniboss_spawn_at: float = INF
+var _miniboss_formation: int = -1
+# Runtime WaveGroup describing the current zone's mini-boss (never saved)
+var _miniboss_group: WaveGroupScript = null
 
 func _ready() -> void:
 	rng.randomize()
@@ -109,6 +149,7 @@ func set_zone(new_zone: ZoneDefinitionScript) -> void:
 	current_wave_index = starting_wave if is_first_zone else 0
 	zone_time = 0.0
 	_spent_one_shot_groups.clear()  # New zone visit: one-shot groups may spawn again
+	_reset_miniboss()
 	if debug_mode:
 		print("WaveManager: Zone %s has %d waves" % [zone.id, zone.waves.size()])
 	if active:
@@ -134,6 +175,38 @@ func is_group_spent(group: WaveGroupScript) -> bool:
 func get_state_name() -> String:
 	return State.keys()[_state]
 
+# The current zone's weapon upgrade was collected (main_level.gd): schedule
+# the mini-boss miniboss_delay_after_upgrade from now, unless its fallback
+# time comes first. No effect once it telegraphed / spawned this visit.
+func notify_weapon_upgrade_collected() -> void:
+	if _miniboss_state != MinibossState.PENDING or zone == null:
+		return
+	_miniboss_spawn_at = minf(_miniboss_spawn_at, zone_time + maxf(zone.miniboss_delay_after_upgrade, 0.0))
+	if debug_mode:
+		print("WaveManager: weapon upgrade collected; mini-boss at zone time %.2f" % _miniboss_spawn_at)
+
+# Mini-boss state name (tests / debugging): NONE, PENDING, TELEGRAPH, ALIVE, DONE
+func get_miniboss_state_name() -> String:
+	return MinibossState.keys()[_miniboss_state]
+
+# Seconds until the mini-boss spawns (INF while it waits for the upgrade / its
+# fallback time is off; 0 once spawned or without one)
+func get_miniboss_time_left() -> float:
+	if _miniboss_state != MinibossState.PENDING and _miniboss_state != MinibossState.TELEGRAPH:
+		return 0.0
+	return maxf(_miniboss_spawn_at - zone_time, 0.0)
+
+# True while a live mini-boss holds the sequencer (no new group released):
+# from its spawn until it is gone or miniboss_hold_max_seconds have passed
+func is_held_by_miniboss() -> bool:
+	return _miniboss_state == MinibossState.ALIVE and zone != null and zone.miniboss_holds_waves \
+		and not _is_cleared(_miniboss_formation) and not _miniboss_hold_expired()
+
+# The hold cap ran out with the mini-boss still alive
+func _miniboss_hold_expired() -> bool:
+	return zone != null and zone.miniboss_hold_max_seconds > 0.0 \
+		and zone_time - _miniboss_spawn_at >= zone.miniboss_hold_max_seconds
+
 # --- State machine ---
 
 func _process(delta: float) -> void:
@@ -141,6 +214,7 @@ func _process(delta: float) -> void:
 	if not active:
 		return
 	zone_time += delta
+	_update_miniboss()
 
 	match _state:
 		State.WAIT:
@@ -168,11 +242,24 @@ func _process(delta: float) -> void:
 				current_wave_index += 1
 				wave_completed.emit()
 				_wait(completion * get_beat_multiplier(), _start_wave)
+		State.HOLD:
+			if not is_held_by_miniboss():
+				var next := _after_hold
+				_after_hold = Callable()
+				if _miniboss_state == MinibossState.ALIVE and _miniboss_hold_expired() \
+						and not _is_cleared(_miniboss_formation):
+					# Hold cap: release groups alongside the live mini-boss now
+					if debug_mode:
+						print("WaveManager: mini-boss hold cap reached; resuming")
+					next.call()
+				else:
+					_wait(MINIBOSS_RESUME_BEAT * get_beat_multiplier(), next)
 
 func _set_idle() -> void:
 	_state = State.IDLE
 	_timer = 0.0
 	_after_wait = Callable()
+	_after_hold = Callable()
 	_group = null
 	_wait_formation = -1
 	_wave_formations.clear()
@@ -189,6 +276,14 @@ func _wait(seconds: float, then: Callable) -> void:
 	_timer = maxf(seconds, 0.0)
 	_after_wait = then
 
+# Hold the sequencer while the mini-boss is alive; `then` runs
+# MINIBOSS_RESUME_BEAT after it is gone
+func _hold(then: Callable) -> void:
+	_state = State.HOLD
+	_after_hold = then
+	if debug_mode:
+		print("WaveManager: holding for the mini-boss")
+
 func _zone_has_waves() -> bool:
 	return zone != null and not zone.waves.is_empty()
 
@@ -200,6 +295,10 @@ func _get_current_wave() -> WaveDefinitionScript:
 func _start_wave() -> void:
 	if not active or not _zone_has_waves():
 		_set_idle()
+		return
+	# Mini-boss alive: start the wave once it is gone
+	if is_held_by_miniboss():
+		_hold(_start_wave)
 		return
 	if current_wave_index < 0 or current_wave_index >= zone.waves.size():
 		current_wave_index = 0
@@ -225,6 +324,10 @@ func _prepare_group() -> void:
 		current_group_index += 1
 	if current_group_index >= wave.groups.size():
 		_state = State.WAVE_CLEAR
+		return
+	# Mini-boss alive: release this group once it is gone
+	if is_held_by_miniboss():
+		_hold(_prepare_group)
 		return
 
 	_group = wave.groups[current_group_index]
@@ -284,8 +387,8 @@ func _spawn_group() -> void:
 
 # Formation groups always hold the wave until cleared. A scene_override
 # single released AFTER_DELAY (the UFO escort lead) does not: it keeps flying
-# on its own while the wave moves on. ON_CLEAR singles (the blimp mini-boss
-# beat) still block.
+# on its own while the wave moves on. ON_CLEAR singles still block. (The
+# zone's mini-boss is not a wave group; see _update_miniboss().)
 func _blocks_wave_completion(group: WaveGroupScript) -> bool:
 	return not (group.scene_override and group.release == WaveGroupScript.Release.AFTER_DELAY)
 
@@ -310,6 +413,62 @@ func _wave_cleared() -> bool:
 		if not _is_cleared(formation_id):
 			return false
 	return true
+
+# --- Mini-boss ---
+
+# New zone visit: arm the zone's mini-boss (cancels one still pending from the
+# previous zone; a live one keeps flying but no longer holds the sequencer)
+func _reset_miniboss() -> void:
+	_miniboss_formation = -1
+	_miniboss_spawn_at = INF
+	_miniboss_group = null
+	_miniboss_state = MinibossState.NONE
+	if zone == null or zone.miniboss_scene == null:
+		return
+	_miniboss_state = MinibossState.PENDING
+	if zone.miniboss_fallback_zone_time > 0.0:
+		_miniboss_spawn_at = zone.miniboss_fallback_zone_time
+	# Same shape as the old one_shot scene_override wave group
+	_miniboss_group = WaveGroupScript.new()
+	_miniboss_group.scene_override = zone.miniboss_scene
+	_miniboss_group.count = 1
+	_miniboss_group.path = MINIBOSS_PATH
+	_miniboss_group.mirror_allowed = false
+
+# Per frame (after zone_time advanced): telegraph during the last
+# telegraph_seconds before _miniboss_spawn_at, spawn at it, then track it
+func _update_miniboss() -> void:
+	match _miniboss_state:
+		MinibossState.PENDING:
+			var telegraph := _get_telegraph_seconds()
+			if _miniboss_spawn_at - zone_time <= telegraph:
+				_miniboss_state = MinibossState.TELEGRAPH
+				if telegraph > 0.0:
+					_show_telegraph(_miniboss_group, false)
+				_update_miniboss()  # Spawn this frame when there is no telegraph
+		MinibossState.TELEGRAPH:
+			if zone_time >= _miniboss_spawn_at:
+				_spawn_miniboss()
+		MinibossState.ALIVE:
+			if _is_cleared(_miniboss_formation):
+				_miniboss_state = MinibossState.DONE
+				if debug_mode:
+					print("WaveManager: mini-boss gone")
+
+func _spawn_miniboss() -> void:
+	var formation_id := -1
+	if formation_manager and _miniboss_group:
+		formation_id = formation_manager.create_single_group(_miniboss_group, false)
+	if formation_id < 0:
+		# Obstacle cap (or no FormationManager): retry shortly, no new marker
+		_miniboss_spawn_at = zone_time + CAP_RETRY_DELAY
+		return
+	_miniboss_formation = formation_id
+	_miniboss_state = MinibossState.ALIVE
+	miniboss_spawned.emit(formation_id)
+	if debug_mode:
+		print("WaveManager: mini-boss %s spawned at zone time %.2f as formation %d" % [
+			_miniboss_group.describe(), zone_time, formation_id])
 
 func _get_config() -> Resource:
 	var spawn_manager = get_parent()

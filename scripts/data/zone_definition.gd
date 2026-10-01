@@ -47,6 +47,30 @@ const FormationSettingsScript := preload("res://scripts/data/formation_settings.
 @export var collectible_time_scale: float = 1.0
 @export var collectible_chance_scale: float = 1.0
 
+@export_group("Mini-boss")
+## Self-moving mini-boss (e.g. the blimp) the WaveManager spawns once per
+## visit of this zone, outside the wave list, at the top center (the
+## `hover_top` path start) with a telegraph marker first; null = none. It is
+## anchored to the zone's weapon upgrade (see below), so it always meets a
+## freshly upgraded weapon.
+@export var miniboss_scene: PackedScene
+## Seconds from collecting this zone's weapon upgrade to the mini-boss spawn
+## (the telegraph shows during the last telegraph_seconds of it).
+@export var miniboss_delay_after_upgrade: float = 2.5
+## Zone time (s since the zone was entered) at which the mini-boss spawns
+## anyway: the upgrade was not collected by then, or the zone spawned none
+## (weapon already at max tier). Whichever comes first wins. 0 = no
+## fallback (only the upgrade triggers it).
+@export var miniboss_fallback_zone_time: float = 18.0
+## While the mini-boss is alive the wave sequencer finishes the group it is
+## releasing but starts no new group (formations already flying keep going);
+## it resumes a short beat after the mini-boss died or left.
+@export var miniboss_holds_waves: bool = true
+## Longest hold (s after the mini-boss spawned): past it the sequencer
+## releases groups again alongside a mini-boss that is still alive (it still
+## counts toward the formations on screen). 0 = hold until it is gone.
+@export var miniboss_hold_max_seconds: float = 8.0
+
 @export_group("Pickup Weights")
 ## Relative odds of each pickup type when SpawnManager.spawn_collectible()
 ## fires (the collectible timer). Guarantees applied on top: at most one
@@ -68,7 +92,7 @@ const FormationSettingsScript := preload("res://scripts/data/formation_settings.
 ## Multiplies the health of every obstacle spawned in this zone (formation
 ## members, scene_override singles, asteroid pieces, boss minions; not the
 ## boss itself). Enemies have 10 base health (drones 5, mines 8, asteroids
-## 30/15/6 by size, UFO 40, blimp 160) vs 10 damage per tier-1 shot.
+## 30/15/6 by size, UFO 80, blimp 270) vs 10 damage per tier-1 shot.
 @export var enemy_health_multiplier: float = 1.0
 
 @export_group("Difficulty Ramp")

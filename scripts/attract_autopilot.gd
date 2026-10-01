@@ -13,6 +13,12 @@
 # target sideways when an enemy shot is closing in or an enemy / bomb is about
 # to reach the ship.
 #
+# Mini-boss focus: while a mini-boss (an obstacle whose `is_miniboss` property
+# is true, read with get(): the blimp) is active and on screen, the x-tracking
+# follows it instead of the nearest enemy, at MINIBOSS_TRACK_WEIGHT, so the
+# demo shoots it down instead of letting it hold the waves. Dodges, pickup
+# fetches (the weapon upgrade first) and bomb avoidance still override it.
+#
 # Fetch: a pickup worth climbing for pulls the target off the cruise line to
 # the pickup itself (the ship flies there at its own speed; re-aimed every
 # scan since the weapon upgrade sways), then the ship drops back to the
@@ -51,6 +57,11 @@ const SWEEP_AMPLITUDE := 0.3
 const SWEEP_SPEED := 0.55
 ## How strongly the target x follows the tracked enemy (vs. the sweep)
 const TRACK_WEIGHT := 0.75
+## Same for a tracked mini-boss (centered under it all tier-2 shots land)
+const MINIBOSS_TRACK_WEIGHT := 1.0
+## A mini-boss counts as on screen once its center is below this y (px above
+## the top edge: the blimp's lower part is visible by then)
+const MINIBOSS_VISIBLE_Y := -80.0
 ## Enemy shot dodge: horizontal trigger distance, look-ahead above the ship,
 ## sideways shift, and how long a dodge is held
 const SHOT_DODGE_X := 90.0
@@ -87,6 +98,7 @@ var spawn_manager: Node
 var _time: float = 0.0
 var _frame: int = 0
 var _track_x: float = NAN
+var _track_is_miniboss: bool = false
 var _dodge_x: float = 0.0
 var _dodge_time_left: float = 0.0
 # x of ignored pickups (bombs) near the ship's height, refreshed by _scan()
@@ -131,7 +143,7 @@ func _physics_process(delta: float) -> void:
 	var sweep_x := center_x + sin(_time * SWEEP_SPEED) * view.x * SWEEP_AMPLITUDE
 	var x := sweep_x
 	if not is_nan(_track_x):
-		x = lerpf(sweep_x, _track_x, TRACK_WEIGHT)
+		x = lerpf(sweep_x, _track_x, MINIBOSS_TRACK_WEIGHT if _track_is_miniboss else TRACK_WEIGHT)
 	if _dodge_time_left > 0.0:
 		x = _dodge_x
 	# Set directly (not through update_target_position), so this is already
@@ -161,7 +173,9 @@ func _physics_process(delta: float) -> void:
 func _scan() -> void:
 	var ship: Vector2 = player.global_position
 	_track_x = NAN
+	_track_is_miniboss = false
 	_avoid_xs.clear()
+	var miniboss_x := NAN
 
 	var view := player.get_viewport_rect().size
 	# Fetch candidates (wanted pickups) and obstacle positions (fetch safety)
@@ -192,10 +206,17 @@ func _scan() -> void:
 			if above < RAM_DISTANCE and absf(pos.x - ship.x) < DODGE_SHIFT and is_obstacle:
 				_start_dodge(ship.x, pos.x)
 				continue
+			if is_obstacle and child.get("is_miniboss") == true and _is_miniboss_on_screen(pos, view):
+				miniboss_x = pos.x
 			var dist := ship.distance_squared_to(pos)
 			if dist < best_dist:
 				best_dist = dist
 				_track_x = pos.x
+
+	# A mini-boss on screen is preferred over the nearest enemy
+	if not is_nan(miniboss_x):
+		_track_x = miniboss_x
+		_track_is_miniboss = true
 
 	# Enemy shots (enemy_projectile.gd adds itself to the group; pooled idle
 	# shots are out of the tree, so not listed)
@@ -272,6 +293,11 @@ func _update_fetch(ship: Vector2, view: Vector2, pickups: Array[Node2D], obstacl
 	for id in _fetch_blocked.keys():
 		if _fetch_blocked[id] <= _time:
 			_fetch_blocked.erase(id)
+
+
+# Mini-boss center on screen (or just above it, see MINIBOSS_VISIBLE_Y)
+func _is_miniboss_on_screen(pos: Vector2, view: Vector2) -> bool:
+	return pos.y > MINIBOSS_VISIBLE_Y and pos.y < view.y and pos.x > 0.0 and pos.x < view.x
 
 
 ## True while the ship is climbing for a pickup.
