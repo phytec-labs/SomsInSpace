@@ -19,10 +19,18 @@
 # on screen); the hull is a horizontal CapsuleShape2D (200 x 52). The beam
 # starts at the glowing emitter under the saucer (y 30, drawn behind the
 # hull) and reaches 500 px down.
-# PLACEHOLDER_ART: scenes/obstacles/ufo_obstacle.tscn `Beam/BeamPolygon` is a
-# flat translucent cyan trapezoid (80 px wide at the saucer, 160 px at the
-# bottom); swap it for a beam texture/shader and keep `Beam/BeamArea`'s
-# polygon matching its shape.
+#
+# Beam look: `Beam/Field`, a 200x520 ColorRect (mouse ignored) at (-100, 30)
+# drawn only by shaders/ufo_beam.gdshader (procedural, no texture): UV
+# (0.5, 0) is the emitter, the cone is 80 px wide there and ~160 px at the
+# end of `Beam/BeamArea`'s polygon (y 530), then fades out by y 550. Keep
+# the BeamArea polygon matching the cone (top_half_width / bottom_half_width
+# are fractions of the 200 px quad width). Code drives two things:
+# - Beam.modulate.a = fade (0 -> 1 over beam_fade_time when hovering starts,
+#   back to 0 when leaving; the beam node hides at 0) * a gentle pulse
+#   between beam_alpha_min and beam_alpha_max.
+# - the shader's `capture` uniform: moves toward 1 while the player is in
+#   the beam and back toward 0 otherwise, at 1 / capture_time per second.
 extends Obstacle
 class_name UfoObstacle
 
@@ -45,21 +53,33 @@ enum State { ENTERING, HOVERING, LEAVING }
 ## Upward velocity (px/s) added to the player each physics frame in the beam
 @export var beam_pull_speed: float = 220.0
 @export var beam_damage_per_second: float = 4.0
-## Beam alpha pulses between these values
-@export_range(0.0, 1.0) var beam_alpha_min: float = 0.25
-@export_range(0.0, 1.0) var beam_alpha_max: float = 0.6
+## Beam modulate alpha pulses between these values (the shader's own
+## beam_alpha sets the base opacity)
+@export_range(0.0, 1.0) var beam_alpha_min: float = 0.8
+@export_range(0.0, 1.0) var beam_alpha_max: float = 1.0
 @export var beam_pulse_speed: float = 6.0
+## Seconds for the beam to fade in when hovering starts / out when leaving
+@export var beam_fade_time: float = 0.3
+## Seconds for the shader's `capture` to go 0 -> 1 (player caught) or back
+@export var capture_time: float = 0.2
 
 const HOVER_GROUP := &"ufo_hovering"
 
 @onready var beam: Node2D = $Beam
 @onready var beam_area: Area2D = $Beam/BeamArea
+@onready var beam_field: CanvasItem = $Beam/Field
 
 var state: State = State.ENTERING
 var hover_time: float = 0.0
 var _patrol_direction: float = 1.0
 var _beam_time: float = 0.0
 var _beam_on: bool = false
+# Visual only: beam fade (0..1) and the shader's capture value (0..1)
+var _beam_fade: float = 0.0
+var _capture: float = 0.0
+# Set each physics frame the beam pulls the player
+var _player_in_beam: bool = false
+var _beam_material: ShaderMaterial = null
 # Observability for tests / debugging: player frames spent in the beam
 var beam_contact_frames: int = 0
 
@@ -70,7 +90,10 @@ func _ready() -> void:
 	# The beam only detects the player; nothing detects (or shoots) the beam
 	beam_area.collision_layer = 0
 	beam_area.collision_mask = 1
+	if beam_field:
+		_beam_material = beam_field.material as ShaderMaterial
 	_set_beam(false)
+	_reset_beam_visual()
 
 func initialize(spawn_position: Vector2) -> void:
 	super.initialize(spawn_position)
@@ -81,9 +104,11 @@ func initialize(spawn_position: Vector2) -> void:
 	_patrol_direction = 1.0 if randf() < 0.5 else -1.0
 	move_toward_center = false
 	_set_beam(false)
+	_reset_beam_visual()
 
 func deactivate() -> void:
 	_set_beam(false)
+	_reset_beam_visual()
 	_leave_hover_group()
 	super.deactivate()
 
@@ -119,6 +144,9 @@ func _process(delta: float) -> void:
 			position.y += leave_speed * delta
 			check_if_offscreen()
 
+	if is_active:
+		_update_beam_visual(delta)
+
 func _process_entering(delta: float) -> void:
 	var width = get_viewport_rect().size.x
 	var target_x = clampf(position.x, side_margin, width - side_margin)
@@ -144,16 +172,13 @@ func _process_hovering(delta: float) -> void:
 		position.x = side_margin
 		_patrol_direction = 1.0
 
-	_beam_time += delta
-	var pulse = 0.5 + 0.5 * sin(_beam_time * beam_pulse_speed)
-	beam.modulate.a = lerpf(beam_alpha_min, beam_alpha_max, pulse)
-
 	if hover_time >= hover_duration:
 		state = State.LEAVING
 		_set_beam(false)
 		_leave_hover_group()
 
 func _physics_process(delta: float) -> void:
+	_player_in_beam = false
 	if not is_active or not _beam_on:
 		return
 	for area in beam_area.get_overlapping_areas():
@@ -171,6 +196,7 @@ func _apply_beam(player: Node, delta: float) -> void:
 	if not alive:
 		return
 	beam_contact_frames += 1
+	_player_in_beam = true
 	# Pull toward the saucer (skipped until the player supports it)
 	if player.has_method("add_external_velocity"):
 		player.add_external_velocity(Vector2(0.0, -beam_pull_speed))
@@ -179,12 +205,50 @@ func _apply_beam(player: Node, delta: float) -> void:
 	if level and level.has_method("apply_drain"):
 		level.apply_drain(beam_damage_per_second, delta)
 
+# Gameplay switch (pull / drain detection); the look fades on its own in
+# _update_beam_visual()
 func _set_beam(on: bool) -> void:
 	_beam_on = on
-	if beam:
-		beam.visible = on
+	if not on:
+		_player_in_beam = false
 	if beam_area:
 		beam_area.set_deferred("monitoring", on)
+
+# Fade the beam toward on/off, pulse it, and ease `capture` toward whether
+# the player is caught
+func _update_beam_visual(delta: float) -> void:
+	if beam == null:
+		return
+	var fade_step = delta / beam_fade_time if beam_fade_time > 0.0 else 1.0
+	_beam_fade = move_toward(_beam_fade, 1.0 if _beam_on else 0.0, fade_step)
+	var capture_step = delta / capture_time if capture_time > 0.0 else 1.0
+	var caught = _beam_on and _player_in_beam
+	_capture = move_toward(_capture, 1.0 if caught else 0.0, capture_step)
+	if _beam_material:
+		_beam_material.set_shader_parameter("capture", _capture)
+
+	beam.visible = _beam_fade > 0.0
+	if beam.visible:
+		_beam_time += delta
+		var pulse = 0.5 + 0.5 * sin(_beam_time * beam_pulse_speed)
+		beam.modulate.a = _beam_fade * lerpf(beam_alpha_min, beam_alpha_max, pulse)
+
+func _reset_beam_visual() -> void:
+	_beam_fade = 0.0
+	_capture = 0.0
+	_player_in_beam = false
+	if _beam_material:
+		_beam_material.set_shader_parameter("capture", 0.0)
+	if beam:
+		beam.visible = false
+		beam.modulate.a = 0.0
+
+# Observability (tests): visual beam fade and the shader's capture value
+func get_beam_fade() -> float:
+	return _beam_fade
+
+func get_beam_capture() -> float:
+	return _capture
 
 func _leave_hover_group() -> void:
 	if is_in_group(HOVER_GROUP):

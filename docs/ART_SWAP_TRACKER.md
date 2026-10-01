@@ -44,6 +44,25 @@ While shielded the hit area is the shield circle (radius 126 local, ~101 px on s
 `CollisionArea/ShieldShape` at (0, -6), `player.gd` `shield_hit_radius`; keep it equal to
 the drawn sphere edge if the shield art or `edge_radius` changes.
 
+**Beam look.** The UFO tractor beam is procedural (no texture): `Beam/Field` in
+`scenes/obstacles/ufo_obstacle.tscn`, a 200x520 `ColorRect` (mouse ignored) at (-100, 30),
+drawn behind the hull by `shaders/ufo_beam.gdshader` (per-instance ShaderMaterial,
+`resource_local_to_scene`). UV (0.5, 0) is the saucer's emitter, v runs down the beam.
+Uniforms (shader defaults): cone `top_half_width` 0.2 / `bottom_half_width` 0.4 (fractions
+of the quad width: 80 px wide at the emitter, ~160 px at the end of the BeamArea polygon,
+y 530) / `edge_softness` 0.45 (sides half faded at the nominal width, gone at
+1 + 0.5 x softness; keep `bottom_half_width * (1 + 0.5 * edge_softness)` < 0.5);
+`fade_power` 0.9 / `end_fade` 0.15 (last 15% fades to 0, by y 550) / `emitter_glow` 0.8;
+`beam_color` (0.85, 0.35, 1) / `core_color` (1, 0.85, 0.97) / `beam_alpha` 0.35 /
+`core_strength` 0.6; rings scrolling up toward the saucer `ring_count` 6 / `ring_speed` 0.9
+/ `ring_width` 0.14 / `ring_strength` 0.55 / `ring_curve` 0.35; `shimmer_strength` 0.3
+(sideways wobble + two drifting bands); `capture` 0..1 (set by code). `ufo_obstacle.gd`
+drives `Beam.modulate.a` (fade in/out over `beam_fade_time` 0.3 s times a pulse between
+`beam_alpha_min` 0.8 and `beam_alpha_max` 1.0) and `capture` (toward 1 while the player
+is in the beam, back to 0 otherwise, over `capture_time` 0.2 s: brighter core and rings
+plus a second, faster ring set). If the cone changes, keep `Beam/BeamArea`'s polygon
+(-40, 30) (40, 30) (80, 530) (-80, 530) matching it.
+
 Every placeholder in the code carries a `PLACEHOLDER_ART:` comment at the exact line to
 change. `grep -rn PLACEHOLDER_ART scripts scenes data` lists what is still standing in.
 This table is the human-readable view; keep both in sync when adding or swapping art.
@@ -60,7 +79,7 @@ not yet wired), `swapped` (final art in place, marker removed).
 | Drone swarm enemy | `scenes/obstacles/drone_obstacle.tscn` Sprite2D `texture` / `scale` + CircleShape2D (note in `scripts/obstacles/drone_obstacle.gd`) | — | `sprites/drone_1.png` (512x512, master 1254x1254) at Sprite2D scale 0.0784, ~40 px on screen, collision circle r 15 at (0, -2); static (optional later: 2-4 frame rotor loop as hframes) | swapped |
 | Blimp mini-boss | `scenes/obstacles/blimp_obstacle.tscn` Sprite2D `texture` / `rotation` / `scale` + CapsuleShape2D + GunPoint1-3 (note in `scripts/obstacles/blimp_obstacle.gd`) | — | `sprites/zeppelin_1.png` (1024x393, the zeppelin cut from master `zeppelin_weapon_combined.png`; top-down, nose drawn to the right) on a Sprite2D rotated 90 deg (nose down) at scale 0.24, ~94x246 px visible (1.33x the first fit, so a ship centered under it lands all three tier-2 shots), untinted; capsule r 40 / height 229 at (0, 5); GunPoint1/3 on the forward side pods (x -+41, y 28), GunPoint2 on the gondola cockpit (0, 40). Unused so far: the sheet's six weapon modules; optional later: propeller loop, damaged variant | swapped |
 | UFO saucer | `scenes/obstacles/ufo_obstacle.tscn` Sprite2D `texture` / `scale` + hull CapsuleShape2D (note in `scripts/obstacles/ufo_obstacle.gd`) | — | `sprites/ufo_1.png` (1024x512, master 1774x887) at Sprite2D scale 0.2079, ~213x106 canvas (~210x81 px visible), level, untinted; hull capsule 200x52 at y+6 | swapped |
-| UFO tractor beam | `scenes/obstacles/ufo_obstacle.tscn` `Beam/BeamPolygon` (marker in `scripts/obstacles/ufo_obstacle.gd`) | Flat translucent cyan Polygon2D trapezoid from the saucer's emitter (y 30, 80 px wide, drawn behind the hull) to 500 px down (160 px wide); alpha pulsed in code | Beam texture 160x500 px, transparent PNG, vertical gradient (bright at top, fading out at the bottom), soft edges, optional scrolling-rings frames; keep the BeamArea polygon matching its shape | placeholder |
+| UFO tractor beam | `scenes/obstacles/ufo_obstacle.tscn` `Beam/Field` ColorRect + `shaders/ufo_beam.gdshader` (note in `scripts/obstacles/ufo_obstacle.gd`; see "Beam look") | — | Procedural shader, no texture: soft magenta-violet cone from the emitter (y 30, 80 px wide, behind the hull) to ~160 px wide at y 530, bright core and emitter glow, curved rings scrolling up toward the saucer, fading out by y 550; fades in/out over 0.3 s, brightens with faster rings while the player is caught (`capture`). `Beam/BeamArea` polygon unchanged | code-only (shader) |
 | Splitting asteroid | `scenes/obstacles/asteroid_obstacle.tscn` Sprite2D `texture` (marker in `scripts/obstacles/asteroid_obstacle.gd`) | `sprites/meteor_1.png`, same texture for all three sizes (scaled 1.6/1.0/0.6) | Rocky asteroid without flame trail, transparent PNG, roughly round, ~50 px at size 2 (author at 200x200); ideally 3 variants (large/medium/small or cracked stages) so pieces read as fragments; spins in code, so no rotation frames needed | placeholder |
 | Space mine | `scenes/obstacles/mine_obstacle.tscn` Sprite2D `texture` / `scale` + CircleShape2D; light pulse in `scripts/obstacles/mine_obstacle.gd` `_set_light()` (sprite `modulate` toward `idle_light_color` / `armed_light_color`) | — | `sprites/mine_1.png` (512x512, master 1254x1254) at Sprite2D scale 0.103, ~53 px on screen incl. spikes, collision circle r 16 (body only) | swapped |
 | Docking station (victory) | `scenes/effects/docking_station.tscn` Sprite2D `Hull` `texture` / `scale` + `DockPoint`; `PAD_RECT` / `landing_scale` in `scripts/effects/docking_station.gd` | — | `sprites/space_station_1.png` (1024x341, master 2172x724; top-down, solar/cargo modules left and right, central landing pad with an orange crosshair) on `Hull` at scale 0.6641 = 680x226 px on screen, `texture_filter = 4`; resting at y 260 (on screen y 147..373). Pad (dark rectangle, texture px 404..621 x 111..231) = station-local rect (-71.7, -39.5) 144x80, on screen x 288..432, y 220..300; `DockPoint` (0, 1) on the crosshair. The ship lands on the pad: `fly_to` shrinks it from 0.8 to `landing_scale` 0.36 (largest ship ~46x67 px, inside the pad). Optional later: animated pad lights (2-4 frames) | swapped |
