@@ -30,9 +30,10 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 @onready var graze_area: Area2D = get_node_or_null("GrazeArea")
 # Shield bubble (shown while shielded; see activate_shield()). Its child
 # "Dome" Sprite2D (sprites/shield_dome_1.png, 634x634 full sphere, at 0.5258,
-# at (0, -6): within 5 local px of each ship's art center (y -10.8 / -2.1 /
-# -5.2); sphere radius 126 local px, ~10 px outside the farthest corner of
-# the largest ship, still outside at the -5% pulse) uses
+# at (0, -6): within 5 local px of the ships' visible center (y -10.8 for
+# all three after visual_scale / visual_offset_y); sphere radius 126 local
+# px, ~17 px outside the farthest corner of the ships' visible bounding box
+# (~127x169 local), ~10 px outside it at the -5% pulse) uses
 # shaders/shield_bubble.gdshader (faded interior, rim glow). The pulse / hit
 # pop / warning blink drive ShieldRing's scale, modulate and visibility; the
 # shader multiplies by modulate last, so they apply on top of the look.
@@ -136,6 +137,11 @@ var ship_definition: ShipDefinitionScript = null
 var damage_scale: float = 1.0
 # tier_fire_cooldowns as authored, before the ship's fire_cooldown_scale
 var _base_tier_fire_cooldowns: Array[float] = []
+# Ship sprite scale / position as authored in the scene (0.125, origin),
+# captured on the first apply_ship(); the ship's visual_scale and
+# visual_offset_y are applied on top of these, so re-applying is idempotent
+var _ship_base_scale: Vector2 = Vector2.ZERO
+var _ship_base_position: Vector2 = Vector2.ZERO
 
 # External velocity (e.g. an enemy tractor beam) for the current physics
 # frame; see add_external_velocity()
@@ -180,9 +186,10 @@ func _ready() -> void:
 	end_shield()
 	disable_movement()
 
-# Applies a ShipDefinition: sprite texture/tint, speed, fire cooldowns and
-# projectile damage. Idempotent (cooldowns are scaled from the authored
-# values, not the current ones). Health is applied by main_level.gd.
+# Applies a ShipDefinition: sprite texture/tint/size, speed, fire cooldowns
+# and projectile damage. Idempotent (cooldowns and the sprite scale are
+# derived from the authored values, not the current ones). Health is applied
+# by main_level.gd.
 func apply_ship(def: ShipDefinitionScript) -> void:
 	if def == null:
 		return
@@ -191,6 +198,12 @@ func apply_ship(def: ShipDefinitionScript) -> void:
 		ship_sprite.texture = def.texture
 	if ship_sprite:
 		ship_sprite.modulate = def.tint
+		# Same visible height and center for every ship (see ShipDefinition)
+		if _ship_base_scale == Vector2.ZERO:
+			_ship_base_scale = ship_sprite.scale
+			_ship_base_position = ship_sprite.position
+		ship_sprite.scale = _ship_base_scale * def.visual_scale
+		ship_sprite.position = _ship_base_position + Vector2(0.0, def.visual_offset_y)
 	speed = def.speed
 	damage_scale = def.damage_scale
 	_apply_hardpoints(def)

@@ -42,9 +42,10 @@ signal docking_finished
 @export_group("Placement")
 @export var start_y: float = -300.0
 @export var dock_y: float = 260.0
-## Ship scale on the pad (the level passes it to player.fly_to): the largest
-## ship's visible art (~127x186 local px) at 0.36 is ~46x67 px, inside the
-## 144x80 px pad with ~6 px to spare top and bottom
+## Ship scale on the pad (the level passes it to player.fly_to): every ship's
+## visible art (~127x169 local px after ShipDefinition.visual_scale) at 0.36
+## is ~46x61 px, inside the 144x80 px pad (~6 px to spare at the top, ~13 px
+## at the bottom; the visible center sits ~4 px above DockPoint)
 @export var landing_scale: float = 0.36
 
 const DOCKED_FONT := preload("res://fonts/m5x7.ttf")

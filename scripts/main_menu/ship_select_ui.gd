@@ -24,6 +24,9 @@ const CARD_PREVIEW_HEIGHT := 90.0
 const CARD_FONT_SIZE := 22
 const CARD_NAME_COLOR := Color(1, 1, 1)
 const CARD_SELECTED_NAME_COLOR := Color(1, 1, 0)
+## The Player scene's Ship sprite scale (ShipDefinition.visual_offset_y is in
+## Player-local px at this scale)
+const SHIP_SPRITE_SCALE := 0.125
 
 @onready var preview: TextureRect = $PanelContainer/MarginContainer/VBoxContainer/Preview
 @onready var name_label: Label = $PanelContainer/MarginContainer/VBoxContainer/NameLabel
@@ -94,8 +97,7 @@ func select_ship(index: int) -> void:
 	selected_index = posmod(index, ships.size())
 	var ship = ships[selected_index]
 
-	preview.texture = ship.texture
-	preview.self_modulate = ship.tint
+	_show_ship(preview, ship)
 	name_label.text = ship.display_name
 	tagline_label.text = ship.tagline
 	description_label.text = ship.description
@@ -161,10 +163,8 @@ func _build_cards() -> void:
 		thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		thumb.custom_minimum_size = Vector2(0, CARD_PREVIEW_HEIGHT)
 		thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		thumb.texture = ship.texture
-		thumb.self_modulate = ship.tint
 		box.add_child(thumb)
+		_show_ship(thumb, ship)
 
 		var label := Label.new()
 		label.name = "NameLabel"
@@ -180,6 +180,46 @@ func _build_cards() -> void:
 		card.pressed.connect(_on_card_pressed.bind(i))
 		cards_container.add_child(card)
 		cards.append(card)
+
+
+# Ship art in `holder` (the Preview or a card's Thumb, sized by its container)
+# at the same relative size and center as in the game: the definition's
+# visual_scale / visual_offset_y (Player-local px at the Ship sprite scale
+# SHIP_SPRITE_SCALE) are applied here, so all ships show the same visible
+# height. The holder draws nothing itself; a child TextureRect "Ship" (keep
+# aspect, centered) is laid out by _layout_ship_view() whenever the holder
+# resizes.
+func _show_ship(holder: TextureRect, ship) -> void:
+	holder.texture = null
+	var view := holder.get_node_or_null("Ship") as TextureRect
+	if view == null:
+		view = TextureRect.new()
+		view.name = "Ship"
+		view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		holder.add_child(view)
+		holder.resized.connect(_layout_ship_view.bind(holder))
+	view.texture = ship.texture
+	view.self_modulate = ship.tint
+	holder.set_meta(&"ship_visual", Vector2(ship.visual_scale, ship.visual_offset_y))
+	_layout_ship_view(holder)
+
+
+# The view is the holder's rect scaled by visual_scale around its center (the
+# texture fit scales with it), shifted down by visual_offset_y converted from
+# Player-local px to holder px (/ SHIP_SPRITE_SCALE = texture px, x the
+# holder's texture fit)
+func _layout_ship_view(holder: TextureRect) -> void:
+	var view := holder.get_node_or_null("Ship") as TextureRect
+	if view == null or view.texture == null:
+		return
+	var visual: Vector2 = holder.get_meta(&"ship_visual", Vector2(1.0, 0.0))
+	var tex_size := view.texture.get_size()
+	var fit := minf(holder.size.x / tex_size.x, holder.size.y / tex_size.y)
+	view.size = holder.size * visual.x
+	view.position = (holder.size - view.size) / 2.0 \
+		+ Vector2(0.0, visual.y / SHIP_SPRITE_SCALE * fit)
 
 
 func _style_card(card: Button, selected: bool) -> void:

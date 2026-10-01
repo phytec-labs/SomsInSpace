@@ -10,6 +10,7 @@ display_name = "TI SoM - AM62Px"
 tagline = "Balanced all-rounder"
 description = "Solid armor, speed and firepower: the TI AM62Px does it all."
 texture = ExtResource("2_tex")
+visual_scale = 1.0
 nose_offset_y = -89.0
 wing_gun_x = 38.0
 wing_gun_y = -20.0
