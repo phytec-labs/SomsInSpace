@@ -2,10 +2,10 @@
 
 [ext_resource type="Script" path="res://scripts/collectibles/bomb_pickup.gd" id="1_script"]
 [ext_resource type="AudioStream" uid="uid://ba7lcd7dluclr" path="res://audio/retro-coin-1.mp3" id="2_sound"]
-[ext_resource type="Texture2D" uid="uid://decrkgt8rfs0j" path="res://sprites/bomb_collectible_1.png" id="3_icon"]
+[ext_resource type="SpriteFrames" path="res://sprites/bomb_pickup.tres" id="3_frames"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_pickup"]
-radius = 28.0
+radius = 25.0
 
 [node name="BombPickup" type="Area2D"]
 z_index = 5
@@ -14,15 +14,16 @@ collision_layer = 2
 script = ExtResource("1_script")
 points = 25
 rotation_speed = 3.0
+spin = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_pickup")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 texture_filter = 4
-position = Vector2(6, -6)
-scale = Vector2(0.1, 0.1)
-texture = ExtResource("3_icon")
+scale = Vector2(0.393, 0.393)
+sprite_frames = ExtResource("3_frames")
+autoplay = "default"
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
 stream = ExtResource("2_sound")

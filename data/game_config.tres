@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" path="res://scenes/collectibles/health_pickup.tscn" id="13_health"]
 [ext_resource type="PackedScene" path="res://scenes/collectibles/shield_pickup.tscn" id="14_shield"]
 [ext_resource type="PackedScene" path="res://scenes/collectibles/bomb_pickup.tscn" id="15_bomb"]
+[ext_resource type="PackedScene" path="res://scenes/collectibles/missile_pickup.tscn" id="16_missile"]
 
 [resource]
 script = ExtResource("1_lytdd")
@@ -25,3 +26,4 @@ energy_collectible_scene = ExtResource("12_energy")
 health_pickup_scene = ExtResource("13_health")
 shield_pickup_scene = ExtResource("14_shield")
 bomb_pickup_scene = ExtResource("15_bomb")
+missile_pickup_scene = ExtResource("16_missile")

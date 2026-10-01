@@ -3,8 +3,16 @@
 # gentle side-to-side drift and fires aimed shots from its three gondola
 # turret mounts (GunPoint1..3, left/center/right), one mount per shot in a
 # ping-pong cycle. Survives ramming (the player takes contact damage, rate
-# limited like the boss) and drops one energy collectible plus one health cell
-# when shot down.
+# limited like the boss) and drops one energy collectible, one health cell
+# and one missile upgrade when shot down.
+#
+# Missiles: besides the guns, a pair of homing missiles
+# (scenes/effects/enemy_missile.tscn: shootable, 2 laser hits) leaves the two
+# side pods (GunPoint1 / GunPoint3) every missile_interval, the first pair
+# first_missile_delay after the pods came on screen; each pair is telegraphed
+# by a missile_telegraph_time flash at the pods (PodFlashLeft / PodFlashRight).
+# At most max_live_missiles of its missiles fly at once (a pair launches only
+# what fits; with no room the flash waits).
 #
 # Spawned once per atmosphere visit as the zone's mini-boss
 # (ZoneDefinition.miniboss_scene in data/zones/atmosphere.tres): the
@@ -43,6 +51,23 @@ class_name BlimpObstacle
 @export var collectible_drops: int = 1
 ## Health cells dropped when shot down (in addition to the energy)
 @export var health_drops: int = 1
+## Missile upgrades dropped when shot down (always; in addition to the above)
+@export var missile_drops: int = 1
+
+@export_group("Blimp Missiles")
+## Enemy missile scene (null = no missiles)
+@export var missile_scene: PackedScene = preload("res://scenes/effects/enemy_missile.tscn")
+## Seconds between missile pairs (launch to launch)
+@export var missile_interval: float = 4.5
+## Seconds the pods must have been on screen before the first pair
+@export var first_missile_delay: float = 2.0
+## Launch flash (telegraph) shown this long before each pair
+@export var missile_telegraph_time: float = 0.35
+## Most of this blimp's missiles alive at once
+@export var max_live_missiles: int = 4
+## Launch direction: this many degrees outward from straight down
+@export var missile_launch_angle: float = 35.0
+@export_group("")
 
 ## Read (duck-typed, via get()) by the attract-mode autopilot, which focuses
 ## its aim on a mini-boss while it is on screen
@@ -51,6 +76,17 @@ var is_miniboss: bool = true
 var _shot_timer: float = 0.0
 var _gun_step: int = 0
 var _contact_timer: float = 0.0
+# Missiles: seconds the pods have been on screen, when the next pair is due
+# (in that clock), telegraph time left (> 0 = flashing), live missiles as
+# [node, launch_count]
+var _missile_clock: float = 0.0
+var _next_missile_at: float = 0.0
+var _missile_flash_left: float = 0.0
+var _missiles: Array = []
+var missiles_launched: int = 0  # Observability (tests / tuning)
+@onready var _pod_left: Node2D = get_node_or_null("GunPoint1")
+@onready var _pod_right: Node2D = get_node_or_null("GunPoint3")
+@onready var _pod_flashes: Array = [get_node_or_null("PodFlashLeft"), get_node_or_null("PodFlashRight")]
 
 func initialize(spawn_position: Vector2) -> void:
 	super.initialize(spawn_position)
@@ -64,6 +100,11 @@ func initialize(spawn_position: Vector2) -> void:
 	_shot_timer = shot_interval - first_shot_delay
 	_gun_step = 0
 	_contact_timer = 0.0
+	_missile_clock = 0.0
+	_next_missile_at = first_missile_delay
+	_missile_flash_left = 0.0
+	_missiles.clear()
+	_set_pod_flash(0.0)
 
 # Flies on its own, never as part of a formation
 func set_formation_data(_form_id: int, _form_offset: Vector2) -> void:
@@ -92,8 +133,78 @@ func _process(delta: float) -> void:
 		_shot_timer = 0.0
 		_fire_from(_next_gun_point())
 
+	_update_missiles(delta)
 	_update_contact(delta)
 	check_if_offscreen()
+
+# --- Missiles ---
+
+func _update_missiles(delta: float) -> void:
+	if missile_scene == null or _pod_left == null or _pod_right == null:
+		return
+	if _missile_flash_left > 0.0:
+		_missile_flash_left -= delta
+		if _missile_flash_left <= 0.0:
+			_set_pod_flash(0.0)
+			_launch_missile_pair()
+		else:
+			_set_pod_flash(_missile_flash_left / maxf(missile_telegraph_time, 0.001))
+		return
+	# The clock only runs while both pods are on screen
+	if _pod_left.global_position.y <= 0.0 or _pod_right.global_position.y <= 0.0:
+		return
+	_missile_clock += delta
+	if _missile_clock >= _next_missile_at - missile_telegraph_time:
+		if get_live_missile_count() < max_live_missiles:
+			_missile_flash_left = maxf(missile_telegraph_time, 0.001)
+			_set_pod_flash(1.0)
+		else:
+			# No room: try again shortly (the flash always precedes a launch)
+			_next_missile_at = _missile_clock + missile_telegraph_time + 0.25
+
+func _launch_missile_pair() -> void:
+	_next_missile_at = _missile_clock + missile_interval
+	var room := max_live_missiles - get_live_missile_count()
+	var angle := deg_to_rad(missile_launch_angle)
+	var pods := [[_pod_left, Vector2.DOWN.rotated(angle)], [_pod_right, Vector2.DOWN.rotated(-angle)]]
+	for pod in pods:
+		if room <= 0:
+			break
+		var missile = ObjectPool.acquire(missile_scene, _get_effects_parent())
+		if missile == null:
+			continue
+		missile.initialize(pod[0].global_position, pod[1])
+		_missiles.append([missile, missile.launch_count])
+		missiles_launched += 1
+		room -= 1
+	if shoot_audio_player and shoot_audio_player.stream:
+		shoot_audio_player.pitch_scale = 0.7
+		shoot_audio_player.play()
+
+# This blimp's missiles still in flight (prunes popped / pooled ones)
+func get_live_missile_count() -> int:
+	for i in range(_missiles.size() - 1, -1, -1):
+		var m = _missiles[i][0]
+		if not is_instance_valid(m) or not m.is_active or m.launch_count != _missiles[i][1]:
+			_missiles.remove_at(i)
+	return _missiles.size()
+
+## True while the launch telegraph is showing
+func is_missile_telegraph_on() -> bool:
+	return _missile_flash_left > 0.0
+
+# Pod flash: 0 = hidden; else visible, pulsing brighter / larger toward the
+# launch (amount runs 1 -> 0 over the telegraph)
+func _set_pod_flash(amount: float) -> void:
+	for flash in _pod_flashes:
+		if flash == null:
+			continue
+		flash.visible = amount > 0.0
+		if amount > 0.0:
+			var t := 1.0 - amount
+			var s := 0.6 + 0.8 * t
+			flash.scale = Vector2(s, s)
+			flash.modulate = Color(1.0, 1.0, 1.0, 0.55 + 0.45 * absf(sin(t * PI * 3.0)))
 
 # Ping-pong over the turret mounts: L, C, R, C, L, ...
 func _next_gun_point() -> Node2D:
@@ -133,6 +244,11 @@ func handle_player_collision() -> void:
 	_contact_timer = contact_hit_interval
 	emit_signal("object_hit")
 
+func deactivate() -> void:
+	_missile_flash_left = 0.0
+	_set_pod_flash(0.0)
+	super.deactivate()
+
 func take_damage(amount: float) -> void:
 	if not is_active:
 		return
@@ -152,3 +268,10 @@ func take_damage(amount: float) -> void:
 			for i in range(health_drops if health_scene else 0):
 				var offset = Vector2((float(i) - float(health_drops - 1) / 2.0) * 50.0, 50.0)
 				spawn_manager.spawn_collectible_at.call_deferred(drop_position + offset, health_scene)
+		# Plus the missile upgrade (above the energy, so it reaches the
+		# player last and isn't hidden under the others)
+		if missile_drops > 0 and spawn_manager.has_method("get_pickup_scene"):
+			var missile_pickup: PackedScene = spawn_manager.get_pickup_scene(&"missile")
+			for i in range(missile_drops if missile_pickup else 0):
+				var offset = Vector2((float(i) - float(missile_drops - 1) / 2.0) * 50.0, -55.0)
+				spawn_manager.spawn_collectible_at.call_deferred(drop_position + offset, missile_pickup)

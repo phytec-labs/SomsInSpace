@@ -29,6 +29,11 @@ var _last_combo: int = 1
 @onready var shield_box: Control = $StatsPanel/MarginContainer/StatsContainer/PointsContainer/ShieldBox
 @onready var shield_bar: ProgressBar = $StatsPanel/MarginContainer/StatsContainer/PointsContainer/ShieldBox/ShieldBar
 
+# Missile upgrade indicator (in the height row, above the combo / shield
+# boxes): "MISSILES" plus a thin bar with the time left; hidden while off
+@onready var missile_box: Control = $StatsPanel/MarginContainer/StatsContainer/HeightContainer/MissileBox
+@onready var missile_bar: ProgressBar = $StatsPanel/MarginContainer/StatsContainer/HeightContainer/MissileBox/MissileBar
+
 # Zone labels: generated from config.zones in configure() (zone id -> Label;
 # highlighted by update_zone)
 @onready var zone_labels_container: HBoxContainer = $ZoneProgressContainer/ZoneBackground/MarginContainer/ZoneLabels
@@ -113,6 +118,7 @@ func _ready() -> void:
 	update_zone("ground")
 	hide_boss_bar()
 	update_shield(0.0)
+	update_missiles(0.0)
 
 	# Set initial weapon / threat
 	update_weapon(1)
@@ -228,6 +234,16 @@ func update_shield(fraction: float) -> void:
 		shield_box.visible = active
 	if active:
 		shield_bar.value = clampf(fraction, 0.0, 1.0)
+
+# Missile upgrade time left as a fraction of its duration (0 hides the
+# indicator). Called every frame during play; only the bar value changes
+# while shown.
+func update_missiles(fraction: float) -> void:
+	var active := fraction > 0.0
+	if missile_box.visible != active:
+		missile_box.visible = active
+	if active:
+		missile_bar.value = clampf(fraction, 0.0, 1.0)
 
 func update_zone(zone_name: String) -> void:
 	_current_zone = zone_name

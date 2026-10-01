@@ -1,0 +1,51 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/player_missile.gd" id="1_missile"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_missile"]
+radius = 6.0
+height = 26.0
+
+[sub_resource type="Gradient" id="Gradient_flame"]
+offsets = PackedFloat32Array(0, 0.2, 0.55, 1)
+colors = PackedColorArray(1, 1, 0.8, 1, 1, 0.7, 0.2, 1, 0.75, 0.75, 0.8, 0.6, 0.6, 0.6, 0.65, 0)
+
+[sub_resource type="Curve" id="Curve_flame"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.5), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[node name="PlayerMissile" type="Area2D"]
+collision_layer = 8
+collision_mask = 34
+script = ExtResource("1_missile")
+
+[node name="Trail" type="CPUParticles2D" parent="."]
+z_index = -1
+position = Vector2(0, 14)
+amount = 16
+lifetime = 0.4
+local_coords = false
+direction = Vector2(0, 1)
+spread = 12.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 30.0
+initial_velocity_max = 60.0
+scale_amount_min = 4.0
+scale_amount_max = 6.0
+scale_amount_curve = SubResource("Curve_flame")
+color_ramp = SubResource("Gradient_flame")
+
+[node name="Fins" type="Polygon2D" parent="."]
+color = Color(0.2, 0.55, 1, 1)
+polygon = PackedVector2Array(-3, 3, -8, 13, -3, 11, 3, 11, 8, 13, 3, 3)
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.92, 0.96, 1, 1)
+polygon = PackedVector2Array(-3, -8, 3, -8, 3, 12, -3, 12)
+
+[node name="Nose" type="Polygon2D" parent="."]
+color = Color(0.35, 0.9, 1, 1)
+polygon = PackedVector2Array(0, -16, 3, -8, -3, -8)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_missile")

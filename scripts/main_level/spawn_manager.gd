@@ -8,9 +8,9 @@ const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
 
 const MOVEMENT_PATTERNS: Array[String] = ["linear", "sine", "zigzag"]
 # Pickup kinds, in ZoneDefinition.get_pickup_weights() order
-const PICKUP_KINDS: Array[StringName] = [&"energy", &"health", &"shield", &"bomb"]
+const PICKUP_KINDS: Array[StringName] = [&"energy", &"health", &"shield", &"bomb", &"missile"]
 # At most one of each of these on screen at a time (re-rolled as energy)
-const SINGLE_ON_SCREEN_PICKUPS: Array[StringName] = [&"shield", &"bomb"]
+const SINGLE_ON_SCREEN_PICKUPS: Array[StringName] = [&"shield", &"bomb", &"missile"]
 
 # Node references
 @onready var formation_manager = $FormationManager
@@ -30,6 +30,7 @@ var energy_collectible_scene: PackedScene
 var health_pickup_scene: PackedScene
 var shield_pickup_scene: PackedScene
 var bomb_pickup_scene: PackedScene
+var missile_pickup_scene: PackedScene
 
 # Enemy-specific properties
 @export_group("Enemy Settings")
@@ -85,6 +86,7 @@ func configure(game_config: GameConfigScript) -> void:
 		health_pickup_scene = config.health_pickup_scene
 		shield_pickup_scene = config.shield_pickup_scene
 		bomb_pickup_scene = config.bomb_pickup_scene
+		missile_pickup_scene = config.missile_pickup_scene
 
 # Start spawning objects
 func start_spawning() -> void:
@@ -178,7 +180,8 @@ func spawn_collectible() -> Node2D:
 	return spawn_collectible_at(get_collectible_spawn_position(), get_pickup_scene(roll_pickup_kind()))
 
 # Weighted pickup roll for the current zone (energy only without a zone),
-# with the guarantees applied: a shield / bomb while one is already on screen
+# with the guarantees applied: a shield / bomb / missile upgrade while one is
+# already on screen
 # and a health cell at full health become energy.
 func roll_pickup_kind() -> StringName:
 	var kind: StringName = _roll_weighted_pickup()
@@ -220,6 +223,8 @@ func get_pickup_scene(kind: StringName) -> PackedScene:
 			return shield_pickup_scene
 		&"bomb":
 			return bomb_pickup_scene
+		&"missile":
+			return missile_pickup_scene
 	return energy_collectible_scene
 
 # Live (spawned, not yet collected / off screen) pickups of `kind`

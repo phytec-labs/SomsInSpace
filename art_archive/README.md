@@ -31,7 +31,8 @@ The game uses downscaled copies in `sprites/` (same basenames, except the blimp:
 six weapon modules are not used yet; and the two pickup strips,
 `shield_icon_sprite_sheet.png` and `health_pickup_sprite_sheet.png`, which are repacked
 into the uniform 256 px-cell sheets `sprites/shield_icon_sheet.png` and
-`sprites/health_pickup_sheet.png`).
+`sprites/health_pickup_sheet.png`, and the 6-frame bomb strip `bomb_collectible_2.png`,
+repacked into `sprites/bomb_pickup_sheet.png`).
 To regenerate the game copies after editing a master:
 
 ```sh
@@ -49,3 +50,6 @@ The previous pixel-art versions of `jet_1.png`, `jet_2.png` and `jet_8.png`,
 replaced by the new jet_1 / jet_2 / jet_3 art.
 `shield_dome_half.png` is the previous half-dome shield master (1261x1247),
 replaced by the full sphere in `masters/shield_dome_1.png`.
+`bomb_collectible_1.png` (560x512 game copy) and `bomb_collectible_1_master.png`
+(1312x1199) are the previous static bomb icon, replaced by the animated sheet
+`sprites/bomb_pickup_sheet.png` from `masters/bomb_collectible_2.png`.

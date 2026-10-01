@@ -15,6 +15,13 @@ const HitSparkScript := preload("res://scripts/effects/hit_spark.gd")
 ## (streak-shaped shots such as the tier-3 spread laser).
 @export var spin: bool = true
 
+# Shootable enemy shots (enemy missiles, seeker orbs): Area2Ds on this
+# physics layer (value 32, layer 6) in this group, with a duck-typed
+# take_damage(amount) and is_active. Player shots add the layer to their mask
+# in _ready() (the scenes keep mask 2 = obstacles).
+const SHOOTABLE_LAYER := 32
+const SHOOTABLE_GROUP := &"shootable"
+
 var direction: Vector2 = Vector2.UP
 var is_active: bool = false
 
@@ -22,6 +29,7 @@ var _time_left: float = 0.0
 var _spin_tween: Tween
 
 func _ready() -> void:
+	collision_mask |= SHOOTABLE_LAYER
 	area_entered.connect(_on_area_entered)
 
 func _process(delta: float) -> void:
@@ -88,6 +96,13 @@ func _on_area_entered(area: Area2D) -> void:
 		# Survived the hit: sparks where the shot landed (capped, see
 		# hit_spark.gd MAX_LIVE)
 		if obstacle.is_active and obstacle.health > 0.0:
+			_spawn_hit_spark()
+		_despawn()
+	elif area.is_in_group(SHOOTABLE_GROUP) and area.has_method("take_damage") \
+			and area.get("is_active"):
+		# Enemy missile / seeker orb: same damage; it pops itself when killed
+		area.take_damage(damage)
+		if area.get("is_active"):
 			_spawn_hit_spark()
 		_despawn()
 

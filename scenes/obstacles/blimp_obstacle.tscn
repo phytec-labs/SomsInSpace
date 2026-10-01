@@ -39,3 +39,25 @@ position = Vector2(0, 40)
 
 [node name="GunPoint3" type="Marker2D" parent="."]
 position = Vector2(41, 28)
+
+[node name="PodFlashLeft" type="Polygon2D" parent="."]
+visible = false
+z_index = 1
+position = Vector2(-41, 28)
+color = Color(1, 0.6, 0.15, 1)
+polygon = PackedVector2Array(16.0, 0.0, 5.5, 2.3, 11.3, 11.3, 2.3, 5.5, 0.0, 16.0, -2.3, 5.5, -11.3, 11.3, -5.5, 2.3, -16.0, 0.0, -5.5, -2.3, -11.3, -11.3, -2.3, -5.5, -0.0, -16.0, 2.3, -5.5, 11.3, -11.3, 5.5, -2.3)
+
+[node name="Core" type="Polygon2D" parent="PodFlashLeft"]
+color = Color(1, 1, 0.75, 1)
+polygon = PackedVector2Array(6.0, 0.0, 4.2, 4.2, 0.0, 6.0, -4.2, 4.2, -6.0, 0.0, -4.2, -4.2, -0.0, -6.0, 4.2, -4.2)
+
+[node name="PodFlashRight" type="Polygon2D" parent="."]
+visible = false
+z_index = 1
+position = Vector2(41, 28)
+color = Color(1, 0.6, 0.15, 1)
+polygon = PackedVector2Array(16.0, 0.0, 5.5, 2.3, 11.3, 11.3, 2.3, 5.5, 0.0, 16.0, -2.3, 5.5, -11.3, 11.3, -5.5, 2.3, -16.0, 0.0, -5.5, -2.3, -11.3, -11.3, -2.3, -5.5, -0.0, -16.0, 2.3, -5.5, 11.3, -11.3, 5.5, -2.3)
+
+[node name="Core" type="Polygon2D" parent="PodFlashRight"]
+color = Color(1, 1, 0.75, 1)
+polygon = PackedVector2Array(6.0, 0.0, 4.2, 4.2, 0.0, 6.0, -4.2, 4.2, -6.0, 0.0, -4.2, -4.2, -0.0, -6.0, 4.2, -4.2)

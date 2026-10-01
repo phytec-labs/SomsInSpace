@@ -286,7 +286,9 @@ The values play-testing usually touches, and where they live:
 | Knob | Where | Current | Effect |
 |---|---|---|---|
 | `enemy_health_multiplier` | each `data/zones/<zone>.tres` | ground 1.0, atmosphere 2.0, upper_atmosphere 2.5, space 3.0, orbit 1.0 | Hits to kill every non-boss enemy in the zone (table above) |
-| Boss health | `scenes/obstacles/boss_alien.tscn` `health` | 750 | Fight length; phases change at 2/3 and 1/3 of it automatically (~16.5 s with the sweeping tier-2 bot) |
+| Boss health | `scenes/obstacles/boss_alien.tscn` `health` | 750 | Fight length; phases change at 2/3 and 1/3 of it automatically (~16.5 s with the sweeping tier-2 bot; ~20 s for the casual tier-3 bot with the minion / orb pressure, see "Orbit: the boss fight") |
+| Boss minions / orbs | `scripts/obstacles/boss_alien.gd` `PHASES` (`summon`, `summon_count`, `orbs`, `orb_count`), exports `max_minions`, `first_summon_delay`, `max_orbs` | see "Orbit: the boss fight" | Bodies and homing threats in the fight |
+| Zeppelin missiles | `scripts/obstacles/blimp_obstacle.gd` group "Blimp Missiles" | pair every 4.5 s, max 4 live | See "Missiles" |
 | Blimp health | `scenes/obstacles/blimp_obstacle.tscn` `health` | 270 (x 2.0 in atmosphere = 540) | Mini-boss length (~4.0-4.4 s of sustained tier-2 fire, ~10-12 s for the casual bot) |
 | UFO health | `scenes/obstacles/ufo_obstacle.tscn` `health` | 170 (x 2.5 = 425 upper_atmosphere, x 3.0 = 510 space) | ~4.3 s of sustained tier-3 fire in space (~5 s tier 2); a casual player (60% fire, loose aim) needs ~5-8 s of its 12 s hover; raise it and the casual escape rate climbs fast |
 | Mini-boss timing | `data/zones/atmosphere.tres`, group "Mini-boss" | 2.5 s after the upgrade is collected, fallback 18 s zone time, holds waves for at most 8 s | When the blimp arrives and how long the sequencer pauses for it |
@@ -459,6 +461,44 @@ delays 0.8-1.0 s.
 
 Orbit has no waves: the boss fight plays alone.
 
+### Orbit: the boss fight
+
+`scripts/obstacles/boss_alien.gd`. The Alien Mothership (750 health, no zone
+multiplier) flies in for 2.5 s (shots absorbed), then fights in three phases
+by health thirds. Per-phase data lives in its `PHASES` const:
+
+| Phase | Health | Drift | Aimed shot | Fan volley | Minions | Seeker orbs |
+|---|---|---|---|---|---|---|
+| 1 | > 2/3 | 0.6 rad/s, 200 px | every 1.2 s | none | 2 every 7 s | none |
+| 2 | > 1/3 | 1.0 rad/s, 220 px | every 1.5 s | every 2.0 s, 3 per gun point, all guns | 2 every 5 s | 2 every 5 s |
+| 3 | rest | 1.5 rad/s, 230 px | every 1.2 s | every 1.0 s, one gun point at a time (L, C, R, C) | 3 every 3.5 s | 3 every 4 s |
+
+- **Minions** (`minion_scene`, the alien, one-hit fodder: orbit's
+  `enemy_health_multiplier` 1.0) spawn in every phase, ramping up to antagonize
+  the player: the first summon comes `first_summon_delay` (2.5 s) after
+  `fight_started`, later ones every phase interval; entering phase 2 or 3 puts
+  the next summon half an interval away. At most `max_minions` (6) summoned
+  minions alive (a summon only fills free slots), and they still go through
+  `SpawnManager.spawn_minion()`, so `max_active_obstacles` applies.
+- **Seeker orbs** (phases 2-3; see "Missiles" below) launch from the gun
+  points with the attack animation, center first; at most `max_orbs` (5) in
+  flight (a launch fires only what fits: with the 4.5 s fuse, phase 3
+  alternates 3 and 2). On defeat (`_begin_death()`) and on `stand_down()` (the
+  player died) the orbs in flight are removed without a burst (`clear_orbs()`);
+  the boss's ordinary bullets keep flying as before (harmless: the level
+  ignores damage once the run is over).
+- Phase changes 2 and 3 drop a health cell below the boss and shake hard.
+
+Casual-bot measurement (balanced ship, tier 3, 10 seeded runs each; bot fires
+~60% of the time, aims at the nearest target with +-60 px wobble, sidesteps
+shots within 120 px ahead; `--fixed-fps 60`), before -> after the minion / orb
+change: fight 18.3 -> 19.8 s, health lost 25 -> 41 (healed 20 -> 31 by the
+phase drops), minions 3.4 -> 12.3 per fight (3.3 -> 11.0 killed), orbs 7.5
+shot down / 0.0 burst / 0.1 reached the player per fight, survival 10/10 ->
+10/10 (lowest end health 90 -> 50). Tier 2: 46.0 s, health lost 78 (healed
+53), 2.5 orbs burst per fight, 10/10 survive (lowest 35). Light ship (70
+health) at tier 3: 19.7 s, 10/10 survive (lowest 45).
+
 ## Pickups
 
 Collectibles are not part of the wave data: the SpawnManager's collectible
@@ -471,18 +511,20 @@ and `spawn_collectible()` rolls which one from the zone's pickup table.
 | Energy | `energy_collectible_1.tscn` | 1 | Points only |
 | Health cell | `health_pickup.tscn` | 10 | `level.heal(GameConfig.health_pickup_amount)` = +25, clamped to the ship's max health, green "+25" popup |
 | Shield bubble | `shield_pickup.tscn` | 10 | `player.activate_shield(GameConfig.shield_duration)` = 8 s. Absorbs enemy shots, mine blasts and all contact: no health loss, no blink, no weapon tier loss, combo kept; each absorbed hit pops the ring, the shield keeps going. It is an offensive window: see "Shield rams" below. The UFO beam still drains at `shield_drain_factor` (0.5x). Ring blinks in the last 2 s; re-collecting refreshes to the full 8 s; it ends at game over and when the victory docking starts. HUD: cyan "SHIELD" + timer bar next to the combo |
+| Missile upgrade | `missile_pickup.tscn` | 10 | `player.activate_missiles(GameConfig.missile_duration)` = 8 s of sidewinder missile pairs while firing (see "Missiles"); re-collecting refreshes to the full 8 s; it ends at game over and when the victory docking starts. Orange "MISSILES" popup; HUD: orange "MISSILES" + timer bar in the height row |
 | Screen-clear bomb | `bomb_pickup.tscn` | 25 | Fires on pickup: "BOMB!", 0.25 s white flash, big shake; every active non-boss obstacle on screen (incl. blimp, UFO, mines, minions) is killed through `Obstacle.bomb_kill()` (9999 damage: normal kill points, combo rises as usual, blimp loot drops, but asteroids do NOT split: `suppress_splits`), the boss takes `GameConfig.bomb_boss_damage` (150), enemy projectiles on screen (group `enemy_projectile`) are removed |
 
 Weights per zone (`ZoneDefinition.pickup_weight_energy / _health / _shield /
-_bomb`, group "Pickup Weights"; relative, they need not sum to 100):
+_bomb / _missile`, group "Pickup Weights"; relative, they need not sum to 100;
+the share column is the missile upgrade's chance per pickup roll):
 
-| Zone | Energy | Health | Shield | Bomb |
-|---|---|---|---|---|
-| ground | 100 | 0 | 0 | 0 |
-| atmosphere | 70 | 15 | 10 | 5 |
-| upper_atmosphere | 60 | 20 | 12 | 8 |
-| space | 55 | 20 | 15 | 10 |
-| orbit | 60 | 30 | 10 | 0 (no bombs in the boss fight) |
+| Zone | Energy | Health | Shield | Bomb | Missile | Missile share |
+|---|---|---|---|---|---|---|
+| ground | 100 | 0 | 0 | 0 | 0 | 0% |
+| atmosphere | 70 | 15 | 10 | 5 | 0 (the zeppelin drops one) | 0% |
+| upper_atmosphere | 60 | 20 | 12 | 8 | 5 | 4.8% |
+| space | 55 | 20 | 15 | 10 | 6 | 5.7% |
+| orbit | 60 | 30 | 10 | 0 (no bombs in the boss fight) | 0 | 0% |
 
 Shield rams (`main_level.gd` `_on_shielded_contact()`): while shielded,
 ramming an ordinary obstacle destroys it (as any ram does) AND awards its kill
@@ -496,21 +538,127 @@ screen; `CollisionArea/ShieldShape`, `player.gd` `shield_hit_radius`): enemy
 shots are absorbed, enemies rammed and pickups collected at the sphere edge,
 the UFO beam catches the ship sooner, and no grazes count (`can_graze()`).
 
-Attract-mode demo: the autopilot chases energy, health and shield pickups
-but never a bomb (it steers around it), so the demo screen never empties.
+Attract-mode demo: the autopilot chases energy, health, shield and missile
+pickups but never a bomb (it steers around it), so the demo screen never empties.
 
-Guarantees (`SpawnManager.roll_pickup_kind()`): at most one shield and one
-bomb on screen at a time, and no health cell while the player is at full
+Guarantees (`SpawnManager.roll_pickup_kind()`): at most one shield, one
+bomb and one missile upgrade on screen at a time, and no health cell while the player is at full
 health; a roll that breaks one becomes energy.
 
 Drops (bypass the table and its limits, via
 `SpawnManager.spawn_collectible_at(position, scene)`): the blimp drops one
-energy + one health cell (`collectible_drops`, `health_drops`); the boss drops
+energy + one health cell + one missile upgrade (`collectible_drops`,
+`health_drops`, `missile_drops`); the boss drops
 one health cell below itself when it enters phase 2 and phase 3
 (`main_level.gd` `_on_boss_phase_changed`).
 
 The pickup scenes and values live in `data/game_config.tres` (group
 "Pickups": `energy_collectible_scene`, `health_pickup_scene`,
-`shield_pickup_scene`, `bomb_pickup_scene`, `health_pickup_amount`,
-`shield_duration`, `shield_drain_factor`, `bomb_boss_damage`); the
-SpawnManager copies the scenes in `configure()`.
+`shield_pickup_scene`, `bomb_pickup_scene`, `missile_pickup_scene`,
+`health_pickup_amount`, `shield_duration`, `missile_duration`,
+`shield_drain_factor`, `bomb_boss_damage`); the SpawnManager copies the
+scenes in `configure()`.
+
+## Missiles
+
+Three homing missile types, all pooled through the `ObjectPool` autoload
+(never `queue_free()`d), timed by `_process()` accumulators (they freeze
+while paused) and cheap: Polygon2D / one shader quad plus at most one small
+CPUParticles2D trail each.
+
+**Shootable enemy shots.** Player lasers (`projectile.gd`) and player
+missiles also hit Area2Ds on physics layer value 32 (layer 6,
+`SHOOTABLE_LAYER`; `projectile.gd` ORs it into its mask in `_ready()`, the
+laser scenes keep mask 2) that are in group `shootable` and have a duck-typed
+`take_damage(amount)` and `is_active`. The zeppelin missile and the seeker
+orb are on layer 4 | 32 (enemy shot + shootable). Shot down, they pop (small
+explosion) and award their points through `level.award_kill_points()`, i.e.
+as a kill: the combo applies and rises. Both stay enemy projectiles for every
+other rule (group `enemy_projectile`: the bomb's `clear()` removes them and
+the autopilot dodges them; shield absorb at the bubble edge with the ripple;
+no damage while blinking or dead; damage through `level.update_health()`,
+which resets the combo, starts the blink and applies the optional tier loss;
+grazes).
+
+### Player missiles (temporary upgrade)
+
+`player.gd` `activate_missiles(duration)`; missile `scenes/effects/player_missile.tscn`
+/ `scripts/effects/player_missile.gd`. While active AND firing, a pair leaves
+the two wing gun hardpoints (`LeftGunpoint` / `RightGunpoint`, at the ship's
+`wing_gun_x/y` whatever the tier) every `missile_interval`, angled outward, on
+top of the tier's shots. Ends on timeout, death, the victory landing
+(`fly_to`), `reset_position()` and scene reload. HUD: `update_missiles()`.
+
+| Knob | Where | Value |
+|---|---|---|
+| `missile_duration` | `data/game_config.tres` (Pickups) | 8.0 s (re-collect refreshes) |
+| `missile_interval` | `player.gd` export | 0.55 s between pairs |
+| `missile_launch_angle_degrees` | `player.gd` export | 20 deg outward from straight up |
+| `launch_speed` / `max_speed` / `acceleration` | `player_missile.gd` | 380 -> 720 px/s at 700 px/s^2 |
+| `turn_rate_degrees` | `player_missile.gd` | 260 deg/s |
+| `damage` | `player_missile.gd` | 30 x the ship's `damage_scale` (set per launch by `player.gd`) |
+| `boss_damage_scale` | `player_missile.gd` | 0.5 against the boss (the zeppelin takes full damage) |
+| `lifetime` | `player_missile.gd` | 2.5 s |
+
+Targeting at launch: the boss (once its fight started) or a mini-boss on
+screen first, else the nearest active obstacle or shootable shot above the
+ship; the second missile of a pair avoids the first one's target when that
+dies to one hit. If the target dies or is reused, it retargets once to the
+nearest; with no target it turns straight up. Hits go through
+`take_damage()`, so kill points, combo, hit flash, health bars and loot work
+as for lasers; impact = small explosion + hit spark (no shake).
+
+Measured (casual bot, missiles kept active the whole fight): boss at tier 3
+19.8 -> 10.3 s (with `boss_damage_scale` 1.0 it was 6.7 s, which trivialized
+the fight), zeppelin at tier 2 15.5 -> 8.2 s. In normal play the upgrade
+comes from the zeppelin's drop and rare upper atmosphere / space rolls, so it
+mostly clears waves for 8 s; it can only reach the boss as a carry-over.
+
+### Zeppelin missiles
+
+`scenes/effects/enemy_missile.tscn` / `scripts/effects/enemy_missile.gd`,
+fired by `blimp_obstacle.gd` from the two side pods (GunPoint1 / GunPoint3) in
+addition to its guns. Each pair is telegraphed by `PodFlashLeft/Right` (star
+flashes at the pods). Missiles fly at 230 px/s, home on the player at up to
+110 deg/s for `homing_time`, then keep their heading (dodgeable).
+
+| Knob | Where | Value |
+|---|---|---|
+| `missile_interval` | blimp (group "Blimp Missiles") | 4.5 s, launch to launch |
+| `first_missile_delay` | blimp | 2.0 s after both pods are on screen |
+| `missile_telegraph_time` | blimp | 0.35 s pod flash before each pair |
+| `max_live_missiles` | blimp | 4 (a pair launches what fits; with no room it retries) |
+| `missile_launch_angle` | blimp | 35 deg outward from straight down |
+| `speed` / `damage` / `lifetime` | `enemy_missile.tscn` | 230 px/s / 20 / 6 s |
+| `turn_rate_degrees` / `homing_time` | `enemy_missile.gd` | 110 deg/s / 2.2 s |
+| `max_health` | `enemy_missile.gd` | 20 (2 laser hits at 10, 1 player missile) |
+| `shot_down_points` | `enemy_missile.gd` | 5 (as a kill: combo applies) |
+| `missile_drops` | blimp | 1 missile upgrade on death (plus the energy and health cell) |
+
+Measured (casual bot, tier 2, zeppelin alone, 10 seeded runs), before ->
+after: kill time 14.4 -> 15.5 s (shots spent on missiles), health lost 10 ->
+14, survival 10/10; per fight 3.8 missiles shot down vs 0.3 reaching the
+player.
+
+### Seeker orbs (Alien Mothership)
+
+`scenes/effects/alien_seeker.tscn` / `scripts/effects/alien_seeker.gd`
+(extends the enemy missile): a glowing magenta orb with a pulsing green core
+(procedural `shaders/alien_seeker.gdshader` on a 64x64 ColorRect, no
+texture). It homes loosely on the player for its whole flight on a hidden
+base point and is drawn `weave_amplitude * sin(2 pi weave_frequency t +
+phase)` px to the side of it (random phase per orb), so it snakes. Shot down:
+pop, +10 (as a kill), no burst. Reaching the player: 20 damage by the
+projectile rules. When `fuse_time` runs out it bursts into a ring of
+`burst_count` slow bullets (`burst_scene` = `enemy_projectile_3.tscn`, speed
+and lifetime set per spawn and restored when the bullet is pooled) with an
+energy flash; in its last `tell_time` it blinks fast as the tell.
+
+| Knob | Where | Value |
+|---|---|---|
+| `speed` / `turn_rate_degrees` | `alien_seeker.tscn` | 170 px/s / 90 deg/s |
+| `weave_amplitude` / `weave_frequency` | `alien_seeker.gd` | 45 px / 1.2 Hz |
+| `max_health` / `shot_down_points` / `damage` | `alien_seeker.tscn` | 20 (2 laser hits) / 10 / 20 |
+| `fuse_time` / `tell_time` / `tell_blink_rate` | `alien_seeker.gd` | 4.5 s / 1.0 s / 14 toggles/s |
+| `burst_count` / `burst_speed` / `burst_lifetime` | `alien_seeker.gd` | 6 / 160 px/s / 6 s |
+| Boss cadence / cap | `boss_alien.gd` `PHASES`, `max_orbs` | phase 2: 2 every 5 s; phase 3: 3 every 4 s; max 5 live |

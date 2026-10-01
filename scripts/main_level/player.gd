@@ -131,6 +131,23 @@ var weapon_tier: int = 1
 ## Angled tier-3 shots; falls back to projectile_scene.
 @export var spread_projectile_scene: PackedScene
 
+# Missile upgrade (missile pickup): while missile_time_left > 0 and the
+# player is firing, a pair of homing missiles (missile_scene, see
+# scripts/effects/player_missile.gd) leaves the wing guns (left_gunpoint /
+# right_gunpoint, at the ship's wing gun hardpoints whatever the tier) every
+# missile_interval, angled missile_launch_angle_degrees outward, on top of
+# the normal tier shots. Ends on timeout, death, fly_to (victory landing),
+# reset_position and scene reload. Accumulators in _process(): pause-safe.
+@export var missile_scene: PackedScene
+## Seconds between missile pairs while firing
+@export var missile_interval: float = 0.55
+## Launch angle of each missile from straight up (left -, right +)
+@export var missile_launch_angle_degrees: float = 20.0
+var missile_time_left: float = 0.0
+var missile_duration: float = 0.0      # Length of the current upgrade (HUD bar)
+var missile_pairs_launched: int = 0    # Observability (tests / tuning)
+var _missile_cooldown: float = 0.0
+
 # Selected ship (see apply_ship)
 var ship_definition: ShipDefinitionScript = null
 ## Multiplies the damage of every projectile this ship fires.
@@ -184,6 +201,7 @@ func _ready() -> void:
 		(shield_shape.shape as CircleShape2D).radius = shield_hit_radius
 	set_shield_style(shield_style)
 	end_shield()
+	end_missiles()
 	disable_movement()
 
 # Applies a ShipDefinition: sprite texture/tint/size, speed, fire cooldowns
@@ -249,6 +267,8 @@ func _process(delta: float) -> void:
 		process_blink(delta)
 	if shield_time_left > 0.0:
 		_process_shield(delta)
+	if missile_time_left > 0.0:
+		_process_missiles(delta)
 
 	# Handle shooting cooldown
 	if not can_fire:
@@ -426,6 +446,57 @@ func _update_shield_ring() -> void:
 	var warning := shield_time_left <= shield_warning_time
 	shield_ring.visible = _shield_flash_left > 0.0 or not warning \
 		or int(_shield_anim_time * SHIELD_BLINK_RATE) % 2 == 0
+
+# --- Missiles ---
+
+# Missile pickup: missiles for `duration` seconds (re-collecting refreshes the
+# time to the full duration; the launch cadence keeps running). No effect
+# while dead.
+func activate_missiles(duration: float = 8.0) -> void:
+	if is_dead or duration <= 0.0:
+		return
+	missile_duration = duration
+	missile_time_left = duration
+
+# Missiles off now (time out, death, end of run, scene reload)
+func end_missiles() -> void:
+	missile_time_left = 0.0
+	_missile_cooldown = 0.0
+
+func has_missiles() -> bool:
+	return missile_time_left > 0.0 and not is_dead
+
+# Remaining missile time as a fraction of its duration (0 = off), for the HUD
+func get_missile_fraction() -> float:
+	if not has_missiles() or missile_duration <= 0.0:
+		return 0.0
+	return clampf(missile_time_left / missile_duration, 0.0, 1.0)
+
+func _process_missiles(delta: float) -> void:
+	missile_time_left -= delta
+	if missile_time_left <= 0.0 or is_dead:
+		end_missiles()
+		return
+	_missile_cooldown = maxf(_missile_cooldown - delta, 0.0)
+	if is_firing and can_move and _missile_cooldown <= 0.0:
+		_launch_missile_pair()
+		_missile_cooldown = missile_interval
+
+# One missile from each wing gun, angled outward. If the first one's target
+# would die to that one hit, the second one prefers another target.
+func _launch_missile_pair() -> void:
+	if missile_scene == null or left_gunpoint == null or right_gunpoint == null:
+		return
+	missile_pairs_launched += 1
+	var angle := deg_to_rad(missile_launch_angle_degrees)
+	var first = _spawn_projectile(missile_scene, left_gunpoint, Vector2.UP.rotated(-angle))
+	var avoid: Node2D = null
+	if first and is_instance_valid(first.get("target")):
+		var t: Node2D = first.target
+		var hp = t.get("health")
+		if hp != null and float(hp) <= float(first.damage):
+			avoid = t
+	_spawn_projectile(missile_scene, right_gunpoint, Vector2.UP.rotated(angle), avoid)
 
 # Grazes only count while the ship is flying under player control and can be
 # hit (not blinking / dead / countdown / victory / fly_to / shielded: the
@@ -621,6 +692,7 @@ func reset_position() -> void:
 	scale = _base_scale
 	end_blink()  # Ensure blink effect is reset
 	end_shield()
+	end_missiles()
 
 # Weapon upgrade pickup: one tier up, capped at max_weapon_tier
 func upgrade_weapon() -> void:
@@ -690,9 +762,14 @@ func fire_projectile() -> void:
 	cooldown_time_remaining = fire_cooldown
 
 # Get a pooled projectile under the current scene and launch it from gunpoint
-func _spawn_projectile(scene: PackedScene, gunpoint: Node2D, direction: Vector2 = Vector2.UP) -> void:
+# (also the missiles; `avoid_target` is handed to a missile's target pick).
+# Returns the projectile.
+func _spawn_projectile(scene: PackedScene, gunpoint: Node2D, direction: Vector2 = Vector2.UP,
+		avoid_target: Node2D = null) -> Node:
 	var parent = get_tree().current_scene if get_tree().current_scene else get_parent()
 	var projectile = ObjectPool.acquire(scene, parent)
+	if avoid_target != null and "avoid_target" in projectile:
+		projectile.avoid_target = avoid_target
 	# Damage is set on every spawn from the scene's authored value (kept as
 	# meta on first use; pooled instances keep their last damage, so the
 	# current value must never be scaled again)
@@ -700,6 +777,7 @@ func _spawn_projectile(scene: PackedScene, gunpoint: Node2D, direction: Vector2 
 		projectile.set_meta("base_damage", projectile.damage)
 	projectile.damage = float(projectile.get_meta("base_damage")) * damage_scale
 	projectile.initialize(gunpoint.global_position, direction)
+	return projectile
 
 func _on_fire_cooldown_timeout() -> void:
 	can_fire = true
@@ -713,6 +791,7 @@ func die() -> void:
 	if ship_sprite:
 		ship_sprite.visible = false
 	end_shield()
+	end_missiles()
 
 	# Disable all thrusters
 	main_thruster.emitting = false
@@ -747,8 +826,9 @@ func fly_to(target: Vector2, duration: float, end_scale: float = -1.0) -> void:
 		return
 	if _fly_tween:
 		_fly_tween.kill()
-	# Scripted flight (docking) is never shielded: no ring over the station
+	# Scripted flight (docking) is never shielded and never fires missiles
 	end_shield()
+	end_missiles()
 	can_move = false
 	is_firing = false
 	is_touch_active = false

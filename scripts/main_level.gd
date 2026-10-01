@@ -98,12 +98,13 @@ const SHAKE_BOMB_TIME := 0.6
 const SHAKE_SHIELD := 0.3        # Hit absorbed by the shield
 const SHAKE_SHIELD_TIME := 0.12
 
-# --- Pickups (health cell, shield bubble, screen-clear bomb) ---
+# --- Pickups (health cell, shield bubble, screen-clear bomb, missiles) ---
 # Values live in GameConfig (health_pickup_amount, shield_duration,
-# shield_drain_factor, bomb_boss_damage); the SpawnManager rolls which
+# shield_drain_factor, bomb_boss_damage, missile_duration); the SpawnManager rolls which
 # pickup spawns (ZoneDefinition.pickup_weight_*).
 const HEAL_COLOR := Color(0.35, 1, 0.45)
 const SHIELD_COLOR := Color(0.4, 1, 1)
+const MISSILE_COLOR := Color(1, 0.65, 0.2)
 const BOMB_FLASH_TIME := 0.25
 const BOMB_FLASH_ALPHA := 0.85
 ## Obstacles / shots count as "on screen" for the bomb within this margin (px)
@@ -296,6 +297,7 @@ func process_game(delta: float) -> void:
 	_update_threat_display()
 	_update_combo(delta)
 	game_hud.update_shield(player.get_shield_fraction())
+	game_hud.update_missiles(player.get_missile_fraction())
 
 # Push the wave manager's ramp level to the HUD (only when it changes)
 func _update_threat_display() -> void:
@@ -529,6 +531,9 @@ func _apply_pickup(kind: StringName) -> void:
 		&"shield":
 			player.activate_shield(config.shield_duration)
 			spawn_score_popup("SHIELD", player.global_position + Vector2(0, -70), SHIELD_COLOR)
+		&"missile":
+			player.activate_missiles(config.missile_duration)
+			spawn_score_popup("MISSILES", player.global_position + Vector2(0, -70), MISSILE_COLOR)
 		&"bomb":
 			detonate_bomb()
 
@@ -667,6 +672,7 @@ func game_over() -> void:
 	# Call the player's die function (also ends a shield)
 	player.die()
 	game_hud.update_shield(0.0)
+	game_hud.update_missiles(0.0)
 
 	# Stop game systems
 	spawn_manager.stop_spawning()
@@ -798,7 +804,9 @@ func _on_boss_defeated() -> void:
 	current_state = GameState.VICTORY
 	_reset_combo()
 	player.end_shield()
+	player.end_missiles()
 	game_hud.update_shield(0.0)
+	game_hud.update_missiles(0.0)
 	game_hud.set_pause_button_visible(false)
 
 	# Stop the run; the ship stays on screen (no explosion)

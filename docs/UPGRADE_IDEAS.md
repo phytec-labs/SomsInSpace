@@ -23,6 +23,12 @@ backlog:
 - Wave rework: choreographed formations, spawn telegraphs, richer bullet patterns (fire
   patterns), more waves per zone
 - Attract-mode demo that plays itself from the main menu until someone touches the screen
+- Missiles: a temporary sidewinder missile upgrade for the player (zeppelin drop + rare
+  pickups), homing zeppelin missiles and the Alien Mothership's weaving seeker orbs
+  (shootable, burst into a bullet ring); the mothership summons minions in every
+  phase. Code done; missile, pickup icon and enemy missile art still needed (the orb is
+  procedural)
+- Animated bomb pickup icon (6-frame sheet) wired
 
 ## How art plugs in today
 
@@ -54,7 +60,7 @@ backlog:
 | 4 | Victory moment: dock with a PHYTEC station | Station sprite (landing pad; clamps dropped for a landing), optional animated pad lights | `space_station_1.png` delivered; optional 2 to 4 frame pad-light loop | done (art wired) |
 | 5 | New enemy types. Ground: drone swarm that flocks. Atmosphere: blimp mini-boss with turrets. Space: UFO with a tractor beam, splitting asteroid, blinking space mine | One PNG per enemy, sheets for the UFO beam and mine blink; asteroid in 3 sizes | 256 to 512 px, facing down; beam as a vertical strip ~64x400; mine 2 to 4 blink frames | code done, art needed |
 | 6 | Damage states on enemies and the player | Smoke or crack overlay frames | 2 to 3 frames per enemy family, same canvas size as the enemy | open |
-| 7 | New pickups: shield bubble, screen-clear bomb, health cell; distinct icons for weapon tiers 2 and 3 | 5 pickup icons and a shield ring sprite | Icons 256x256 in a consistent style; shield ring ~300x300 with soft alpha edge | code done for shield / bomb / health; shield and health (animated pulse sheets) and bomb art wired, weapon tier icons open |
+| 7 | New pickups: shield bubble, screen-clear bomb, health cell, missile upgrade; distinct icons for weapon tiers 2 and 3 | 6 pickup icons and a shield ring sprite | Icons 256x256 in a consistent style; shield ring ~300x300 with soft alpha edge | code done for shield / bomb / health / missiles; shield, health and bomb (animated sheets) wired; missile icon and weapon tier icons open |
 | 8 | HUD polish: pause, heart, threat skull, three weapon tier icons | 6 icons | 128x128, one color plus alpha so code can tint them | open |
 | 9 | Menu title | Game logo | ~600x200 transparent, plus a version with the PHYTEC mark for the kiosk | open |
 | 10 | Sound and music | Boss loop, victory jingle, game-over sting, menu blip, power-up, player hit, boss roar and hit, warning klaxon, tier-3 shot | OGG for loops, MP3 or OGG for one-shots, 1 to 3 s each | open |
@@ -69,7 +75,7 @@ a PHYTEC product story: pick your module, see its stats, fly it.
 - Combo multiplier for kill streaks (done)
 - Near-miss bonus points for grazing bullets (done)
 - Chained explosions when enemies die close together
-- Richer enemy bullet patterns (rings, spirals, aimed bursts) (partly done: volley / ripple fire patterns, boss volleys)
+- Richer enemy bullet patterns (rings, spirals, aimed bursts) (partly done: volley / ripple fire patterns, boss volleys, homing zeppelin missiles, seeker orbs bursting into rings)
 - More wave and formation definitions per zone (all data in `data/zones/*.tres`) (done: wave rework)
 - Ship banking when moving sideways
 - Attract-mode demo that plays itself on the main menu until someone touches the screen (done)

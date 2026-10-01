@@ -4,6 +4,13 @@
 # three phases (by health thirds) and plays a death sequence before emitting
 # `destroyed` so the spawn manager can pool it.
 #
+# Attacks per phase are data (PHASES): aimed shots, fan volleys (phases 2-3),
+# minion summons in every phase (ramping: 2 every 7 s, 2 every 5 s, 3 every
+# 3.5 s; at most max_minions alive, first summon first_summon_delay after the
+# fight starts) and seeker orbs (phases 2-3: scenes/effects/alien_seeker.tscn,
+# weaving homing orbs that burst into a slow bullet ring unless shot down; at
+# most max_orbs alive; cleared without a burst on defeat and stand_down()).
+#
 # All timing uses _process() delta accumulators and node-bound tweens, so the
 # fight freezes while the tree is paused.
 extends Obstacle
@@ -19,11 +26,18 @@ signal defeated
 
 @export var boss_name: String = "Alien Mothership"
 @export var minion_scene: PackedScene = preload("res://scenes/obstacles/alien_obstacle_1.tscn")
+## Seeker orb (the boss's own missile: scripts/effects/alien_seeker.gd)
+@export var orb_scene: PackedScene = preload("res://scenes/effects/alien_seeker.tscn")
 
 @export_group("Boss Tuning")
 @export var fight_y: float = 220.0            # Hover height once the fight starts
 @export var entrance_time: float = 2.5        # Seconds to fly in from spawn
-@export var max_minions: int = 4              # Live summoned minions allowed
+@export var max_minions: int = 6              # Live summoned minions allowed
+## Seconds from fight_started to the first minion summon (later summons
+## follow the phase's "summon" interval)
+@export var first_summon_delay: float = 2.5
+## Live seeker orbs allowed (a launch fires only what fits)
+@export var max_orbs: int = 5
 @export var volley_spread_degrees: float = 35.0 # Fan half-angle
 @export var volley_projectiles: int = 3       # Per gun point
 ## From this phase on each volley fires from ONE gun point, cycling
@@ -35,11 +49,18 @@ signal defeated
 @export var death_explosions: int = 6
 
 # Per-phase behaviour: drift angular speed (rad/s) and amplitude (px), and
-# attack intervals in seconds (0 = attack not used in that phase)
+# attack intervals in seconds (0 = attack not used in that phase).
+# "summon" / "summon_count": minions summoned every `summon` s, that many at a
+# time (capped by max_minions alive and the spawn manager's obstacle cap).
+# "orbs" / "orb_count": seeker orbs launched every `orbs` s, that many at a
+# time from the gun points (capped by max_orbs alive).
 const PHASES := {
-	1: {"drift_speed": 0.6, "drift_amplitude": 200.0, "aimed": 1.2, "volley": 0.0, "summon": 0.0},
-	2: {"drift_speed": 1.0, "drift_amplitude": 220.0, "aimed": 1.5, "volley": 2.0, "summon": 0.0},
-	3: {"drift_speed": 1.5, "drift_amplitude": 230.0, "aimed": 1.2, "volley": 1.0, "summon": 6.0},
+	1: {"drift_speed": 0.6, "drift_amplitude": 200.0, "aimed": 1.2, "volley": 0.0,
+		"summon": 7.0, "summon_count": 2, "orbs": 0.0, "orb_count": 0},
+	2: {"drift_speed": 1.0, "drift_amplitude": 220.0, "aimed": 1.5, "volley": 2.0,
+		"summon": 5.0, "summon_count": 2, "orbs": 5.0, "orb_count": 2},
+	3: {"drift_speed": 1.5, "drift_amplitude": 230.0, "aimed": 1.2, "volley": 1.0,
+		"summon": 3.5, "summon_count": 3, "orbs": 4.0, "orb_count": 3},
 }
 const ATTACK_ANIM_TIME: float = 0.5
 const FLASH_TIME: float = 0.08
@@ -54,12 +75,18 @@ var _drift_time: float = 0.0
 var _aimed_timer: float = 0.0
 var _volley_timer: float = 0.0
 var _summon_timer: float = 0.0
+var _orb_timer: float = 0.0
 var _contact_timer: float = 0.0
 var _attack_anim_timer: float = 0.0
 var _volley_step: int = 0  # Position in the alternating gun point cycle
 # Summoned minions: [node, its spawn_count at summon time]. A changed
 # spawn_count means it was returned to the pool and reused for another spawn.
 var _minions: Array = []
+# Launched seeker orbs: [node, its launch_count at launch] (same idea)
+var _orbs: Array = []
+# Observability (tests / tuning)
+var minions_summoned: int = 0
+var orbs_launched: int = 0
 
 var _entrance_tween: Tween
 var _flash_tween: Tween
@@ -88,10 +115,12 @@ func initialize(spawn_position: Vector2) -> void:
 	_aimed_timer = 0.0
 	_volley_timer = 0.0
 	_summon_timer = 0.0
+	_orb_timer = 0.0
 	_contact_timer = 0.0
 	_attack_anim_timer = 0.0
 	_volley_step = 0
 	_minions.clear()
+	_orbs.clear()
 	_set_flash(0.0)
 
 	# Bosses never join formations or drift with the base movement code
@@ -115,6 +144,8 @@ func _start_fight() -> void:
 	fight_started.emit()
 	health_changed.emit(health, max_health)
 	_enter_phase(1)
+	# First summon first_summon_delay after the fight starts
+	_summon_timer = PHASES[1].summon - first_summon_delay
 
 # The boss never leaves the screen and ignores formation/base movement
 func check_if_offscreen() -> void:
@@ -138,6 +169,7 @@ func _process(delta: float) -> void:
 func stand_down() -> void:
 	_standing_down = true
 	_attack_anim_timer = 0.0
+	clear_orbs()
 	if is_active and not _dying:
 		play_animation("idle")
 
@@ -166,7 +198,13 @@ func _update_attacks(delta: float) -> void:
 		_summon_timer += delta
 		if _summon_timer >= settings.summon:
 			_summon_timer = 0.0
-			_summon_minions()
+			_summon_minions(settings.summon_count)
+
+	if settings.orbs > 0.0:
+		_orb_timer += delta
+		if _orb_timer >= settings.orbs:
+			_orb_timer = 0.0
+			_launch_orbs(settings.orb_count)
 
 	if _attack_anim_timer > 0.0:
 		_attack_anim_timer -= delta
@@ -186,8 +224,9 @@ func _enter_phase(new_phase: int) -> void:
 		phase += 1
 		_aimed_timer = 0.0
 		_volley_timer = 0.0
-		# Summon soon after entering the summoning phase
+		# Next summon / orb launch half an interval into the new phase
 		_summon_timer = PHASES[phase].summon * 0.5
+		_orb_timer = PHASES[phase].orbs * 0.5
 		phase_changed.emit(phase)
 
 func _phase_for_health() -> int:
@@ -238,7 +277,7 @@ func _play_attack_animation() -> void:
 	play_animation("attack")
 	_attack_anim_timer = ATTACK_ANIM_TIME
 
-func _summon_minions() -> void:
+func _summon_minions(wanted: int) -> void:
 	if not minion_scene:
 		return
 	var spawn_manager = get_tree().get_first_node_in_group("spawn_manager")
@@ -246,7 +285,7 @@ func _summon_minions() -> void:
 		return
 
 	var free_slots = max_minions - get_live_minion_count()
-	var count = mini(rng.randi_range(2, 3), free_slots)
+	var count = mini(wanted, free_slots)
 	if count <= 0:
 		return
 
@@ -258,7 +297,52 @@ func _summon_minions() -> void:
 			global_position.y + 110.0)
 		var minion = spawn_manager.spawn_minion(minion_scene, pos)
 		if minion:
+			minions_summoned += 1
 			_minions.append([minion, minion.spawn_count])
+
+# Seeker orbs from the gun points (spread over them: center first, then the
+# sides), aimed roughly down; they home on their own. Only what fits under
+# max_orbs is launched.
+func _launch_orbs(wanted: int) -> void:
+	if not orb_scene or gun_points.is_empty():
+		return
+	var count = mini(wanted, max_orbs - get_live_orb_count())
+	if count <= 0:
+		return
+	_play_attack_animation()
+	var order := _orb_gun_order()
+	for i in range(count):
+		var gun_point: Node2D = order[i % order.size()]
+		var orb = ObjectPool.acquire(orb_scene, _get_effects_parent())
+		if orb == null:
+			continue
+		var side := signf(gun_point.position.x)
+		var dir := Vector2.DOWN.rotated(-side * deg_to_rad(25.0))
+		orb.initialize(gun_point.global_position, dir)
+		orbs_launched += 1
+		_orbs.append([orb, orb.launch_count])
+
+# Gun points ordered center first, then left / right (by |x|)
+func _orb_gun_order() -> Array:
+	var order := gun_points.duplicate()
+	order.sort_custom(func(a, b): return absf(a.position.x) < absf(b.position.x))
+	return order
+
+# Launched orbs still in flight (prunes popped / burst / pooled ones)
+func get_live_orb_count() -> int:
+	for i in range(_orbs.size() - 1, -1, -1):
+		var orb = _orbs[i][0]
+		if not is_instance_valid(orb) or not orb.is_active or orb.launch_count != _orbs[i][1]:
+			_orbs.remove_at(i)
+	return _orbs.size()
+
+# Remove every orb still in flight without a burst (boss defeated, or the
+# run ended and it stands down)
+func clear_orbs() -> void:
+	get_live_orb_count()
+	for entry in _orbs:
+		entry[0].clear()
+	_orbs.clear()
 
 # Summoned minions still alive (prunes dead / pooled ones)
 func get_live_minion_count() -> int:
@@ -316,6 +400,9 @@ func _set_flash(amount: float) -> void:
 
 func _begin_death() -> void:
 	_dying = true
+	# Orbs in flight vanish with the boss (its bullets just fly on, harmless:
+	# the level ignores damage after the run ends; orbs would still burst)
+	clear_orbs()
 	defeated.emit()
 
 	if collision_shape:

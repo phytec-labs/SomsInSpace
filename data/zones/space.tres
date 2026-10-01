@@ -168,6 +168,7 @@ pickup_weight_energy = 55.0
 pickup_weight_health = 20.0
 pickup_weight_shield = 15.0
 pickup_weight_bomb = 10.0
+pickup_weight_missile = 6.0
 pattern_weight_linear = 0.2
 pattern_weight_sine = 0.4
 pattern_weight_zigzag = 0.4

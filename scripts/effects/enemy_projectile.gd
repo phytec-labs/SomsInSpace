@@ -11,6 +11,12 @@ var direction: Vector2 = Vector2.DOWN
 var is_active: bool = false
 
 var _time_left: float = 0.0
+# speed / lifetime as authored in the scene. A spawner may override them for
+# one flight (e.g. the seeker orb's slow burst ring) by setting them before
+# initialize(); _despawn() restores them, so pooled instances reused by other
+# shooters always fly as authored.
+var _authored_speed: float = -1.0
+var _authored_lifetime: float = -1.0
 # Near-miss already awarded for this flight (reset in initialize(), i.e. on
 # every pool acquire)
 var _grazed: bool = false
@@ -23,6 +29,8 @@ const PLAYER_MASK := 1 | 16
 const GROUP := &"enemy_projectile"
 
 func _ready() -> void:
+	_authored_speed = speed
+	_authored_lifetime = lifetime
 	add_to_group(GROUP)
 	# Set collision to look for player
 	collision_layer = 4  # Layer for enemy projectiles
@@ -119,4 +127,7 @@ func _despawn() -> void:
 	if not is_active:
 		return
 	is_active = false
+	if _authored_speed >= 0.0:
+		speed = _authored_speed
+		lifetime = _authored_lifetime
 	ObjectPool.release(self)

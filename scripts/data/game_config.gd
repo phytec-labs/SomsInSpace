@@ -40,10 +40,17 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 @export var health_pickup_scene: PackedScene
 @export var shield_pickup_scene: PackedScene
 @export var bomb_pickup_scene: PackedScene
+## Missile upgrade (temporary sidewinder missiles; always dropped by the
+## zeppelin mini-boss, rare from the table: pickup_weight_missile).
+@export var missile_pickup_scene: PackedScene
 ## Health restored by a health cell (clamped to the ship's max_health).
 @export var health_pickup_amount: float = 25.0
 ## Seconds a shield bubble lasts (re-collecting refreshes it to this).
 @export var shield_duration: float = 8.0
+## Seconds the missile upgrade lasts (re-collecting refreshes it to this).
+## Launch rate and the missile itself: player.gd missile_interval /
+## missile_scene, scripts/effects/player_missile.gd.
+@export var missile_duration: float = 8.0
 ## Look of the player's active shield: Sprite = the hex dome art
 ## (ShieldRing/Dome, shield_bubble.gdshader); Procedural = shader only
 ## (ShieldRing/Field, shield_procedural.gdshader: rim glow, hex grid, hit

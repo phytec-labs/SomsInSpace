@@ -49,7 +49,6 @@ var ART: Array[Dictionary] = [
 	{"src": "zeppelin_weapon_combined.png", "dst": "zeppelin_1.png", "width": 1024,
 		"crop": Rect2i(0, 44, 1536, 590),
 		"erase": [Rect2i(1085, 600, 451, 424)]},
-	{"src": "bomb_collectible_1.png", "dst": "bomb_collectible_1.png", "height": 512},
 	# Full sphere; 12% margin so the shield_bubble.gdshader rim glow has room
 	{"src": "shield_dome_1.png", "dst": "shield_dome_1.png", "height": 512, "pad": 0.12},
 	{"src": "space_station_1.png", "dst": "space_station_1.png", "width": 1024},
@@ -83,6 +82,23 @@ var ART: Array[Dictionary] = [
 			{"span": Vector2i(841, 1331), "center": Vector2i(1086, 380)},
 			{"span": Vector2i(1332, 1771), "center": Vector2i(1549, 394)},
 			{"span": Vector2i(1772, 2171), "center": Vector2i(1968, 404)},
+		]}},
+	# Bomb pickup icon: 6-frame "core heats up, steam vents, settles" loop
+	# (2172x724 master, frames separated by empty columns; spans split
+	# mid-gap). Centers are the round body's center (middle of its widest row,
+	# y = bottom - half width). Frame 3 is drawn 1.12x larger on purpose (body
+	# 312 vs 278-294 master px wide); kept, not normalized. The farthest art
+	# is frame 3's fuse flame, 260 px above its center; a 560 px extent
+	# (0.457x into 256 px cells) leaves >= 6 px padding per cell side. Alpha
+	# 1-4 haze is dropped. Output 1536x256, used by sprites/bomb_pickup.tres.
+	{"src": "bomb_collectible_2.png", "dst": "bomb_pickup_sheet.png",
+		"sheet": {"cell": 256, "extent": 560, "pad": 6, "alpha_floor": 5, "frames": [
+			{"span": Vector2i(0, 310), "center": Vector2i(147, 397)},
+			{"span": Vector2i(311, 652), "center": Vector2i(476, 397)},
+			{"span": Vector2i(653, 1020), "center": Vector2i(830, 397)},
+			{"span": Vector2i(1021, 1478), "center": Vector2i(1260, 391)},
+			{"span": Vector2i(1479, 1854), "center": Vector2i(1666, 397)},
+			{"span": Vector2i(1855, 2171), "center": Vector2i(2010, 397)},
 		]}},
 ]
 
