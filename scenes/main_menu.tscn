@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://b4rhfggb5gt1r"]
+[gd_scene format=3 uid="uid://b4rhfggb5gt1r"]
 
 [ext_resource type="Script" uid="uid://bb4cg5nspxdj5" path="res://scripts/main_menu.gd" id="1_4by2u"]
 [ext_resource type="Script" uid="uid://2futgbr401d3" path="res://scripts/main_menu/main_menu_starfield.gd" id="2_jum82"]
@@ -15,7 +15,7 @@ _data = {
 }
 point_count = 5
 
-[node name="Control" type="Control"]
+[node name="Control" type="Control" unique_id=81389407]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -24,7 +24,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_4by2u")
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1804924211]
 z_index = -20
 layout_mode = 1
 anchors_preset = 15
@@ -34,7 +34,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.05, 0.05, 0.1, 1)
 
-[node name="Starfield" type="Node2D" parent="."]
+[node name="Starfield" type="Node2D" parent="." unique_id=749253664]
 z_index = -2
 script = ExtResource("2_jum82")
 min_star_size = 0.25
@@ -44,7 +44,7 @@ max_flicker_speed = 5.0
 shooting_star_chance = 0.75
 shooting_star_lifetime = 2.0
 
-[node name="MenuContainer" type="VBoxContainer" parent="."]
+[node name="MenuContainer" type="VBoxContainer" parent="." unique_id=887702118]
 z_index = 2
 layout_mode = 1
 anchors_preset = 8
@@ -55,32 +55,32 @@ anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="ShipPath" type="Path2D" parent="."]
+[node name="ShipPath" type="Path2D" parent="." unique_id=1328152540]
 curve = SubResource("Curve2D_r03yt")
 
-[node name="ShipFollow" type="PathFollow2D" parent="ShipPath"]
+[node name="ShipFollow" type="PathFollow2D" parent="ShipPath" unique_id=1013673143]
 position = Vector2(368, 154)
-rotation = -0.024007
+rotation = -0.024007015
 script = ExtResource("3_ft0p2")
 rotation_speed = 0.5
 
-[node name="Main_Menu_Ship" parent="ShipPath/ShipFollow" instance=ExtResource("8_rpyfy")]
+[node name="Main_Menu_Ship" parent="ShipPath/ShipFollow" unique_id=182733458 instance=ExtResource("8_rpyfy")]
 z_index = -1
 rotation = 1.5708
 scale = Vector2(0.5, 0.5)
 
-[node name="BackgroundMusic" type="AudioStreamPlayer2D" parent="."]
+[node name="BackgroundMusic" type="AudioStreamPlayer2D" parent="." unique_id=1502401493]
 stream = ExtResource("5_7uyi4")
 
-[node name="MainMenuUi" parent="." instance=ExtResource("6_n1nda")]
+[node name="MainMenuUi" parent="." unique_id=1620358652 instance=ExtResource("6_n1nda")]
 z_index = 2
 layout_mode = 1
 
-[node name="MainMenuCredits" parent="." instance=ExtResource("8_y1lt2")]
+[node name="MainMenuCredits" parent="." unique_id=490287164 instance=ExtResource("8_y1lt2")]
 z_index = 2
-layout_mode = 2
+layout_mode = 0
 anchors_preset = 0
 
-[node name="ShipSelectUi" parent="." instance=ExtResource("9_shipsel")]
+[node name="ShipSelectUi" parent="." unique_id=199494767 instance=ExtResource("9_shipsel")]
 z_index = 2
 layout_mode = 1

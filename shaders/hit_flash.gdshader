@@ -6,9 +6,8 @@
 //
 // flash = 0 is the default canvas_item output (texture * COLOR, so modulate /
 // self_modulate tints still apply). The mix toward white happens AFTER the
-// tint, so tinted placeholder sprites (blimp dark red, UFO purple, drone cyan)
-// flash white instead of their flat tint color. Alpha always keeps the
-// texture's alpha times the modulate alpha.
+// tint, so tinted sprites flash white instead of their flat tint color.
+// Alpha always keeps the texture's alpha times the modulate alpha.
 //
 // Kept trivial for the Mobile / GL ES renderer: one texture sample, one mix,
 // one multiply.

@@ -15,7 +15,7 @@
 #
 # Pause-safe: _process/_physics_process only, no timers or tweens.
 #
-# Art: sprites/ufo_1.png (1774x887) on a level Sprite2D at 0.12 (~210x80 px
+# Art: sprites/ufo_1.png (1024x512) on a level Sprite2D at 0.2079 (~210x80 px
 # on screen); the hull is a horizontal CapsuleShape2D (200 x 52). The beam
 # starts at the glowing emitter under the saucer (y 30, drawn behind the
 # hull) and reaches 500 px down.

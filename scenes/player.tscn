@@ -185,8 +185,9 @@ visible = false
 z_index = 2
 
 [node name="Dome" type="Sprite2D" parent="ShieldRing"]
+texture_filter = 4
 position = Vector2(0, -39)
-scale = Vector2(0.16, 0.16)
+scale = Vector2(0.3897, 0.3897)
 texture = ExtResource("6_dome")
 
 [node name="ProjectileAudioPlayer" type="AudioStreamPlayer2D" parent="."]

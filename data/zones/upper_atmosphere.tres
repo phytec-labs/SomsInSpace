@@ -1,17 +1,17 @@
-[gd_resource type="Resource" script_class="ZoneDefinition" format=3]
+[gd_resource type="Resource" script_class="ZoneDefinition" format=3 uid="uid://bps2ov6ib15ky"]
 
-[ext_resource type="Script" path="res://scripts/data/formation_settings.gd" id="1_g408x"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/jet_obstacle_1.tscn" id="2_twsbg"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/jet_obstacle_2.tscn" id="3_33nra"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/jet_obstacle_8.tscn" id="4_574ry"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/jet_obstacle_9.tscn" id="5_81i2r"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/meteor_obstacle_1.tscn" id="6_xlduk"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/meteor_obstacle_2.tscn" id="7_rd6pr"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/satellite_obstacle_1.tscn" id="8_ewvk7"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/satellite_obstacle_2.tscn" id="9_mthro"]
-[ext_resource type="Script" path="res://scripts/data/zone_definition.gd" id="10_3mac4"]
-[ext_resource type="Script" path="res://scripts/data/wave_definition.gd" id="11_yifx7"]
-[ext_resource type="Script" path="res://scripts/data/wave_group.gd" id="12_4f71x"]
+[ext_resource type="Script" uid="uid://bx8jxdfbnqko5" path="res://scripts/data/formation_settings.gd" id="1_g408x"]
+[ext_resource type="PackedScene" uid="uid://cx8j6r8jv1uwr" path="res://scenes/obstacles/jet_obstacle_1.tscn" id="2_twsbg"]
+[ext_resource type="PackedScene" uid="uid://dagaluwq68hy7" path="res://scenes/obstacles/jet_obstacle_2.tscn" id="3_33nra"]
+[ext_resource type="PackedScene" uid="uid://clcvwnh2fqud7" path="res://scenes/obstacles/jet_obstacle_8.tscn" id="4_574ry"]
+[ext_resource type="PackedScene" uid="uid://wfuu71tid6aw" path="res://scenes/obstacles/jet_obstacle_9.tscn" id="5_81i2r"]
+[ext_resource type="PackedScene" uid="uid://ccofur7yq33i7" path="res://scenes/obstacles/meteor_obstacle_1.tscn" id="6_xlduk"]
+[ext_resource type="PackedScene" uid="uid://s4nml6qlsigi" path="res://scenes/obstacles/meteor_obstacle_2.tscn" id="7_rd6pr"]
+[ext_resource type="PackedScene" uid="uid://dan3irwnoxqa7" path="res://scenes/obstacles/satellite_obstacle_1.tscn" id="8_ewvk7"]
+[ext_resource type="PackedScene" uid="uid://qqlunmposxs2" path="res://scenes/obstacles/satellite_obstacle_2.tscn" id="9_mthro"]
+[ext_resource type="Script" uid="uid://b2rqpabffv4lj" path="res://scripts/data/zone_definition.gd" id="10_3mac4"]
+[ext_resource type="Script" uid="uid://dut8f5xmtmaap" path="res://scripts/data/wave_definition.gd" id="11_yifx7"]
+[ext_resource type="Script" uid="uid://dtwfmslbij8uy" path="res://scripts/data/wave_group.gd" id="12_4f71x"]
 [ext_resource type="PackedScene" path="res://scenes/obstacles/drone_obstacle.tscn" id="15_574ry"]
 [ext_resource type="PackedScene" path="res://scenes/obstacles/ufo_obstacle.tscn" id="22_ufo"]
 [ext_resource type="PackedScene" path="res://scenes/obstacles/asteroid_obstacle.tscn" id="23_asteroid"]
@@ -39,7 +39,6 @@ enemy_scene = ExtResource("15_574ry")
 formation = 7
 count = 6
 path = &"side_sweep_left"
-beat_after = 0.6
 
 [sub_resource type="Resource" id="Resource_xlduk"]
 script = ExtResource("11_yifx7")
@@ -74,7 +73,6 @@ count = 4
 path = &"swoop_left"
 fire_mode = 2
 fire_interval = 1.8
-beat_after = 0.6
 
 [sub_resource type="Resource" id="Resource_mthro"]
 script = ExtResource("11_yifx7")
@@ -110,124 +108,12 @@ path = &"pincer_left"
 force_mirror = true
 fire_mode = 1
 fire_interval = 2.2
-beat_after = 0.6
 
 [sub_resource type="Resource" id="Resource_4f71x"]
 script = ExtResource("11_yifx7")
 name = "Saucer Escort"
 groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_3mac4"), SubResource("Resource_yifx7"), SubResource("Resource_uw3g3")])
 completion_delay = 0.8
-
-[sub_resource type="Resource" id="Resource_de37l"]
-script = ExtResource("12_4f71x")
-enemy_scene = ExtResource("24_satturret")
-formation = 2
-count = 4
-spread = 120.0
-path = &"hover_top"
-hold_seconds = 5.0
-fire_mode = 1
-fire_interval = 1.8
-release = 1
-delay = 1.5
-
-[sub_resource type="Resource" id="Resource_uw4g2"]
-script = ExtResource("12_4f71x")
-enemy_scene = ExtResource("15_574ry")
-formation = 7
-count = 6
-path = &"swoop_left"
-beat_after = 0.6
-
-[sub_resource type="Resource" id="Resource_bn250"]
-script = ExtResource("11_yifx7")
-name = "Satellite Grid"
-groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_de37l"), SubResource("Resource_uw4g2")])
-completion_delay = 0.8
-
-[sub_resource type="Resource" id="Resource_fd3qn"]
-script = ExtResource("12_4f71x")
-enemy_scene = ExtResource("23_asteroid")
-spread = 200.0
-release = 1
-delay = 1.5
-
-[sub_resource type="Resource" id="Resource_uw5g2"]
-script = ExtResource("12_4f71x")
-enemy_scene = ExtResource("6_xlduk")
-count = 5
-spread = 110.0
-path = &"dive_center"
-beat_after = 0.6
-
-[sub_resource type="Resource" id="Resource_q34x6"]
-script = ExtResource("11_yifx7")
-name = "Asteroids"
-groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_fd3qn"), SubResource("Resource_uw5g2")])
-completion_delay = 0.8
-
-[sub_resource type="Resource" id="Resource_y2vnn"]
-script = ExtResource("12_4f71x")
-enemy_scene = ExtResource("15_574ry")
-formation = 7
-count = 6
-path = &"swoop_left"
-release = 1
-delay = 1.0
-
-[sub_resource type="Resource" id="Resource_s7ljn"]
-script = ExtResource("12_4f71x")
-enemy_scene = ExtResource("4_574ry")
-spread = 100.0
-path = &"dive_center"
-fire_mode = 2
-fire_interval = 1.2
-release = 1
-delay = 1.0
-
-[sub_resource type="Resource" id="Resource_uw6g3"]
-script = ExtResource("12_4f71x")
-enemy_scene = ExtResource("2_twsbg")
-formation = 1
-count = 4
-path = &"loop_left"
-fire_mode = 2
-fire_interval = 1.8
-beat_after = 0.6
-
-[sub_resource type="Resource" id="Resource_tbhq3"]
-script = ExtResource("11_yifx7")
-name = "Swarm Strike"
-groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_y2vnn"), SubResource("Resource_s7ljn"), SubResource("Resource_uw6g3")])
-completion_delay = 0.8
-
-[sub_resource type="Resource" id="Resource_qn555"]
-script = ExtResource("12_4f71x")
-enemy_scene = ExtResource("5_81i2r")
-formation = 4
-count = 5
-spread = 70.0
-path = &"side_sweep_left"
-fire_mode = 2
-fire_interval = 1.6
-release = 1
-delay = 1.5
-
-[sub_resource type="Resource" id="Resource_bj48d"]
-script = ExtResource("12_4f71x")
-enemy_scene = ExtResource("5_81i2r")
-formation = 4
-count = 5
-spread = 70.0
-path = &"side_sweep_left"
-force_mirror = true
-fire_mode = 2
-fire_interval = 1.6
-
-[sub_resource type="Resource" id="Resource_f38uq"]
-script = ExtResource("11_yifx7")
-name = "Crossfire"
-groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_qn555"), SubResource("Resource_bj48d")])
 
 [sub_resource type="Resource" id="Resource_uw8g1"]
 script = ExtResource("12_4f71x")
@@ -264,12 +150,119 @@ script = ExtResource("12_4f71x")
 enemy_scene = ExtResource("23_asteroid")
 count = 2
 spread = 200.0
-beat_after = 0.6
 
 [sub_resource type="Resource" id="Resource_uw8wv"]
 script = ExtResource("11_yifx7")
 name = "Meteor Storm"
 groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_uw8g1"), SubResource("Resource_uw8g2"), SubResource("Resource_uw8g3"), SubResource("Resource_uw8g4")])
+
+[sub_resource type="Resource" id="Resource_de37l"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("24_satturret")
+formation = 2
+count = 4
+spread = 120.0
+path = &"hover_top"
+hold_seconds = 5.0
+fire_mode = 1
+fire_interval = 1.8
+release = 1
+delay = 1.5
+
+[sub_resource type="Resource" id="Resource_uw4g2"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("15_574ry")
+formation = 7
+count = 6
+path = &"swoop_left"
+
+[sub_resource type="Resource" id="Resource_bn250"]
+script = ExtResource("11_yifx7")
+name = "Satellite Grid"
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_de37l"), SubResource("Resource_uw4g2")])
+completion_delay = 0.8
+
+[sub_resource type="Resource" id="Resource_fd3qn"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("23_asteroid")
+spread = 200.0
+release = 1
+delay = 1.5
+
+[sub_resource type="Resource" id="Resource_uw5g2"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("6_xlduk")
+count = 5
+spread = 110.0
+path = &"dive_center"
+
+[sub_resource type="Resource" id="Resource_q34x6"]
+script = ExtResource("11_yifx7")
+name = "Asteroids"
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_fd3qn"), SubResource("Resource_uw5g2")])
+completion_delay = 0.8
+
+[sub_resource type="Resource" id="Resource_y2vnn"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("15_574ry")
+formation = 7
+count = 6
+path = &"swoop_left"
+release = 1
+delay = 1.0
+
+[sub_resource type="Resource" id="Resource_s7ljn"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("4_574ry")
+spread = 100.0
+path = &"dive_center"
+fire_mode = 2
+fire_interval = 1.2
+release = 1
+delay = 1.0
+
+[sub_resource type="Resource" id="Resource_uw6g3"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("2_twsbg")
+formation = 1
+count = 4
+path = &"loop_left"
+fire_mode = 2
+fire_interval = 1.8
+
+[sub_resource type="Resource" id="Resource_tbhq3"]
+script = ExtResource("11_yifx7")
+name = "Swarm Strike"
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_y2vnn"), SubResource("Resource_s7ljn"), SubResource("Resource_uw6g3")])
+completion_delay = 0.8
+
+[sub_resource type="Resource" id="Resource_qn555"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("5_81i2r")
+formation = 4
+count = 5
+spread = 70.0
+path = &"side_sweep_left"
+fire_mode = 2
+fire_interval = 1.6
+release = 1
+delay = 1.5
+
+[sub_resource type="Resource" id="Resource_bj48d"]
+script = ExtResource("12_4f71x")
+enemy_scene = ExtResource("5_81i2r")
+formation = 4
+count = 5
+spread = 70.0
+path = &"side_sweep_left"
+force_mirror = true
+fire_mode = 2
+fire_interval = 1.6
+
+[sub_resource type="Resource" id="Resource_f38uq"]
+script = ExtResource("11_yifx7")
+name = "Crossfire"
+groups = Array[ExtResource("12_4f71x")]([SubResource("Resource_qn555"), SubResource("Resource_bj48d")])
 
 [resource]
 script = ExtResource("10_3mac4")

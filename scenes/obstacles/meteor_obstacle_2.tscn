@@ -30,6 +30,7 @@ scale_amount_max = 0.04
 color_ramp = SubResource("Gradient_fx87m")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 4
 scale = Vector2(0.1, 0.1)
 texture = ExtResource("2_dbk87")
 

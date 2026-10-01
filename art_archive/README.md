@@ -21,3 +21,25 @@ in here is imported, shown in the FileSystem dock, or included in exports.
 
 Note: a re-imported file gets a new `uid://`, so reference it by its `res://`
 path when adding it back to a scene or script.
+
+## masters/
+
+Full-size sources of art the game uses (jets, drone, mine, UFO, zeppelin sheet,
+bomb icon, shield dome). The game uses downscaled copies in `sprites/` (same
+basenames, except the blimp: `sprites/zeppelin_1.png` is the zeppelin cut out of
+`zeppelin_weapon_combined.png`, whose six weapon modules are not used yet).
+To regenerate the game copies after editing a master:
+
+```sh
+godot --headless --path . -s res://tools/resize_art.gd
+godot --headless --path . --import
+```
+
+The size table lives in `tools/resize_art.gd`; conventions are in
+`docs/ART_SWAP_TRACKER.md`. Do not move masters back into `sprites/`: Godot
+would import them at full size.
+
+## art_old/
+
+The previous pixel-art versions of `jet_1.png`, `jet_2.png` and `jet_8.png`,
+replaced by the new jet_1 / jet_2 / jet_3 art.

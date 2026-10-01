@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cm5cvqjkukyuh"
-path="res://.godot/imported/jet_8.png-25916001ef94a118c5844ba2222da157.ctex"
+uid="uid://cv36vtkblix0b"
+path="res://.godot/imported/jet_3.png-89eda56912e6ae4ff270acba12326998.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/jet_8.png"
-dest_files=["res://.godot/imported/jet_8.png-25916001ef94a118c5844ba2222da157.ctex"]
+source_file="res://sprites/jet_3.png"
+dest_files=["res://.godot/imported/jet_3.png-89eda56912e6ae4ff270acba12326998.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

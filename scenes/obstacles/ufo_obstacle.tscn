@@ -31,7 +31,8 @@ monitorable = false
 polygon = PackedVector2Array(-40, 30, 40, 30, 80, 530, -80, 530)
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.12, 0.12)
+texture_filter = 4
+scale = Vector2(0.2079, 0.2079)
 texture = ExtResource("2_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

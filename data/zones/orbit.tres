@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="ZoneDefinition" format=3]
+[gd_resource type="Resource" script_class="ZoneDefinition" format=3 uid="uid://bs6yuowio3mht"]
 
-[ext_resource type="Script" path="res://scripts/data/formation_settings.gd" id="1_orb01"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/boss_alien.tscn" id="2_orb02"]
-[ext_resource type="Script" path="res://scripts/data/zone_definition.gd" id="3_orb03"]
+[ext_resource type="Script" uid="uid://bx8jxdfbnqko5" path="res://scripts/data/formation_settings.gd" id="1_orb01"]
+[ext_resource type="PackedScene" uid="uid://cq63smi2rr00v" path="res://scenes/obstacles/boss_alien.tscn" id="2_orb02"]
+[ext_resource type="Script" uid="uid://b2rqpabffv4lj" path="res://scripts/data/zone_definition.gd" id="3_orb03"]
+[ext_resource type="Script" uid="uid://dut8f5xmtmaap" path="res://scripts/data/wave_definition.gd" id="4_76jeo"]
 
 [sub_resource type="Resource" id="Resource_orbfs"]
 script = ExtResource("1_orb01")
@@ -14,12 +15,11 @@ display_name = "Orbit"
 start_height = 13500
 freezes_height = true
 boss_scene = ExtResource("2_orb02")
-formation_settings = SubResource("Resource_orbfs")
 background_color = Color(0.05, 0.05, 0.1, 1)
 star_visibility = 1.0
+formation_settings = SubResource("Resource_orbfs")
 collectible_time_scale = 0.6
 collectible_chance_scale = 0.7
 pickup_weight_energy = 60.0
 pickup_weight_health = 30.0
 pickup_weight_shield = 10.0
-pickup_weight_bomb = 0.0

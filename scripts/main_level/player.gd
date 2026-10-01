@@ -29,9 +29,9 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 # controllable and vulnerable (see _update_graze_area()).
 @onready var graze_area: Area2D = get_node_or_null("GrazeArea")
 # Shield bubble (shown while shielded; see activate_shield()). Its child
-# "Dome" Sprite2D (sprites/shield_dome_1.png at 0.16, offset up so the dome
-# covers the nose, rim ~40 px below the ship center); the pulse / hit pop /
-# warning blink drive ShieldRing's scale, modulate and visibility.
+# "Dome" Sprite2D (sprites/shield_dome_1.png, 518x512, at 0.3897, offset up
+# so the dome covers the nose, rim ~40 px below the ship center); the pulse /
+# hit pop / warning blink drive ShieldRing's scale, modulate and visibility.
 @onready var shield_ring: Node2D = get_node_or_null("ShieldRing")
 
 # Emitted when a fly_to() tween reaches its target

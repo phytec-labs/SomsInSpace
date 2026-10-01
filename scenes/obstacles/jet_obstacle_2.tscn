@@ -21,19 +21,20 @@ script = ExtResource("1_7awkg")
 can_shoot = true
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.08, 0.08)
+texture_filter = 4
+scale = Vector2(0.085, 0.085)
 texture = ExtResource("2_f2fjh")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-polygon = PackedVector2Array(0, -20.6667, 6, -11.3333, 22, -7.33333, 20, 2, 4, 3.33333, 10.6667, 13.3333, 2.66667, 10.6667, 0, 21.3333, -3.33333, 10.6667, -11.3333, 12.6667, -5.33333, 3.33333, -20.6667, 2, -22.6667, -7.33333, -6.66667, -11.3333)
+polygon = PackedVector2Array(0, -20, 6, -11, 23, -7, 23, 1, 12, 12, 0, 15, -12, 12, -23, 1, -23, -7, -6, -11)
 
 [node name="GunPoint1" type="Marker2D" parent="."]
-position = Vector2(0, -14.6667)
+position = Vector2(0, -17)
 
 [node name="ThrusterThruster" type="CPUParticles2D" parent="."]
 z_index = -1
 material = SubResource("CanvasItemMaterial_hx4tn")
-position = Vector2(0, 14)
+position = Vector2(0, 13)
 texture = ExtResource("3_8xqmd")
 lifetime = 0.5
 local_coords = true

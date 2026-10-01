@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="ShipDefinition" format=3]
+[gd_resource type="Resource" script_class="ShipDefinition" format=3 uid="uid://bb1heylxa0rx8"]
 
-[ext_resource type="Script" path="res://scripts/data/ship_definition.gd" id="1_ship"]
+[ext_resource type="Script" uid="uid://bb1y6h44jvi7y" path="res://scripts/data/ship_definition.gd" id="1_ship"]
 [ext_resource type="Texture2D" uid="uid://baiqvd0ex56ut" path="res://sprites/player_ship_body3.png" id="2_tex"]
 
 [resource]
@@ -10,7 +10,6 @@ display_name = "i.MX SoM - i.MX95"
 tagline = "Heavy hitter"
 description = "The i.MX95 packs a tough hull and hard-hitting shots, but it is slower."
 texture = ExtResource("2_tex")
-tint = Color(1, 1, 1, 1)
 max_health = 140.0
 speed = 240.0
 fire_cooldown_scale = 1.15

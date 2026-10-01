@@ -9,7 +9,7 @@
 #
 # Pause-safe: all timing is accumulated in _process().
 #
-# Art: sprites/mine_1.png (1254x1254) on a Sprite2D at 0.042 (~52 px on
+# Art: sprites/mine_1.png (512x512) on a Sprite2D at 0.103 (~52 px on
 # screen, spike tips included); CircleShape2D r 16 over the body only. The
 # "light" is a pulse of the sprite's modulate toward idle_light_color (slow);
 # once armed it pulses fast toward armed_light_color. The hit flash material

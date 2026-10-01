@@ -143,6 +143,23 @@ one with the art it needs, and every spot in the code is tagged:
 grep -rn PLACEHOLDER_ART scripts scenes data
 ```
 
+### Art pipeline
+
+Full-size art sources live in `art_archive/masters/` (ignored by Godot); the
+game uses downscaled copies in `sprites/` (enemies and pickups 512 px tall,
+UFO and blimp 1024 px wide; the ships keep their 1024x1536 canvas). After
+adding or changing a master, add or adjust its row in the `ART` table of
+`tools/resize_art.gd`, then regenerate and re-import:
+
+```sh
+godot --headless --path . -s res://tools/resize_art.gd
+godot --headless --path . --import
+```
+
+The existing `.import` files (UIDs, `mipmaps/generate=true` for the downscaled
+enemy and pickup textures) are kept, so scenes stay wired. A new texture's
+sprite scale is `old scale x old size / new size` for the same on-screen size.
+
 ## Troubleshooting
 
 - **"No export template found" / "Custom debug template not found".** The

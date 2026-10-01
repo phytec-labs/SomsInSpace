@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="ShipDefinition" format=3]
+[gd_resource type="Resource" script_class="ShipDefinition" format=3 uid="uid://cqrd1ji35miua"]
 
-[ext_resource type="Script" path="res://scripts/data/ship_definition.gd" id="1_ship"]
+[ext_resource type="Script" uid="uid://bb1y6h44jvi7y" path="res://scripts/data/ship_definition.gd" id="1_ship"]
 [ext_resource type="Texture2D" uid="uid://ble2i7dsjxw40" path="res://sprites/player_ship_body1.png" id="2_tex"]
 
 [resource]
@@ -10,13 +10,7 @@ display_name = "TI SoM - AM62Px"
 tagline = "Balanced all-rounder"
 description = "Solid armor, speed and firepower: the TI AM62Px does it all."
 texture = ExtResource("2_tex")
-tint = Color(1, 1, 1, 1)
-max_health = 100.0
-speed = 300.0
-fire_cooldown_scale = 1.0
-damage_scale = 1.0
 nose_offset_y = -89.0
 wing_gun_x = 38.0
 wing_gun_y = -20.0
 engine_offset_y = 67.0
-side_thruster_y = 22.0

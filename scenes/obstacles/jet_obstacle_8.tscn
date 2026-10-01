@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3 uid="uid://clcvwnh2fqud7"]
 
 [ext_resource type="Script" uid="uid://cg3o7lqkn67x8" path="res://scripts/obstacles/jet_obstacle.gd" id="1_fbh60"]
-[ext_resource type="Texture2D" uid="uid://cm5cvqjkukyuh" path="res://sprites/jet_8.png" id="2_tgohi"]
+[ext_resource type="Texture2D" uid="uid://cv36vtkblix0b" path="res://sprites/jet_3.png" id="2_tgohi"]
 [ext_resource type="Texture2D" uid="uid://bbf8kqq1rn2vq" path="res://sprites/Explosion1.png" id="3_8u10u"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_47liv"]
@@ -21,22 +21,23 @@ script = ExtResource("1_fbh60")
 can_shoot = true
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.08, 0.08)
+texture_filter = 4
+scale = Vector2(0.07, 0.07)
 texture = ExtResource("2_tgohi")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-polygon = PackedVector2Array(0, -18.125, 4.375, -10.625, 4.375, -5.625, 19.375, 1.25, 20, 6.25, 5.625, 6.875, 5, 12.5, 0, 17.5, -5, 12.5, -5.625, 6.875, -20, 6.25, -19.375, 1.25, -5, -5.625, -5, -10.625)
+polygon = PackedVector2Array(0, -17, 5, -8, 20, 1, 20, 6, 6, 11, 0, 17, -6, 11, -20, 6, -20, 1, -5, -8)
 
 [node name="GunPoint1" type="Marker2D" parent="."]
-position = Vector2(-14.375, 2.5)
+position = Vector2(-10, 6.5)
 
 [node name="GunPoint2" type="Marker2D" parent="."]
-position = Vector2(13.125, 2.5)
+position = Vector2(10, 6.5)
 
 [node name="ThrusterThruster" type="CPUParticles2D" parent="."]
 z_index = -1
 material = SubResource("CanvasItemMaterial_47liv")
-position = Vector2(0, 15)
+position = Vector2(0, 16)
 texture = ExtResource("3_8u10u")
 lifetime = 0.5
 local_coords = true

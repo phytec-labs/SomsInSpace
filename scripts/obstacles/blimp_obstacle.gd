@@ -10,9 +10,13 @@
 # scene_override (see data/zones/atmosphere.tres). Pause-safe: all timing is
 # accumulated in _process().
 #
-# PLACEHOLDER_ART: scenes/obstacles/blimp_obstacle.tscn Sprite2D uses
-# sprites/balloon_5.png at 2.5x the normal balloon scale, tinted dark red via
-# `self_modulate`; swap the texture (and reset self_modulate) for the blimp art.
+# Art: sprites/zeppelin_1.png (1024x393, the zeppelin cut from
+# art_archive/masters/zeppelin_weapon_combined.png, drawn top-down with the
+# nose to the right) on a Sprite2D rotated 90 deg so the nose points down at
+# the player, scale 0.18 (~69x184 px on screen), untinted. Hull: vertical
+# CapsuleShape2D r 30 / height 172 at (0, 4) (the side pods poke out ~5 px).
+# GunPoint1/3 sit on the forward side pods (x -+31, y 21), GunPoint2 on the
+# gondola's front cockpit (0, 30).
 extends Obstacle
 class_name BlimpObstacle
 

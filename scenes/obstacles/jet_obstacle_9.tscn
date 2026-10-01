@@ -23,6 +23,7 @@ can_shoot = true
 projectile_scene = ExtResource("2_02pcu")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 4
 scale = Vector2(0.1, 0.1)
 texture = ExtResource("2_6brd2")
 

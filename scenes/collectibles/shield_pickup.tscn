@@ -19,7 +19,8 @@ rotation_speed = 3.0
 shape = SubResource("CircleShape2D_pickup")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.044, 0.044)
+texture_filter = 4
+scale = Vector2(0.1072, 0.1072)
 texture = ExtResource("3_dome")
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]

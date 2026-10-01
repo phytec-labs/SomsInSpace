@@ -15,7 +15,8 @@ base_speed = 60.0
 health = 8.0
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.042, 0.042)
+texture_filter = 4
+scale = Vector2(0.103, 0.103)
 texture = ExtResource("2_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
