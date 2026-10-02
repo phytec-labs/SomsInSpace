@@ -11,7 +11,9 @@
 # Moves on its own (base_speed 0): it declines formations and ignores the
 # spawn manager's movement pattern. While entering or hovering it is never
 # culled as off-screen. If max_hovering UFOs are already hovering, a new one
-# just flies through without stopping (no beam).
+# just flies through without stopping (no beam). Screen-clear bomb:
+# bomb_resistant (set in the scene), so a bomb only deals
+# GameConfig.bomb_boss_damage (150); its state, ring and bolt carry on.
 #
 # Pause-safe: _process/_physics_process only, no timers or tweens.
 #

@@ -21,9 +21,10 @@
 # `damage` is set by player.gd on every launch (scene value x damage_scale,
 # like the lasers). Timing is accumulated in _process(): pause-safe.
 #
-# Art: scenes/effects/player_missile.tscn shows sprites/side_winder_missile_1.png
-# (178x512, nose up = -y, which is "forward" for the rotation above) on a
-# Sprite2D at scale 0.0918: ~46x15 px on screen. The untextured CPUParticles2D
+# Art: scenes/effects/player_missile.tscn shows sprites/side_winder_missile_2.png
+# (172x512, the blue/white livery; nose up = -y, which is "forward" for the
+# rotation above) on a Sprite2D at scale 0.0918: ~46x15 px on screen (the
+# zeppelin fires the red/white side_winder_missile_1). The untextured CPUParticles2D
 # trail starts at the nozzle (0, 22); collision capsule r 6 / h 44 covers the
 # body. See docs/ART_SWAP_TRACKER.md.
 extends Area2D

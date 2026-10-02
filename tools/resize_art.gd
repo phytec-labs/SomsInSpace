@@ -57,10 +57,17 @@ var ART: Array[Dictionary] = [
 	# Sidewinder missile, drawn nose-right on a 2172x724 canvas: cropped to the
 	# visible art (alpha >= 5: x 117..2100, y 18..687) plus a 16 px margin,
 	# turned nose-up (the missile scenes face -y along their velocity), 512 px
-	# along its length. Used by the player missile, the missile pickup icon and
-	# (tinted) the zeppelin's missile.
+	# along its length. Red/white livery: the zeppelin's missile (untinted).
 	{"src": "side_winder_missile_1.png", "dst": "side_winder_missile_1.png", "height": 512,
 		"crop": Rect2i(101, 2, 2016, 702), "rotate": 90},
+	# Same sidewinder in the blue/white livery (same 2172x724 canvas, nose
+	# right): visible art (alpha >= 5) x 60..2122, y 12..691, cropped with a
+	# 16 px margin along its length and 12 px across (the canvas top), turned
+	# nose-up, 512 px long. Its visible length in the game copy (504 px) matches
+	# side_winder_missile_1 within 0.1%, so the scenes keep their scale. Used by
+	# the player missile and the missile pickup icon.
+	{"src": "side_winder_missile_2.png", "dst": "side_winder_missile_2.png", "height": 512,
+		"crop": Rect2i(44, 0, 2095, 704), "rotate": 90},
 	# Full sphere; 12% margin so the shield_bubble.gdshader rim glow has room
 	{"src": "shield_dome_1.png", "dst": "shield_dome_1.png", "height": 512, "pad": 0.12},
 	{"src": "space_station_1.png", "dst": "space_station_1.png", "width": 1024},

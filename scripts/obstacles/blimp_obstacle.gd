@@ -19,6 +19,8 @@
 # WaveManager brings it in 2.5 s after the zone's weapon upgrade is collected
 # (or at 18 s zone time) and holds new wave groups while it is alive (at
 # most 8 s, ZoneDefinition.miniboss_hold_max_seconds).
+# Screen-clear bomb: bomb_resistant (set in the scene), so a bomb only deals
+# GameConfig.bomb_boss_damage (150) instead of destroying it.
 # Pause-safe: all timing is accumulated in _process().
 #
 # Art: sprites/zeppelin_1.png (1024x393, the zeppelin cut from

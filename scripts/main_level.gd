@@ -109,8 +109,9 @@ const BOMB_FLASH_TIME := 0.25
 const BOMB_FLASH_ALPHA := 0.85
 ## Obstacles / shots count as "on screen" for the bomb within this margin (px)
 const BOMB_SCREEN_MARGIN := 24.0
-## Damage the bomb deals to every non-boss obstacle (always lethal; dealt
-## through Obstacle.bomb_kill(), so asteroids don't split)
+## Damage the bomb deals to every other obstacle (always lethal; dealt
+## through Obstacle.bomb_kill(), so asteroids don't split). The boss and
+## bomb_resistant obstacles take GameConfig.bomb_boss_damage instead.
 const BOMB_KILL_DAMAGE := 9999.0
 ## Boss phase changes (2 and 3) drop a health cell this far below the boss
 const BOSS_DROP_OFFSET := Vector2(0, 130)
@@ -539,10 +540,13 @@ func _apply_pickup(kind: StringName) -> void:
 
 # --- Screen-clear bomb ---
 
-# Flash + big shake; every active non-boss obstacle on screen is destroyed
-# through Obstacle.bomb_kill() (normal kill points, combo rises as usual,
-# blimp loot drops, but asteroids do NOT split), the boss takes
-# GameConfig.bomb_boss_damage, and enemy projectiles on screen are removed.
+# Flash + big shake; every active obstacle on screen is destroyed through
+# Obstacle.bomb_kill() (normal kill points, combo rises as usual, but
+# asteroids do NOT split), except the heavy ones: the boss and
+# bomb_resistant obstacles (the zeppelin and the mini-boss UFO) only take
+# GameConfig.bomb_boss_damage through take_damage() (hit flash, health bar;
+# if that finishes them they die normally: points, combo, zeppelin loot).
+# Enemy projectiles on screen are removed (theirs included).
 func detonate_bomb() -> void:
 	if current_state != GameState.PLAYING:
 		return
@@ -562,7 +566,7 @@ func detonate_bomb() -> void:
 	for object in targets:
 		if not is_instance_valid(object) or not object.is_active:
 			continue
-		if object == boss:
+		if object == boss or object.bomb_resistant:
 			object.take_damage(config.bomb_boss_damage)
 		elif object.has_method("bomb_kill"):
 			object.bomb_kill(BOMB_KILL_DAMAGE)

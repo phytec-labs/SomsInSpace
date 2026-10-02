@@ -26,9 +26,9 @@ backlog:
 - Missiles: a temporary sidewinder missile upgrade for the player (zeppelin drop + rare
   pickups), homing zeppelin missiles and the Alien Mothership's weaving seeker orbs
   (shootable, burst into a bullet ring); the mothership summons minions in every
-  phase. Code done; the sidewinder art is wired on the player missile, the pickup icon
-  (inside the code-drawn tile) and, tinted, the zeppelin's missile, which still wants its
-  own livery (the orb is procedural)
+  phase. Code done; the sidewinder art is wired in two liveries: blue/white on the player
+  missile and the pickup icon (inside the code-drawn tile), red/white (untinted) on the
+  zeppelin's missile (the orb is procedural)
 - Animated bomb pickup icon (6-frame sheet) wired
 - UFO weapons: the mini-boss saucer fires a telegraphed pulse ring while it hovers and
   charges a bolt down its beam on a player who stays caught; scout saucers (60% size,

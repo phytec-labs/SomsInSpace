@@ -1,7 +1,8 @@
 # bomb_pickup.gd
 # Screen-clear bomb: fires on pickup (main_level.gd detonate_bomb()): white
-# flash, big shake, every non-boss obstacle on screen destroyed (points and
-# combo as normal kills), the boss takes GameConfig.bomb_boss_damage, enemy
+# flash, big shake, every ordinary obstacle on screen destroyed (points and
+# combo as normal kills), the boss, the zeppelin and the mini-boss UFO
+# (Obstacle.bomb_resistant) take GameConfig.bomb_boss_damage, enemy
 # projectiles on screen removed. At most one on screen (SpawnManager); never
 # rolled in the orbit/boss zone (weight 0). Pooled like the energy collectible.
 #

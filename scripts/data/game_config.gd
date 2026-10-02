@@ -59,8 +59,9 @@ const ShipDefinitionScript := preload("res://scripts/data/ship_definition.gd")
 ## Drain (UFO beam) damage multiplier while shielded (the beam is escapable,
 ## so the shield only halves it).
 @export_range(0.0, 1.0) var shield_drain_factor: float = 0.5
-## Damage a screen-clear bomb deals to a boss (other obstacles on screen are
-## destroyed outright).
+## Damage a screen-clear bomb deals to the heavy enemies on screen: the boss
+## (mothership) and Obstacle.bomb_resistant ones (the zeppelin and the
+## mini-boss UFO). Other obstacles on screen are destroyed outright.
 @export var bomb_boss_damage: float = 150.0
 ## Damage a shielded player's contact deals to obstacles that survive rams
 ## (boss, blimp), once per their contact hit interval. Ordinary obstacles

@@ -622,7 +622,7 @@ and `spawn_collectible()` rolls which one from the zone's pickup table.
 | Health cell | `health_pickup.tscn` | 10 | `level.heal(GameConfig.health_pickup_amount)` = +25, clamped to the ship's max health, green "+25" popup |
 | Shield bubble | `shield_pickup.tscn` | 10 | `player.activate_shield(GameConfig.shield_duration)` = 8 s. Absorbs enemy shots, mine blasts and all contact: no health loss, no blink, no weapon tier loss, combo kept; each absorbed hit pops the ring, the shield keeps going. It is an offensive window: see "Shield rams" below. The UFO beam still drains at `shield_drain_factor` (0.5x). Ring blinks in the last 2 s; re-collecting refreshes to the full 8 s; it ends at game over and when the victory docking starts. HUD: cyan "SHIELD" + timer bar next to the combo |
 | Missile upgrade | `missile_pickup.tscn` | 10 | `player.activate_missiles(GameConfig.missile_duration)` = 8 s of sidewinder missile pairs while firing (see "Missiles"); re-collecting refreshes to the full 8 s; it ends at game over and when the victory docking starts. Orange "MISSILES" popup; HUD: orange "MISSILES" + timer bar in the height row |
-| Screen-clear bomb | `bomb_pickup.tscn` | 25 | Fires on pickup: "BOMB!", 0.25 s white flash, big shake; every active non-boss obstacle on screen (incl. blimp, UFO, mines, minions) is killed through `Obstacle.bomb_kill()` (9999 damage: normal kill points, combo rises as usual, blimp loot drops, but asteroids do NOT split: `suppress_splits`), the boss takes `GameConfig.bomb_boss_damage` (150), enemy projectiles on screen (group `enemy_projectile`) are removed |
+| Screen-clear bomb | `bomb_pickup.tscn` | 25 | Fires on pickup: "BOMB!", 0.25 s white flash, big shake; every ordinary obstacle on screen (fodder, scouts, mines, asteroids, minions) is killed through `Obstacle.bomb_kill()` (9999 damage: normal kill points, combo rises as usual, but asteroids do NOT split: `suppress_splits`). The heavy enemies are only damaged: the boss and every `Obstacle.bomb_resistant` obstacle (set in `blimp_obstacle.tscn` and `ufo_obstacle.tscn`: the zeppelin and the mini-boss UFO) take `GameConfig.bomb_boss_damage` (150) through the normal `take_damage()` path (hit flash, health bar; if that finishes one it dies normally: points, combo, zeppelin loot). A survivor carries on unchanged (UFO hover / ring / bolt, zeppelin guns and missile timers, the wave manager's mini-boss hold). "On screen" = position inside the viewport grown by 24 px, so an entering UFO or a zeppelin still above the top edge is untouched. Enemy projectiles on screen (group `enemy_projectile`, the zeppelin's missiles and the UFO's ring shots included) are removed |
 
 Weights per zone (`ZoneDefinition.pickup_weight_energy / _health / _shield /
 _bomb / _missile`, group "Pickup Weights"; relative, they need not sum to 100;
@@ -666,7 +666,8 @@ The pickup scenes and values live in `data/game_config.tres` (group
 "Pickups": `energy_collectible_scene`, `health_pickup_scene`,
 `shield_pickup_scene`, `bomb_pickup_scene`, `missile_pickup_scene`,
 `health_pickup_amount`, `shield_duration`, `missile_duration`,
-`shield_drain_factor`, `bomb_boss_damage`); the SpawnManager copies the
+`shield_drain_factor`, `bomb_boss_damage`: the bomb's damage to the
+mothership, the zeppelin and the mini-boss UFO); the SpawnManager copies the
 scenes in `configure()`.
 
 ## Missiles

@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/effects/player_missile.gd" id="1_missile"]
-[ext_resource type="Texture2D" uid="uid://c8hyplyifp84h" path="res://sprites/side_winder_missile_1.png" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://q8td2tobllxw" path="res://sprites/side_winder_missile_2.png" id="2_tex"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_missile"]
 radius = 6.0

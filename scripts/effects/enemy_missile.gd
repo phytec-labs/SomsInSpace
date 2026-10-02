@@ -17,14 +17,12 @@
 #    level.award_kill_points(), i.e. as a kill: the combo applies and rises
 # Timing is accumulated in _process(), so it freezes while paused.
 #
-# PLACEHOLDER_ART: scenes/effects/enemy_missile.tscn reuses the player's
-# sidewinder (sprites/side_winder_missile_1.png, nose up = -y; the node rotates
-# to face its velocity) on a Sprite2D at scale 0.1 (~50x17 px), tinted dark
-# orange by the Sprite2D's self_modulate (the root's modulate is the hit
-# flash), plus an untextured CPUParticles2D smoke trail from the nozzle
-# (0, 24). Swap: a dedicated enemy missile render on the same canvas and
-# orientation as side_winder_missile_1 (resize_art.gd entry like it), then
-# self_modulate back to white; see docs/ART_SWAP_TRACKER.md.
+# Art: scenes/effects/enemy_missile.tscn shows the red/white sidewinder
+# (sprites/side_winder_missile_1.png, nose up = -y; the node rotates to face
+# its velocity) untinted on a Sprite2D at scale 0.1 (~50x17 px; the player's
+# missiles use the blue/white side_winder_missile_2), plus an untextured
+# CPUParticles2D smoke trail from the nozzle (0, 24). The root's modulate is
+# the hit flash. See docs/ART_SWAP_TRACKER.md.
 extends "res://scripts/effects/enemy_projectile.gd"
 
 const EXPLOSION_SCENE := preload("res://scenes/effects/explosion.tscn")

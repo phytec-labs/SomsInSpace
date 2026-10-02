@@ -19,6 +19,12 @@ const HIT_SOUND_MIN_INTERVAL_USEC: int = 50000
 @export var base_speed: float = 100.0
 @export var health: float = 10.0  # Default health value
 @export var explosion_scene: PackedScene = preload("res://scenes/effects/obstacle_explosion.tscn")
+## Heavy enemy the screen-clear bomb only damages (GameConfig.bomb_boss_damage
+## through take_damage(), like the boss) instead of destroying outright. Set
+## on the zeppelin and the mini-boss UFO scenes; everything else on screen dies
+## to a bomb. Separate from BlimpObstacle.is_miniboss (autopilot focus,
+## missile targeting).
+@export var bomb_resistant: bool = false
 
 # Shooting properties
 @export var can_shoot: bool = false
@@ -432,7 +438,8 @@ func take_damage(damage: float) -> void:
 		emit_signal("destroyed")
 
 # Screen-clear bomb (main_level.gd detonate_bomb()): lethal damage through
-# take_damage() (normal kill points / combo / loot), but no split pieces
+# take_damage() (normal kill points / combo / loot), but no split pieces.
+# Not used on bomb_resistant obstacles (they take take_damage() instead).
 func bomb_kill(amount: float = 9999.0) -> void:
 	if not is_active:
 		return
