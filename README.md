@@ -2,6 +2,8 @@
 
 A PHYTEC demo project where you play as a PHYTEC SoM making your way to outer space. This project showcases capabilities of our various products and serves as a conversation starter for trade shows.
 
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
+
 ## Building
 
 Build the arm64 binary with `tools/build.sh --install-templates` (Godot 4.7.1 required). See [BUILD.md](BUILD.md) for prerequisites, deployment to the phyBOARD, kiosk behavior and troubleshooting.
