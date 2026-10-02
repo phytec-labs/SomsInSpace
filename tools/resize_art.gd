@@ -41,8 +41,19 @@
 # centroid lies in that frame's cell of a uniform grid over the master, so no
 # sliver of a neighbour comes along. The frame's center is the islands'
 # bounding-box center, or their alpha centroid with "center": "centroid"
-# (steadier for a tumbling animation whose silhouette changes). The run fails
-# if a grid cell holds no island. Centers are printed.
+# (steadier for a tumbling animation whose silhouette changes), or with
+# "center": "top_band" the alpha centroid of only the top "band" master rows
+# of the frame (from its topmost art pixel down): for art whose upper part
+# stays put while the lower part moves (the mothership's dome over its walking
+# legs), so the still part is what gets registered. Optional "refine" (int,
+# master pixels) then moves each frame's center by the whole-pixel shift, up
+# to that far, that best lays its top band over frame 0's (least alpha and
+# luma difference; needs "band"): exact when the still part is redrawn a
+# little differently per frame, where a centroid is only close. Optional
+# "center_offset" (Vector2i, master pixels) is added to every frame's center:
+# it moves the art inside its cells (e.g. to balance a top-band anchor)
+# without changing the registration. The run fails if a grid cell holds no island. Centers are
+# printed.
 #
 # Conventions (docs/ART_SWAP_TRACKER.md): enemies and pickups 512 px tall,
 # UFO / blimp / station 1024 px wide; ships stay at their 1024x1536 canvas (not
@@ -173,6 +184,25 @@ var ART: Array[Dictionary] = [
 	{"src": "meteor_small_shards_various_1.png", "dst": "asteroid_shards_sheet.png",
 		"sheet": {"cell": 128, "extent": 416, "pad": 8, "alpha_floor": 5,
 			"grid": Vector2i(6, 3), "columns": 6}},
+	# Boss mothership: 8-frame leg cycle (1774x887 master, 4x2 not on an
+	# exact grid, neighbours 10-15 px apart, so each frame is cut out as its
+	# own alpha islands). The dome and spikes stay put while the six legs
+	# walk, so frames are registered on the dome: the alpha centroid of the
+	# top 200 master rows (spike tip down to just above the dome rim), then
+	# refined by up to 3 px to the best dome match with frame 0 (the dome is
+	# redrawn a little differently per frame). Measured on the output, the
+	# dome's (upper 45% of the cell) best-fit shift against frame 1 is at most
+	# 0.52 px. The centroid sits ~141 px below the spike tip, so
+	# center_offset moves it 75 px up in the cell: the art then reaches 216 px
+	# above and at most 213 px below the cell center and 218 px to the sides.
+	# One 480 px extent for all frames (0.8x, no per-frame rescale) leaves
+	# >= 16 px padding per cell side. Alpha 1-4 haze is dropped. Output
+	# 1536x768 (384 px cells, 4 per row), used by sprites/mothership.tres.
+	{"src": "mothership_1.png", "dst": "mothership_sheet.png",
+		"sheet": {"cell": 384, "extent": 480, "pad": 12, "alpha_floor": 5,
+			"grid": Vector2i(4, 2), "columns": 4,
+			"center": "top_band", "band": 200, "refine": 3,
+			"center_offset": Vector2i(0, 75)}},
 ]
 
 func _init() -> void:
@@ -328,7 +358,13 @@ func _island_frames(entry: Dictionary, img: Image) -> Array:
 	var sheet: Dictionary = entry["sheet"]
 	var grid: Vector2i = sheet["grid"]
 	var min_island: int = sheet.get("min_island", 200)
-	var use_centroid: bool = sheet.get("center", "bbox") == "centroid"
+	var center_mode: String = sheet.get("center", "bbox")
+	var band: int = sheet.get("band", 0)
+	var center_offset: Vector2i = sheet.get("center_offset", Vector2i.ZERO)
+	var refine: int = sheet.get("refine", 0)
+	if (center_mode == "top_band" or refine > 0) and band <= 0:
+		push_error("resize_art: %s \"top_band\" / \"refine\" need a \"band\" > 0" % entry["src"])
+		return []
 	var w := img.get_width()
 	var h := img.get_height()
 	var data := img.get_data()
@@ -408,11 +444,62 @@ func _island_frames(entry: Dictionary, img: Image) -> Array:
 					piece[d + 3] = data[s + 3]
 		var piece_img := Image.create_from_data(bbox.size.x, bbox.size.y, false, Image.FORMAT_RGBA8, piece)
 		var center: Vector2i
-		if use_centroid:
+		if center_mode == "centroid":
 			center = Vector2i(roundi(sx / sa), roundi(sy / sa)) - bbox.position
+		elif center_mode == "top_band":
+			# Alpha centroid of the piece's top `band` rows (bbox top = topmost
+			# art pixel)
+			var bx := 0.0
+			var by := 0.0
+			var ba := 0.0
+			for y in mini(band, bbox.size.y):
+				for x in bbox.size.x:
+					var pa := float(piece[(y * bbox.size.x + x) * 4 + 3])
+					bx += x * pa
+					by += y * pa
+					ba += pa
+			center = Vector2i(roundi(bx / ba), roundi(by / ba))
 		else:
 			center = Vector2i(bbox.size.x / 2, bbox.size.y / 2)
-		print("resize_art: %s frame %d: art %s, center %s" % [entry["src"], i, bbox,
-				center + bbox.position])
-		frames.append({"image": piece_img, "rect": Rect2i(Vector2i.ZERO, bbox.size), "center": center})
+		frames.append({"image": piece_img, "rect": Rect2i(Vector2i.ZERO, bbox.size),
+				"center": center, "data": piece, "origin": bbox.position})
+	if refine > 0:
+		for i in range(1, frames.size()):
+			frames[i]["center"] += _best_shift(frames[0], frames[i], band, refine)
+	for i in frames.size():
+		var f: Dictionary = frames[i]
+		f["center"] += center_offset
+		print("resize_art: %s frame %d: art %s, center %s" % [entry["src"], i,
+				Rect2i(f["origin"], f["rect"].size), f["center"] + f["origin"]])
 	return frames
+
+# "refine": the integer shift (within +-radius master px) that best lays
+# frame f's top band over frame 0's: least sum of absolute alpha and luma
+# differences over frame 0's top `band` rows (every 2nd pixel), compared
+# around each frame's center
+func _best_shift(ref: Dictionary, f: Dictionary, band: int, radius: int) -> Vector2i:
+	var ref_size: Vector2i = ref["rect"].size
+	var ref_c: Vector2i = ref["center"]
+	var f_size: Vector2i = f["rect"].size
+	var best := Vector2i.ZERO
+	var best_cost := INF
+	for dy in range(-radius, radius + 1):
+		for dx in range(-radius, radius + 1):
+			var cost := 0.0
+			var off: Vector2i = f["center"] + Vector2i(dx, dy) - ref_c
+			for y in range(0, mini(band, ref_size.y), 2):
+				for x in range(0, ref_size.x, 2):
+					var a := _alpha_luma(ref["data"], ref_size, x, y)
+					var b := _alpha_luma(f["data"], f_size, x + off.x, y + off.y)
+					cost += absf(a.x - b.x) + absf(a.y - b.y)
+			if cost < best_cost:
+				best_cost = cost
+				best = Vector2i(dx, dy)
+	return best
+
+# (alpha, luma) of a piece pixel, (0, 0) outside the piece
+func _alpha_luma(data: PackedByteArray, size: Vector2i, x: int, y: int) -> Vector2:
+	if x < 0 or y < 0 or x >= size.x or y >= size.y:
+		return Vector2.ZERO
+	var p := (y * size.x + x) * 4
+	return Vector2(data[p + 3], 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2])

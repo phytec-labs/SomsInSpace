@@ -38,6 +38,10 @@ backlog:
 - Energy coin: worth 5 points (flat), gold "+5" popup and a quick coin pop on collect,
   drawn by a procedural spinning-coin shader (embossed microchip emblem; star and
   lightning bolt selectable) instead of the old pixel sprite
+- Real boss art (wishlist #1, partly): the Alien Mothership is the user's own animated
+  mothership (8-frame leg cycle, dome held still) in its own green, about 220 px across,
+  instead of the magenta-tinted alien (health 750 -> 1000 for the bigger hit area; boss
+  bar and name now red); attack, hurt and death frames still open
 
 ## How art plugs in today
 
@@ -63,7 +67,7 @@ backlog:
 
 | # | Feature it unlocks | What to make | Spec | Status |
 |---|---|---|---|---|
-| 1 | Real boss instead of a tinted alien | Mothership sheet: idle, attack, hurt, death | Grid sheet, 6 to 8 frames per animation, ~512x384 per frame, facing down, transparent | open (boss uses the tinted alien) |
+| 1 | Real boss instead of a tinted alien | Mothership sheet: idle, attack, hurt, death | Grid sheet, 6 to 8 frames per animation, ~512x384 per frame, facing down, transparent | partly done: the user's 8-frame mothership leg cycle is wired as `idle` (and replayed fast as `attack`); attack, hurt and death frames still open (spec in the tracker) |
 | 2 | "Choose your SoM" ship select on the main menu, each ship with its own speed, fire rate, and health | 3 ship sprites (e.g. phyCORE-AM62x, i.MX 8M, i.MX 93) plus a small name badge each | 1024x1536 each, facing up, engine at bottom center, same silhouette scale as the current ship | code done, art needed |
 | 3 | Zone parallax backgrounds so the climb feels like travel | Ground skyline or launch site, aurora band for upper atmosphere, Earth horizon curve for space, a space station for orbit | 720 px wide strips, horizontally tileable where they scroll, transparent above the horizon, 1 to 3 layers per zone | open |
 | 4 | Victory moment: dock with a PHYTEC station | Station sprite (landing pad; clamps dropped for a landing), optional animated pad lights | `space_station_1.png` delivered; optional 2 to 4 frame pad-light loop | done (art wired) |
@@ -92,6 +96,6 @@ a PHYTEC product story: pick your module, see its stats, fly it.
 ## Still to verify on the device
 
 - Touch feel, pause button ergonomics, onscreen keyboard on the results screen
-- How the boss tint shader, spread laser, and threat pips look under opengl3_es
+- How the boss art (384 px cell sheet, mipmapped), spread laser, and threat pips look under opengl3_es
 - Frame rate with up to 150 active obstacles (`max_active_obstacles` in `data/game_config.tres`)
 - Boss fairness: volley size and spread are exports on `scripts/obstacles/boss_alien.gd`

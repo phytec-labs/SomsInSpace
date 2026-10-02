@@ -293,7 +293,7 @@ The values play-testing usually touches, and where they live:
 | Knob | Where | Current | Effect |
 |---|---|---|---|
 | `enemy_health_multiplier` | each `data/zones/<zone>.tres` | ground 1.0, atmosphere 2.0, upper_atmosphere 2.5, space 3.0, orbit 1.0 | Hits to kill every non-boss enemy in the zone (table above) |
-| Boss health | `scenes/obstacles/boss_alien.tscn` `health` | 750 | Fight length; phases change at 2/3 and 1/3 of it automatically (~16.5 s with the sweeping tier-2 bot; ~20 s for the casual tier-3 bot with the minion / orb pressure, see "Orbit: the boss fight") |
+| Boss health | `scenes/obstacles/boss_alien.tscn` `health` | 1000 (750 until the mothership art made the hit area bigger) | Fight length; phases change at 2/3 and 1/3 of it automatically (at 750: ~16.5 s with the sweeping tier-2 bot, ~20 s for the casual tier-3 bot with the minion / orb pressure; at 1000 see the autopilot numbers in "Orbit: the boss fight") |
 | Boss minions / orbs | `scripts/obstacles/boss_alien.gd` `PHASES` (`summon`, `summon_count`, `orbs`, `orb_count`), exports `max_minions`, `first_summon_delay`, `max_orbs` | see "Orbit: the boss fight" | Bodies and homing threats in the fight |
 | Zeppelin missiles | `scripts/obstacles/blimp_obstacle.gd` group "Blimp Missiles" | pair every 4.5 s, max 4 live | See "Missiles" |
 | Blimp health | `scenes/obstacles/blimp_obstacle.tscn` `health` | 270 (x 2.0 in atmosphere = 540) | Mini-boss length (~4.0-4.4 s of sustained tier-2 fire, ~10-12 s for the casual bot) |
@@ -334,10 +334,10 @@ does the hit flash; the hit flash still goes to pure white on top):
 - SpawnManager sets the zone's values on every spawn (pooled reuse included);
   enemies still flying at a zone change blend to the new zone's values over
   `SpawnManager.readability_blend_seconds` (1.5 s; the sky wipe takes 2.5 s).
-- The boss takes the zone's brighten (its hue-shift shader has the same
-  uniforms: 1 = the intended bright magenta, 0 = the old dark maroon) but not
-  the rim (`use_zone_rim = false` on the boss scene; a rim on its big
-  pixel-art silhouette reads as an outline). Any enemy can opt out the same way.
+- The boss takes the zone's brighten (its sprite uses the same
+  `hit_flash.gdshader` material, set in its scene) but not the rim
+  (`use_zone_rim = false` on the boss scene; a rim on its big silhouette reads
+  as an outline). Any enemy can opt out the same way.
 - Cost: both effects sit behind uniform branches; brighten < 1 costs one extra
   texture sample (the original shader's cost), the rim four more samples.
 
@@ -477,7 +477,7 @@ Orbit has no waves: the boss fight plays alone.
 
 ### Orbit: the boss fight
 
-`scripts/obstacles/boss_alien.gd`. The Alien Mothership (750 health, no zone
+`scripts/obstacles/boss_alien.gd`. The Alien Mothership (1000 health, no zone
 multiplier) flies in for 2.5 s (shots absorbed), then fights in three phases
 by health thirds. Per-phase data lives in its `PHASES` const:
 
@@ -502,8 +502,17 @@ by health thirds. Per-phase data lives in its `PHASES` const:
   the boss's ordinary bullets keep flying as before (harmless: the level
   ignores damage once the run is over).
 - Phase changes 2 and 3 drop a health cell below the boss and shake hard.
+- Art: the user's mothership (8-frame leg cycle, `sprites/mothership.tres`) in
+  its own green at scale 0.65, ~226x224 px (it was the 193x172 px tinted
+  alien), told apart from its green minions by shape and size. At the phase 3
+  drift extremes (x 130 / 590) the art spans x 17..704, so it never leaves the
+  screen. Hit area: polygon x -104..104, y -78..72 (was -78..72, -72..69).
+  Minions appear 130 px below its center (`minion_spawn_offset_y`, under the
+  claw tips); death explosions spread over +-95 x +-70 px
+  (`death_explosion_spread`).
 
-Casual-bot measurement (balanced ship, tier 3, 10 seeded runs each; bot fires
+Casual-bot measurement (at 750 health, before the mothership art; balanced
+ship, tier 3, 10 seeded runs each; bot fires
 ~60% of the time, aims at the nearest target with +-60 px wobble, sidesteps
 shots within 120 px ahead; `--fixed-fps 60`), before -> after the minion / orb
 change: fight 18.3 -> 19.8 s, health lost 25 -> 41 (healed 20 -> 31 by the
@@ -512,6 +521,22 @@ shot down / 0.0 burst / 0.1 reached the player per fight, survival 10/10 ->
 10/10 (lowest end health 90 -> 50). Tier 2: 46.0 s, health lost 78 (healed
 53), 2.5 orbs burst per fight, 10/10 survive (lowest 35). Light ship (70
 health) at tier 3: 19.7 s, 10/10 survive (lowest 45).
+
+Bigger hit area (mothership art), health 750 -> 1000 to offset it: the
+attract-mode autopilot (`scripts/attract_autopilot.gd`, unmodified; fires all
+the time, tracks the nearest enemy above it), balanced ship, health topped up
+so the fight runs to the end, seeds 1-6. Old tinted alien at 750 -> new art
+at 750 -> new art at 1000:
+
+| Tier | Fight (s), mean (range) | Health lost, mean (range) | Minions summoned |
+|---|---|---|---|
+| 1 | 64.4 (41-78) -> 45.1 (30-55) -> 70.4 (59-78) | 132 (80-195) -> 87 (50-150) -> 133 (115-190) | 31 -> 23 -> 34 |
+| 3 | 9.6 (8.6-11.8) -> 7.2 (7.0-7.5) -> 9.0 (8.6-10.2) | 7 -> 2 -> 5 | 7 -> 3 -> 7 |
+
+The bigger hit area alone cut the fight by 25-30% (more of the bot's stray
+shots land); at 1000 health it is back to the old length (tier 1 +9%,
+tier 3 -6%). Bomb damage (`bomb_boss_damage` 150) and the player missile's
+half damage on bosses are flat, so each is now a smaller share of the fight.
 
 ## UFO weapons and scout saucers
 

@@ -745,7 +745,8 @@ func _apply_readability() -> void:
 
 # The material carrying the rim_* / brighten uniforms: the hit flash material,
 # else the sprite's own ShaderMaterial if its shader declares rim_strength
-# (the boss's hue-shift shader); null = no readability for this enemy
+# (the boss: it sets its own hit_flash.gdshader material in its scene and
+# flashes itself); null = no readability for this enemy
 func _readability_material() -> ShaderMaterial:
 	if _hit_material:
 		return _hit_material

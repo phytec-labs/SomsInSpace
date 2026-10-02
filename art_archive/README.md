@@ -31,7 +31,8 @@ shield and health pickup animation strips, the sidewinder missile in two liverie
 the player's missiles and the missile pickup icon, and the splitting asteroid sheets:
 `meteor_animated_large_1.png` and `asteroid_large_sheet_2.png` (two 8-frame large-rock
 tumbles), `meteor_medium_chunks.png` (8 medium chunks) and
-`meteor_small_shards_various_1.png` (18 small shards)).
+`meteor_small_shards_various_1.png` (18 small shards), and the boss: `mothership_1.png`
+(8-frame mothership leg cycle, 4x2)).
 The game uses downscaled copies in `sprites/` (same basenames, except the blimp:
 `sprites/zeppelin_1.png` is the zeppelin cut out of `zeppelin_weapon_combined.png`, whose
 six weapon modules are not used yet; and the two pickup strips,
@@ -41,7 +42,8 @@ into the uniform 256 px-cell sheets `sprites/shield_icon_sheet.png` and
 repacked into `sprites/bomb_pickup_sheet.png`; the four asteroid masters, whose pieces are
 cut out and repacked into `sprites/asteroid_large_sheet.png`,
 `sprites/asteroid_large_sheet_2.png`, `sprites/asteroid_chunks_sheet.png` and
-`sprites/asteroid_shards_sheet.png`; both sidewinders
+`sprites/asteroid_shards_sheet.png`; the mothership, repacked into the 384 px-cell
+`sprites/mothership_sheet.png`; both sidewinders
 (`side_winder_missile_1.png`, `side_winder_missile_2.png`) are drawn nose-right and
 their game copies are cropped and turned nose-up).
 To regenerate the game copies after editing a master:

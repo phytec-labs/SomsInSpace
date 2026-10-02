@@ -2,71 +2,12 @@
 
 [ext_resource type="Script" path="res://scripts/obstacles/boss_alien.gd" id="1_boss"]
 [ext_resource type="PackedScene" uid="uid://8pgn5ymkynsq" path="res://scenes/effects/enemy_projectile_3.tscn" id="2_proj"]
-[ext_resource type="SpriteFrames" uid="uid://jguv2molmqfr" path="res://sprites/alien_1.tres" id="3_frames"]
-
-[sub_resource type="Shader" id="Shader_boss"]
-code = "// Hue-shifts the green alien sprite (toward magenta/purple), adds the
-// zone readability brighten / rim light (same uniforms and math as
-// res://shaders/hit_flash.gdshader, driven by Obstacle from the zone) and a
-// white hit flash (last).
-shader_type canvas_item;
-
-uniform float hue_shift : hint_range(0.0, 1.0) = 0.6;
-uniform float saturation : hint_range(0.0, 2.0) = 1.2;
-uniform float flash : hint_range(0.0, 1.0) = 0.0;
-uniform vec4 rim_color : source_color = vec4(0.75, 0.95, 1.0, 1.0);
-uniform float rim_strength : hint_range(0.0, 1.0) = 0.0;
-uniform float rim_width_px = 10.0;
-uniform float brighten : hint_range(0.0, 1.0) = 0.0;
-
-// 1 inside the current frame's region (lo .. hi), 0 outside
-float inside_rect(vec2 uv, vec2 lo, vec2 hi) {
-	vec2 s = step(lo, uv) * step(uv, hi);
-	return s.x * s.y;
-}
-
-// Texture alpha at UV + offset, 0 outside the frame
-#define RIM_TAP(offset) (texture(TEXTURE, clamp(UV + (offset), lo, hi)).a * inside_rect(UV + (offset), lo, hi))
-
-vec3 hue_rotate(vec3 c, float angle) {
-	const vec3 k = vec3(0.57735);
-	float ca = cos(angle);
-	return c * ca + cross(k, c) * sin(angle) + k * dot(k, c) * (1.0 - ca);
-}
-
-void fragment() {
-	// Incoming COLOR is already texture * modulate in Godot 4
-	vec4 tex = COLOR;
-	vec3 col = hue_rotate(tex.rgb, hue_shift * 6.2831853);
-	float grey = dot(col, vec3(0.299, 0.587, 0.114));
-	col = clamp(mix(vec3(grey), col, saturation), 0.0, 1.0);
-	// brighten 0 = the original look (times the green texture once more: a
-	// dark maroon), 1 = the intended bright magenta
-	if (brighten < 1.0) {
-		vec4 extra = mix(texture(TEXTURE, UV), vec4(1.0), brighten);
-		col *= extra.rgb;
-		tex.a *= extra.a;
-	}
-	if (rim_strength > 0.0) {
-		vec2 lo = REGION_RECT.xy;
-		vec2 hi = REGION_RECT.xy + REGION_RECT.zw;
-		vec2 d = TEXTURE_PIXEL_SIZE * rim_width_px;
-		float m = RIM_TAP(vec2(d.x, 0.0));
-		m = min(m, RIM_TAP(vec2(-d.x, 0.0)));
-		m = min(m, RIM_TAP(vec2(0.0, d.y)));
-		m = min(m, RIM_TAP(vec2(0.0, -d.y)));
-		col = mix(col, rim_color.rgb, clamp(1.0 - m, 0.0, 1.0) * rim_strength);
-	}
-	col = mix(col, vec3(1.0), flash);
-	COLOR = vec4(col, tex.a);
-}
-"
+[ext_resource type="SpriteFrames" path="res://sprites/mothership.tres" id="3_frames"]
+[ext_resource type="Shader" uid="uid://ch756tw6rhjls" path="res://shaders/hit_flash.gdshader" id="4_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_boss"]
 resource_local_to_scene = true
-shader = SubResource("Shader_boss")
-shader_parameter/hue_shift = 0.6
-shader_parameter/saturation = 1.2
+shader = ExtResource("4_shader")
 shader_parameter/flash = 0.0
 
 [node name="BossAlien" type="Area2D"]
@@ -74,7 +15,7 @@ collision_layer = 2
 script = ExtResource("1_boss")
 damage = 30.0
 base_speed = 0.0
-health = 750.0
+health = 1000.0
 can_shoot = true
 projectile_scene = ExtResource("2_proj")
 shoot_chance = 1.0
@@ -85,19 +26,19 @@ use_zone_rim = false
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 material = SubResource("ShaderMaterial_boss")
-scale = Vector2(0.9, 0.98)
+scale = Vector2(0.65, 0.65)
 sprite_frames = ExtResource("3_frames")
 animation = &"idle"
 autoplay = "idle"
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-polygon = PackedVector2Array(-18, 36, -30, 69, -72, 45, -78, 3, -51, -36, 0, -72, 50.4, -36, 72, 3.6, 69, 39, 30, 69, 21, 33)
+polygon = PackedVector2Array(-30, -78, 30, -78, 62, -58, 85, -36, 98, -14, 104, 2, 100, 16, 90, 40, 70, 58, 40, 62, 20, 66, 0, 72, -20, 66, -40, 62, -70, 58, -90, 40, -100, 16, -104, 2, -98, -14, -85, -36, -62, -58)
 
 [node name="GunPointLeft" type="Marker2D" parent="."]
-position = Vector2(-60, 40)
+position = Vector2(-70, 28)
 
 [node name="GunPointCenter" type="Marker2D" parent="."]
-position = Vector2(0, 55)
+position = Vector2(0, 34)
 
 [node name="GunPointRight" type="Marker2D" parent="."]
-position = Vector2(60, 40)
+position = Vector2(70, 28)

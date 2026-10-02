@@ -1,8 +1,8 @@
 # boss_alien.gd
 # Alien Mothership boss. Spawned by SpawnManager.spawn_boss(), which positions
 # it above the screen and calls initialize(); the boss then flies in, fights in
-# three phases (by health thirds) and plays a death sequence before emitting
-# `destroyed` so the spawn manager can pool it.
+# three phases (by thirds of its health: 1000, set in the scene) and plays a
+# death sequence before emitting `destroyed` so the spawn manager can pool it.
 #
 # Attacks per phase are data (PHASES): aimed shots, fan volleys (phases 2-3),
 # minion summons in every phase (ramping: 2 every 7 s, 2 every 5 s, 3 every
@@ -13,6 +13,14 @@
 #
 # All timing uses _process() delta accumulators and node-bound tweens, so the
 # fight freezes while the tree is paused.
+#
+# Art: sprites/mothership.tres (the user's 8-frame leg cycle, repacked by
+# tools/resize_art.gd into 384 px cells registered on the dome, so only the
+# legs move): "idle" loops it at 8 fps, "attack" at 16 fps (no separate attack
+# frames yet). Shown in its own colours through the shared
+# shaders/hit_flash.gdshader (zone brighten, white hit flash; no zone rim), at
+# 0.65x: about 220 px across the dome, 226 x 224 px overall. Told apart from
+# its green minions by shape and size, not by tint.
 extends Obstacle
 class_name BossAlien
 
@@ -47,6 +55,12 @@ signal defeated
 @export var contact_hit_interval: float = 0.5 # Re-hit while the player overlaps
 @export var death_duration: float = 1.5
 @export var death_explosions: int = 6
+## Death explosions land at random offsets up to this far from the center
+## (about the dome and upper legs of the 226 x 224 px art)
+@export var death_explosion_spread: Vector2 = Vector2(95.0, 70.0)
+## Summoned minions appear this far below the boss center (just under the
+## claw tips, which reach about 111 px down)
+@export var minion_spawn_offset_y: float = 130.0
 
 # Per-phase behaviour: drift angular speed (rad/s) and amplitude (px), and
 # attack intervals in seconds (0 = attack not used in that phase).
@@ -93,8 +107,8 @@ var _flash_tween: Tween
 var _death_tween: Tween
 
 func _ready() -> void:
-	# The boss flashes itself (_flash(), its hue-shift shader's `flash`
-	# uniform) and has its own HUD health bar: no base hit flash / punch /
+	# The boss flashes itself (_flash(), the `flash` uniform of its
+	# hit_flash.gdshader material) and has its own HUD health bar: no base hit flash / punch /
 	# mini health bar
 	_handles_own_flash = true
 	show_health_bar = false
@@ -294,7 +308,7 @@ func _summon_minions(wanted: int) -> void:
 	for i in range(count):
 		var offset_x = (float(i) - float(count - 1) / 2.0) * 90.0 + rng.randf_range(-15.0, 15.0)
 		var pos = Vector2(clampf(global_position.x + offset_x, 60.0, width - 60.0),
-			global_position.y + 110.0)
+			global_position.y + minion_spawn_offset_y)
 		var minion = spawn_manager.spawn_minion(minion_scene, pos)
 		if minion:
 			minions_summoned += 1
@@ -425,7 +439,8 @@ func _begin_death() -> void:
 func _spawn_death_explosion(large: bool) -> void:
 	_flash()
 	var offset = Vector2.ZERO if large else \
-		Vector2(rng.randf_range(-80.0, 80.0), rng.randf_range(-60.0, 60.0))
+		Vector2(rng.randf_range(-death_explosion_spread.x, death_explosion_spread.x),
+			rng.randf_range(-death_explosion_spread.y, death_explosion_spread.y))
 	_play_explosion_sound()
 	if not explosion_scene:
 		return
