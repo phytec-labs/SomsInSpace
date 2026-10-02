@@ -573,12 +573,10 @@ once) fires a fan of `fan_bullets` (3) shots at -18 / 0 / +18 deg
 `enemy_projectile_1.tscn` shots at `fan_speed` 360 px/s (other enemy shots
 fly at 500) with `fan_lifetime` 4 s, both set per shot.
 
-Placeholder colour: until the second-colour art (`ufo_2`) arrives, the scout
-sets `hue_shift = -1.9` (radians) on its hit flash material, which rotates
-the purple lights to teal and the beige hull to a cool lavender-grey (see the
-shader note in `shaders/hit_flash.gdshader`; 0 = off, skipped by a uniform
-branch for every other enemy). Swap: texture `sprites/ufo_2.png`, `hue_shift`
-0 (docs/ART_SWAP_TRACKER.md).
+Art: `sprites/ufo_2.png`, the teal-lit second-colour render of the mini-boss
+saucer (same silhouette), at the same scale as the hue-shifted stand-in it
+replaced; `hue_shift` is back to 0 (the shader option stays, unused; see
+docs/ART_SWAP_TRACKER.md).
 
 ### Balance (casual bot, balanced ship, tier 3)
 

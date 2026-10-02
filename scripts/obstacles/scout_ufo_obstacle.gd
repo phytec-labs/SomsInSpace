@@ -12,12 +12,10 @@
 # Health 50 base (x 3.0 in space = 150): no mini health bar (show_health_bar
 # off: the bar is for the mini-bosses and the big hulls).
 #
-# PLACEHOLDER_ART: scenes/obstacles/scout_ufo_obstacle.tscn reuses the
-# mini-boss art (sprites/ufo_1.png) at 60% size, recoloured by the hit flash
-# shader's hue_shift (scene export, radians) so its purple lights read
-# green/teal. Swap: set the Sprite2D texture to sprites/ufo_2.png (the
-# second-colour render, same canvas) and hue_shift back to 0; see
-# docs/ART_SWAP_TRACKER.md ("Scout saucer").
+# Art: sprites/ufo_2.png, the teal-lit second-colour render of the mini-boss
+# saucer (same canvas and silhouette), at 60% of the mini-boss's size (scale
+# 0.1247, ~127 px wide); no hue_shift. See docs/ART_SWAP_TRACKER.md
+# ("Scout saucer").
 extends Obstacle
 
 @export_group("Scout Fan")

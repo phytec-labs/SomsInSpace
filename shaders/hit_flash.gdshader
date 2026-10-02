@@ -21,8 +21,9 @@
 //                off (default; skipped by a uniform branch, so other enemies
 //                pay nothing). Rotates the hue of the sprite's colour around
 //                the grey axis (luma roughly kept), after the brighten step
-//                and before the rim and the flash. Used as a stand-in for a
-//                second colour of the same art (scout saucer).
+//                and before the rim and the flash. A stand-in for a second
+//                colour of the same art (unused since the scout saucer got
+//                its own ufo_2 art).
 //
 // Rim: an INNER rim (inside the silhouette, so art that fills its canvas to
 // the edge still gets one). A pixel is rim when any of the 4 neighbours at

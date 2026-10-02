@@ -6,10 +6,12 @@
 #   godot --headless --path . --import      # then re-import the outputs
 #
 # Each ART entry: master path, output path, and either "height" or "width"
-# (the other side follows the aspect ratio). Optional "crop" (Rect2i, master
-# pixels) is applied first; optional "erase" (Array of Rect2i, master pixels)
+# (the other side follows the aspect ratio, of the rotated art when "rotate"
+# is set). Optional "crop" (Rect2i, master pixels) is applied first; optional "erase" (Array of Rect2i, master pixels)
 # clears those areas to transparent before cropping (e.g. neighbouring sheet
-# parts that poke into the crop). Optional "pad" (fraction of the resized art's
+# parts that poke into the crop). Optional "rotate" (degrees counter-clockwise:
+# 90, 180 or 270 = -90) turns the cropped art before resizing, e.g. 90 turns a
+# missile drawn nose-right into nose-up. Optional "pad" (fraction of the resized art's
 # longer side) adds that much transparent margin on every side after resizing,
 # with the art centered (e.g. room for a shader glow around it). Lanczos
 # filtering, alpha preserved, output is RGBA8 PNG. Existing outputs are overwritten; their .import files (uid,
@@ -49,6 +51,16 @@ var ART: Array[Dictionary] = [
 	{"src": "zeppelin_weapon_combined.png", "dst": "zeppelin_1.png", "width": 1024,
 		"crop": Rect2i(0, 44, 1536, 590),
 		"erase": [Rect2i(1085, 600, 451, 424)]},
+	# Scout saucer: second-colour render of ufo_1 (same canvas and silhouette:
+	# visible bounds within 1% wide / 2.4% tall), so the scout keeps its scale
+	{"src": "ufo_2.png", "dst": "ufo_2.png", "width": 1024},
+	# Sidewinder missile, drawn nose-right on a 2172x724 canvas: cropped to the
+	# visible art (alpha >= 5: x 117..2100, y 18..687) plus a 16 px margin,
+	# turned nose-up (the missile scenes face -y along their velocity), 512 px
+	# along its length. Used by the player missile, the missile pickup icon and
+	# (tinted) the zeppelin's missile.
+	{"src": "side_winder_missile_1.png", "dst": "side_winder_missile_1.png", "height": 512,
+		"crop": Rect2i(101, 2, 2016, 702), "rotate": 90},
 	# Full sphere; 12% margin so the shield_bubble.gdshader rim glow has room
 	{"src": "shield_dome_1.png", "dst": "shield_dome_1.png", "height": 512, "pad": 0.12},
 	{"src": "space_station_1.png", "dst": "space_station_1.png", "width": 1024},
@@ -127,6 +139,18 @@ func _process_entry(entry: Dictionary) -> bool:
 		img.fill_rect(r, Color(0, 0, 0, 0))
 	if entry.has("crop"):
 		img = img.get_region(entry["crop"])
+	match posmod(int(entry.get("rotate", 0)), 360):
+		0:
+			pass
+		90:
+			img.rotate_90(COUNTERCLOCKWISE)
+		180:
+			img.rotate_180()
+		270:
+			img.rotate_90(CLOCKWISE)
+		_:
+			push_error("resize_art: %s rotate must be a multiple of 90" % entry["src"])
+			return false
 
 	var w := img.get_width()
 	var h := img.get_height()

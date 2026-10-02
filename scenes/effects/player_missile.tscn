@@ -1,10 +1,11 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/effects/player_missile.gd" id="1_missile"]
+[ext_resource type="Texture2D" uid="uid://c8hyplyifp84h" path="res://sprites/side_winder_missile_1.png" id="2_tex"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_missile"]
 radius = 6.0
-height = 26.0
+height = 44.0
 
 [sub_resource type="Gradient" id="Gradient_flame"]
 offsets = PackedFloat32Array(0, 0.2, 0.55, 1)
@@ -21,7 +22,7 @@ script = ExtResource("1_missile")
 
 [node name="Trail" type="CPUParticles2D" parent="."]
 z_index = -1
-position = Vector2(0, 14)
+position = Vector2(0, 22)
 amount = 16
 lifetime = 0.4
 local_coords = false
@@ -35,17 +36,10 @@ scale_amount_max = 6.0
 scale_amount_curve = SubResource("Curve_flame")
 color_ramp = SubResource("Gradient_flame")
 
-[node name="Fins" type="Polygon2D" parent="."]
-color = Color(0.2, 0.55, 1, 1)
-polygon = PackedVector2Array(-3, 3, -8, 13, -3, 11, 3, 11, 8, 13, 3, 3)
-
-[node name="Body" type="Polygon2D" parent="."]
-color = Color(0.92, 0.96, 1, 1)
-polygon = PackedVector2Array(-3, -8, 3, -8, 3, 12, -3, 12)
-
-[node name="Nose" type="Polygon2D" parent="."]
-color = Color(0.35, 0.9, 1, 1)
-polygon = PackedVector2Array(0, -16, 3, -8, -3, -8)
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 4
+scale = Vector2(0.0918, 0.0918)
+texture = ExtResource("2_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CapsuleShape2D_missile")

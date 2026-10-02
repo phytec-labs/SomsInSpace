@@ -129,8 +129,8 @@ var _base_rotation: float = 0.0
 @export var use_zone_rim: bool = true
 ## Hue rotation (radians) of the sprite's colours in the hit flash shader
 ## (its `hue_shift` uniform; 0 = off, no cost). A stand-in for a second
-## colour of shared art (the scout saucer); set once per instance in
-## _setup_hit_flash().
+## colour of shared art (no enemy uses it now: the scout saucer has its own
+## ufo_2 art); set once per instance in _setup_hit_flash().
 @export var hue_shift: float = 0.0
 @export_group("")
 

@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/obstacles/scout_ufo_obstacle.gd" id="1_scout"]
-[ext_resource type="Texture2D" uid="uid://dwk274htx5r4v" path="res://sprites/ufo_1.png" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://bd72tst3ch8by" path="res://sprites/ufo_2.png" id="2_tex"]
 [ext_resource type="PackedScene" uid="uid://s0g3ppigvp73" path="res://scenes/effects/enemy_projectile_1.tscn" id="3_proj"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_scout"]
@@ -18,7 +18,6 @@ health = 50.0
 can_shoot = true
 projectile_scene = ExtResource("3_proj")
 show_health_bar = false
-hue_shift = -1.9
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture_filter = 4

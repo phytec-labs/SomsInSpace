@@ -24,15 +24,18 @@ path when adding it back to a scene or script.
 
 ## masters/
 
-Full-size sources of art the game uses (jets, drone, mine, UFO, zeppelin sheet,
-bomb icon, shield sphere, docking station, shield and health pickup animation strips).
+Full-size sources of art the game uses (jets, drone, mine, UFO and its teal
+scout render `ufo_2`, zeppelin sheet, bomb icon, shield sphere, docking station,
+shield and health pickup animation strips, the sidewinder missile).
 The game uses downscaled copies in `sprites/` (same basenames, except the blimp:
 `sprites/zeppelin_1.png` is the zeppelin cut out of `zeppelin_weapon_combined.png`, whose
 six weapon modules are not used yet; and the two pickup strips,
 `shield_icon_sprite_sheet.png` and `health_pickup_sprite_sheet.png`, which are repacked
 into the uniform 256 px-cell sheets `sprites/shield_icon_sheet.png` and
 `sprites/health_pickup_sheet.png`, and the 6-frame bomb strip `bomb_collectible_2.png`,
-repacked into `sprites/bomb_pickup_sheet.png`).
+repacked into `sprites/bomb_pickup_sheet.png`; the sidewinder
+`side_winder_missile_1.png` is drawn nose-right and its game copy is cropped and
+turned nose-up).
 To regenerate the game copies after editing a master:
 
 ```sh
