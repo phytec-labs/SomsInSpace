@@ -8,6 +8,7 @@ const ZoneDefinitionScript := preload("res://scripts/data/zone_definition.gd")
 const EXPLOSION_SCENE := preload("res://scenes/effects/explosion.tscn")
 const DOCKING_STATION_SCENE := preload("res://scenes/effects/docking_station.tscn")
 const SCORE_POPUP_SCENE := preload("res://scenes/effects/juice_score_popup.tscn")
+const COIN_POP_SCENE := preload("res://scenes/effects/coin_pop.tscn")
 
 ## All zone / pacing tuning (see res://data/game_config.tres)
 @export var config: GameConfigScript
@@ -78,6 +79,11 @@ const COMBO_COLORS: Array[Color] = [
 ]
 const GRAZE_COLOR := Color(0.35, 1, 1)
 const GRAZE_POPUP_SCALE := 0.7
+# Energy coin: gold "+5" (the coin's points, flat: no combo), graze-sized
+const COIN_COLOR := Color(1, 0.84, 0.35)
+const COIN_POPUP_SCALE := 0.7
+# The coin's "+5" starts this far from the coin, above the collect pop's flash
+const COIN_POPUP_OFFSET := Vector2(0, -26)
 # Screen shake presets: trauma strength (0..1) and duration (s). Kill shakes
 # scale from SHAKE_KILL_MIN to SHAKE_KILL_MAX with the kill's points
 # (SHAKE_KILL_POINTS_FULL points or more = max).
@@ -506,9 +512,21 @@ func _on_object_collected(object: Node2D) -> void:
 	if object is EnergyCollectible:
 		# Add points based on the collectible's value
 		update_points(object.points)  # Use the points property from GameObject class
+		if object.get_pickup_type() == &"energy":
+			_on_coin_collected(object)
 		if object.get_pickup_type() == &"weapon":
 			_on_weapon_upgrade_collected(object)
 		_apply_pickup(object.get_pickup_type())
+
+# An energy coin was collected (its points are already added, flat): gold
+# "+N" popup just above it (COIN_POPUP_OFFSET, clear of the flash) and the
+# coin pop where it was
+func _on_coin_collected(coin: Node2D) -> void:
+	var at := coin.global_position
+	spawn_score_popup("+%d" % coin.points, at + COIN_POPUP_OFFSET, COIN_COLOR, COIN_POPUP_SCALE)
+	var pop = ObjectPool.acquire(COIN_POP_SCENE, self)
+	if pop:
+		pop.burst(at)
 
 # A weapon upgrade was collected: if it is the current zone's pickup, tell the
 # wave manager, which schedules the zone's mini-boss (the blimp in the

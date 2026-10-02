@@ -618,7 +618,7 @@ and `spawn_collectible()` rolls which one from the zone's pickup table.
 
 | Pickup | Scene | Points | Effect |
 |---|---|---|---|
-| Energy | `energy_collectible_1.tscn` | 1 | Points only |
+| Energy coin | `energy_collectible_1.tscn` | 5 | Points only, flat (never multiplied by the combo). Gold "+5" popup starting 26 px above the coin (`main_level.gd` `_on_coin_collected()`: the text comes from the coin's `points`, `COIN_COLOR`, graze-sized `COIN_POPUP_SCALE` 0.7, offset `COIN_POPUP_OFFSET` (0, -26) so it clears the flash) plus a 0.24 s coin pop at the coin (`scenes/effects/coin_pop.tscn`: additive white-gold flash that collapses over the first 30%, expanding gold ring, six sparks; pooled). Drawn procedurally by `shaders/coin.gdshader` (spinning gold coin with an embossed five-point star by default, the `emblem` shader default; a darker groove keeps the star readable at every open phase; see ART_SWAP_TRACKER.md, "Coin look"); each coin spins with its own random phase and speed and twinkles on its own cycle (`twinkle_phase`, `coin_twinkle_period` 3.6 s, random offset per spawn) |
 | Health cell | `health_pickup.tscn` | 10 | `level.heal(GameConfig.health_pickup_amount)` = +25, clamped to the ship's max health, green "+25" popup |
 | Shield bubble | `shield_pickup.tscn` | 10 | `player.activate_shield(GameConfig.shield_duration)` = 8 s. Absorbs enemy shots, mine blasts and all contact: no health loss, no blink, no weapon tier loss, combo kept; each absorbed hit pops the ring, the shield keeps going. It is an offensive window: see "Shield rams" below. The UFO beam still drains at `shield_drain_factor` (0.5x). Ring blinks in the last 2 s; re-collecting refreshes to the full 8 s; it ends at game over and when the victory docking starts. HUD: cyan "SHIELD" + timer bar next to the combo |
 | Missile upgrade | `missile_pickup.tscn` | 10 | `player.activate_missiles(GameConfig.missile_duration)` = 8 s of sidewinder missile pairs while firing (see "Missiles"); re-collecting refreshes to the full 8 s; it ends at game over and when the victory docking starts. Orange "MISSILES" popup; HUD: orange "MISSILES" + timer bar in the height row |
@@ -647,6 +647,10 @@ While shielded the hit area is the shield circle (radius 126 local, ~101 px on
 screen; `CollisionArea/ShieldShape`, `player.gd` `shield_hit_radius`): enemy
 shots are absorbed, enemies rammed and pickups collected at the sphere edge,
 the UFO beam catches the ship sooner, and no grazes count (`can_graze()`).
+
+Coin value: a normal full run (autopilot, seed 4242) spawned 17 coins and
+collected 15, so coins add about 75 points of ~8200 (they were worth 15
+at 1 point each). The blimp's energy drop is a coin too.
 
 Attract-mode demo: the autopilot chases energy, health, shield and missile
 pickups but never a bomb (it steers around it), so the demo screen never empties.

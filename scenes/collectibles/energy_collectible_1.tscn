@@ -1,26 +1,36 @@
-[gd_scene load_steps=5 format=3 uid="uid://5tcbqrpdutal"]
+[gd_scene load_steps=6 format=3 uid="uid://5tcbqrpdutal"]
 
 [ext_resource type="Script" uid="uid://i75q5gimjyre" path="res://scripts/collectibles/energy_collectible.gd" id="1_7pvfx"]
-[ext_resource type="Texture2D" uid="uid://co8pfdb5q12or" path="res://sprites/pixil-frame-0(1).png" id="2_cwfl6"]
+[ext_resource type="Shader" path="res://shaders/coin.gdshader" id="2_coin"]
 [ext_resource type="AudioStream" uid="uid://ba7lcd7dluclr" path="res://audio/retro-coin-1.mp3" id="3_f3hhj"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_j5veu"]
 radius = 16.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_coin"]
+resource_local_to_scene = true
+shader = ExtResource("2_coin")
+shader_parameter/spin_angle = 0.0
 
 [node name="EnergyCollectible" type="Area2D"]
 z_index = 5
 z_as_relative = false
 collision_layer = 2
 script = ExtResource("1_7pvfx")
-points = 1
+points = 5
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_j5veu")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-modulate = Color(1, 0.788235, 0, 1)
-self_modulate = Color(1, 0.788235, 0, 1)
-texture = ExtResource("2_cwfl6")
+
+[node name="Coin" type="ColorRect" parent="Sprite2D"]
+material = SubResource("ShaderMaterial_coin")
+offset_left = -28.0
+offset_top = -28.0
+offset_right = 28.0
+offset_bottom = 28.0
+mouse_filter = 2
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
 stream = ExtResource("3_f3hhj")

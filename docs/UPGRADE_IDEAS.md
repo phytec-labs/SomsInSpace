@@ -35,6 +35,9 @@ backlog:
   charges a bolt down its beam on a player who stays caught; scout saucers (60% size,
   three-shot fan volleys) replaced the satellites in space, drawn with the teal second-colour
   UFO render (`ufo_2`)
+- Energy coin: worth 5 points (flat), gold "+5" popup and a quick coin pop on collect,
+  drawn by a procedural spinning-coin shader (embossed microchip emblem; star and
+  lightning bolt selectable) instead of the old pixel sprite
 
 ## How art plugs in today
 

@@ -75,6 +75,41 @@ lifts `Beam.modulate.a` to at least `bolt` so the pulse can't dim it). Both sit 
 uniform branches (no cost while idle). If the cone changes, keep `Beam/BeamArea`'s polygon
 (-40, 30) (40, 30) (80, 530) (-80, 530) matching it.
 
+**Coin look.** The energy coin is procedural (no texture): `Sprite2D/Coin` in
+`scenes/collectibles/energy_collectible_1.tscn`, a 56x56 `ColorRect` (mouse ignored) at
+(-28, -28) under an untextured Sprite2D (GameObject's `sprite`, hidden on collect), drawn
+by `shaders/coin.gdshader` (per-instance ShaderMaterial, `resource_local_to_scene`). The
+old pixel sprite `sprites/pixil-frame-0(1).png` is no longer used. A short gold cylinder
+turned about the vertical axis: face ellipse plus edge band (still ~8 px wide edge-on,
+never vanishes), back face tinted, embossed rim and emblem, light that changes with the
+spin (flat face light capped so a fully lit face stays gold), a darker groove tracing the
+emblem and the rim's inner edge (drawn after the glint, so the emblem reads at every open
+phase), a narrow glint band sweeping the front face once per turn, a thin dark outline, a
+soft warm glow and a short twinkle on the upper-left edge of the face (skipped while
+edge-on). ~34 px across face-on (the old coin was 31 px); collision circle r 16 unchanged.
+`energy_collectible.gd` sets `spin_angle` (0..TAU) and `twinkle_phase` (0..1) every frame
+from `time_alive` (pause-safe), with a random spin phase and speed and a random twinkle
+offset rolled on every spawn (`coin_spin_speed` 4.5 rad/s, `coin_spin_speed_variation`
+0.15, `coin_twinkle_period` 3.6 s, about one twinkle every 2.6 turns); the old `scale.x`
+flip is skipped for it. The collect pop (`scripts/effects/coin_pop.gd`) flashes an
+additive white-gold core that collapses over the first 30% of the pop, then a ring and
+sparks; the gold "+5" starts 26 px above the coin (`main_level.gd`
+`COIN_POPUP_OFFSET`), clear of the flash.
+Uniforms worth tuning (shader defaults): `emblem` 1 = five-point star (default, chosen
+from the emblem renders), 0 = microchip, 2 = lightning bolt (the shader default is the
+source of truth; the scene's ShaderMaterial stores no emblem, and setting one there
+applies to every coin); `radius_px` 16 / `quad_px` 56 (keep `quad_px` equal to the ColorRect size and
+`radius_px + outline_px + glow_px` under `quad_px / 2`); `thickness` 0.24 (edge width in
+face radii); `rim_inner` 0.74 / `rim_outer` 0.9; `gold_dark` / `gold_mid` / `gold_light`
+(the gold ramp), `face_lum_max` 0.62 (brightest flat face value; higher turns a lit face
+cream and washes the emblem out), `edge_tint`, `back_tint`; `emboss_strength` 0.9;
+`groove_px` 1.0 / `groove_strength` 0.42 (emblem and rim groove, pulled toward
+`gold_dark`); `light_dir` (-0.45, -0.55, 0.7); `glint_strength` 0.45 / `glint_width` 0.09;
+`outline_color` / `outline_px` 1.25; `glow_color` / `glow_strength` 0.35 / `glow_px` 7
+(keep the glow subtle: it sits on the light ground sky too); `twinkle_strength` 1.6 /
+`twinkle_len` 0.08 (fraction of the twinkle cycle, ~0.29 s) / `twinkle_px` 10 /
+`twinkle_pos` (-0.62, -0.66) (face radii, on the rim).
+
 Every placeholder in the code carries a `PLACEHOLDER_ART:` comment at the exact line to
 change. `grep -rn PLACEHOLDER_ART scripts scenes data` lists what is still standing in.
 This table is the human-readable view; keep both in sync when adding or swapping art.
