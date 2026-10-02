@@ -13,7 +13,8 @@ backlog:
 - Ship select ("Choose your SoM", three ships with their own stats): wishlist #2, code
   done, ship art still needed
 - New enemies: drone swarm, blimp mini-boss, UFO with tractor beam, splitting asteroid,
-  space mine: wishlist #5, code done, art still needed
+  space mine: wishlist #5, code done; splitting asteroid art wired (two tumbling large
+  rocks, 8 medium chunks, 18 small shards), see the tracker for the rest
 - Victory docking with a PHYTEC station: wishlist #4, done (station art wired; the ship
   lands on its central pad: shrink-to-pad flight, green touchdown ring, flash, DOCKED)
 - Pickups: health cell, shield bubble, screen-clear bomb, weighted per zone: wishlist #7,
@@ -63,7 +64,7 @@ backlog:
 | 2 | "Choose your SoM" ship select on the main menu, each ship with its own speed, fire rate, and health | 3 ship sprites (e.g. phyCORE-AM62x, i.MX 8M, i.MX 93) plus a small name badge each | 1024x1536 each, facing up, engine at bottom center, same silhouette scale as the current ship | code done, art needed |
 | 3 | Zone parallax backgrounds so the climb feels like travel | Ground skyline or launch site, aurora band for upper atmosphere, Earth horizon curve for space, a space station for orbit | 720 px wide strips, horizontally tileable where they scroll, transparent above the horizon, 1 to 3 layers per zone | open |
 | 4 | Victory moment: dock with a PHYTEC station | Station sprite (landing pad; clamps dropped for a landing), optional animated pad lights | `space_station_1.png` delivered; optional 2 to 4 frame pad-light loop | done (art wired) |
-| 5 | New enemy types. Ground: drone swarm that flocks. Atmosphere: blimp mini-boss with turrets. Space: UFO with a tractor beam, splitting asteroid, blinking space mine | One PNG per enemy, sheets for the UFO beam and mine blink; asteroid in 3 sizes | 256 to 512 px, facing down; beam as a vertical strip ~64x400; mine 2 to 4 blink frames | code done, art needed |
+| 5 | New enemy types. Ground: drone swarm that flocks. Atmosphere: blimp mini-boss with turrets. Space: UFO with a tractor beam, splitting asteroid, blinking space mine | One PNG per enemy, sheets for the UFO beam and mine blink; asteroid in 3 sizes (delivered and wired: two 8-frame large tumbles, 8 medium chunks, 18 small shards) | 256 to 512 px, facing down; beam as a vertical strip ~64x400; mine 2 to 4 blink frames | code done, art needed |
 | 6 | Damage states on enemies and the player | Smoke or crack overlay frames | 2 to 3 frames per enemy family, same canvas size as the enemy | open |
 | 7 | New pickups: shield bubble, screen-clear bomb, health cell, missile upgrade; distinct icons for weapon tiers 2 and 3 | 6 pickup icons and a shield ring sprite | Icons 256x256 in a consistent style; shield ring ~300x300 with soft alpha edge | code done for shield / bomb / health / missiles; shield, health and bomb (animated sheets) wired; missile icon and weapon tier icons open |
 | 8 | HUD polish: pause, heart, threat skull, three weapon tier icons | 6 icons | 128x128, one color plus alpha so code can tint them | open |

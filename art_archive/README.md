@@ -28,14 +28,20 @@ Full-size sources of art the game uses (jets, drone, mine, UFO and its teal
 scout render `ufo_2`, zeppelin sheet, bomb icon, shield sphere, docking station,
 shield and health pickup animation strips, the sidewinder missile in two liveries:
 `side_winder_missile_1` red/white for the zeppelin, `side_winder_missile_2` blue/white for
-the player's missiles and the missile pickup icon).
+the player's missiles and the missile pickup icon, and the splitting asteroid sheets:
+`meteor_animated_large_1.png` and `asteroid_large_sheet_2.png` (two 8-frame large-rock
+tumbles), `meteor_medium_chunks.png` (8 medium chunks) and
+`meteor_small_shards_various_1.png` (18 small shards)).
 The game uses downscaled copies in `sprites/` (same basenames, except the blimp:
 `sprites/zeppelin_1.png` is the zeppelin cut out of `zeppelin_weapon_combined.png`, whose
 six weapon modules are not used yet; and the two pickup strips,
 `shield_icon_sprite_sheet.png` and `health_pickup_sprite_sheet.png`, which are repacked
 into the uniform 256 px-cell sheets `sprites/shield_icon_sheet.png` and
 `sprites/health_pickup_sheet.png`, and the 6-frame bomb strip `bomb_collectible_2.png`,
-repacked into `sprites/bomb_pickup_sheet.png`; both sidewinders
+repacked into `sprites/bomb_pickup_sheet.png`; the four asteroid masters, whose pieces are
+cut out and repacked into `sprites/asteroid_large_sheet.png`,
+`sprites/asteroid_large_sheet_2.png`, `sprites/asteroid_chunks_sheet.png` and
+`sprites/asteroid_shards_sheet.png`; both sidewinders
 (`side_winder_missile_1.png`, `side_winder_missile_2.png`) are drawn nose-right and
 their game copies are cropped and turned nose-up).
 To regenerate the game copies after editing a master:

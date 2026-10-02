@@ -29,6 +29,20 @@
 # other through filtering or mipmaps. Optional "alpha_floor" (0-255): master
 # pixels with a lower alpha are cleared first (invisible haze / noise far
 # outside the art that would otherwise count as art for the fit check).
+# Optional "columns" (int): output cells per row, rows filled top to bottom
+# (default: all frames in one row).
+#
+# Instead of "frames", a sheet may give "grid" (Vector2i(columns, rows)) for
+# a master with separate pieces laid out roughly on a grid (read left to right,
+# top row first) whose bounding boxes overlap their neighbours' rows and
+# columns. Each piece is isolated as connected alpha islands (8-connected,
+# after "alpha_floor"): a frame is every island of at least "min_island"
+# master pixels (default 200; smaller specks are dropped) whose alpha-weighted
+# centroid lies in that frame's cell of a uniform grid over the master, so no
+# sliver of a neighbour comes along. The frame's center is the islands'
+# bounding-box center, or their alpha centroid with "center": "centroid"
+# (steadier for a tumbling animation whose silhouette changes). The run fails
+# if a grid cell holds no island. Centers are printed.
 #
 # Conventions (docs/ART_SWAP_TRACKER.md): enemies and pickups 512 px tall,
 # UFO / blimp / station 1024 px wide; ships stay at their 1024x1536 canvas (not
@@ -119,6 +133,46 @@ var ART: Array[Dictionary] = [
 			{"span": Vector2i(1479, 1854), "center": Vector2i(1666, 397)},
 			{"span": Vector2i(1855, 2171), "center": Vector2i(2010, 397)},
 		]}},
+	# Splitting asteroid, large: 8-frame tumble (1774x887 master, 4x2 rocks
+	# not on an exact grid, read left to right, top row first). Centers are the
+	# alpha centroids: frame to frame the silhouette overlaps better than with
+	# bounding-box centers (mean IoU of neighbouring frames 0.889 vs 0.876),
+	# so the rock does not jitter. The farthest art is 233 px from its center
+	# (frame 0, left); a 544 px extent (0.471x into 256 px cells) leaves
+	# >= 18 px padding per cell side, so neither mipmaps (down to the ~0.40x
+	# the game draws it at) nor the rim light can reach the next cell. Alpha
+	# 1-4 haze and specks under 200 px are dropped. Output 2048x256, used by
+	# sprites/asteroid.tres ("large_1").
+	{"src": "meteor_animated_large_1.png", "dst": "asteroid_large_sheet.png",
+		"sheet": {"cell": 256, "extent": 544, "pad": 12, "alpha_floor": 5,
+			"grid": Vector2i(4, 2), "center": "centroid"}},
+	# Splitting asteroid, large rock 2: a second 8-frame tumble, same layout
+	# and treatment as rock 1 (the master keeps the user's name). The rocks sit
+	# tight (neighbours nearly touch), so the islands matter here. Same extent
+	# as rock 1, so both rocks keep their relative size under one sprite scale.
+	# Nothing reaches the master's edge (art x 12..1767). >= 21 px padding per
+	# cell. Output 2048x256, used by sprites/asteroid.tres ("large_2").
+	{"src": "asteroid_large_sheet_2.png", "dst": "asteroid_large_sheet_2.png",
+		"sheet": {"cell": 256, "extent": 544, "pad": 12, "alpha_floor": 5,
+			"grid": Vector2i(4, 2), "center": "centroid"}},
+	# Splitting asteroid, medium: 8 different chunks (not an animation;
+	# 1774x887 master, 4x2, neighbours' bounding boxes overlap, so each chunk
+	# is cut out as its own alpha island). Centers are the bounding-box
+	# centers (the code spins them). The widest chunk (frame 4, 462 px) gets
+	# >= 17 px padding per cell side at the same 544 px extent as the large
+	# rocks. Output 2048x256, used by sprites/asteroid.tres ("medium").
+	{"src": "meteor_medium_chunks.png", "dst": "asteroid_chunks_sheet.png",
+		"sheet": {"cell": 256, "extent": 544, "pad": 12, "alpha_floor": 5,
+			"grid": Vector2i(4, 2)}},
+	# Splitting asteroid, small: 18 different shards (1774x887 master, 6x3,
+	# packed tight, cut out as alpha islands like the chunks). Shown at about
+	# 30 px, so 128 px cells in a 6x3 output grid (768x384) instead of one
+	# 4608 px row. A 416 px extent (0.308x) leaves >= 10 px padding per cell
+	# side (the game draws them at ~0.33x of this copy). Output 768x384, used
+	# by sprites/asteroid.tres ("small").
+	{"src": "meteor_small_shards_various_1.png", "dst": "asteroid_shards_sheet.png",
+		"sheet": {"cell": 128, "extent": 416, "pad": 8, "alpha_floor": 5,
+			"grid": Vector2i(6, 3), "columns": 6}},
 ]
 
 func _init() -> void:
@@ -195,14 +249,13 @@ func _process_entry(entry: Dictionary) -> bool:
 			entry["dst"], tw, th])
 	return true
 
-# Repack a non-uniform animation strip into a uniform horizontal sheet (see the
-# header comment for the "sheet" entry keys)
+# Repack a non-uniform animation strip (or a loose grid of pieces) into a
+# uniform sheet (see the header comment for the "sheet" entry keys)
 func _process_sheet(entry: Dictionary, img: Image, dst_path: String) -> bool:
 	var sheet: Dictionary = entry["sheet"]
 	var cell: int = sheet["cell"]
 	var extent: int = sheet["extent"]
 	var pad: int = sheet.get("pad", 0)
-	var frames: Array = sheet["frames"]
 	var floor_a: int = sheet.get("alpha_floor", 0)
 	if floor_a > 0:
 		var data := img.get_data()
@@ -213,25 +266,39 @@ func _process_sheet(entry: Dictionary, img: Image, dst_path: String) -> bool:
 				data[p - 1] = 0
 				data[p] = 0
 		img = Image.create_from_data(img.get_width(), img.get_height(), false, Image.FORMAT_RGBA8, data)
-	var out := Image.create_empty(cell * frames.size(), cell, false, Image.FORMAT_RGBA8)
+	# Per frame: the master image holding only that frame's art, the master
+	# rect to copy and the center
+	var frames: Array = []
+	if sheet.has("grid"):
+		frames = _island_frames(entry, img)
+		if frames.is_empty():
+			return false
+	else:
+		for f in sheet["frames"]:
+			var span: Vector2i = f["span"]
+			frames.append({"image": img, "center": f["center"],
+					"rect": Rect2i(span.x, 0, span.y - span.x + 1, img.get_height())})
+	var columns: int = sheet.get("columns", frames.size())
+	var rows: int = ceili(float(frames.size()) / columns)
+	var out := Image.create_empty(cell * columns, cell * rows, false, Image.FORMAT_RGBA8)
 	out.fill(Color(0, 0, 0, 0))
 	var min_margin := cell
 	for i in frames.size():
-		var span: Vector2i = frames[i]["span"]
+		var src: Image = frames[i]["image"]
+		var src_rect: Rect2i = frames[i]["rect"]
 		var center: Vector2i = frames[i]["center"]
-		# Only this frame's columns, placed so its center lands mid-canvas
+		# Only this frame's art, placed so its center lands mid-canvas
 		var canvas := Image.create_empty(extent, extent, false, Image.FORMAT_RGBA8)
 		canvas.fill(Color(0, 0, 0, 0))
-		var src_rect := Rect2i(span.x, 0, span.y - span.x + 1, img.get_height())
 		var origin := center - Vector2i(extent / 2, extent / 2)
 		# Art that would land outside the canvas would be clipped: refuse
-		var used := img.get_region(src_rect).get_used_rect()
+		var used := src.get_region(src_rect).get_used_rect()
 		used.position += src_rect.position
 		if not Rect2i(origin, Vector2i(extent, extent)).encloses(used):
 			push_error("resize_art: %s frame %d art %s does not fit the %d px extent around %s"
 					% [entry["src"], i, used, extent, center])
 			return false
-		canvas.blit_rect(img, src_rect, src_rect.position - origin)
+		canvas.blit_rect(src, src_rect, src_rect.position - origin)
 		canvas.fix_alpha_edges()
 		if extent != cell:
 			canvas.resize(cell, cell, Image.INTERPOLATE_LANCZOS)
@@ -239,7 +306,8 @@ func _process_sheet(entry: Dictionary, img: Image, dst_path: String) -> bool:
 		var margin := mini(mini(art.position.x, art.position.y),
 				mini(cell - art.end.x, cell - art.end.y))
 		min_margin = mini(min_margin, margin)
-		out.blit_rect(canvas, Rect2i(0, 0, cell, cell), Vector2i(i * cell, 0))
+		out.blit_rect(canvas, Rect2i(0, 0, cell, cell),
+				Vector2i((i % columns) * cell, (i / columns) * cell))
 	if min_margin < pad:
 		push_error("resize_art: %s cell padding %d px < %d px; enlarge the extent"
 				% [entry["src"], min_margin, pad])
@@ -252,3 +320,99 @@ func _process_sheet(entry: Dictionary, img: Image, dst_path: String) -> bool:
 			entry["src"], img.get_width(), img.get_height(), entry["dst"],
 			out.get_width(), out.get_height(), frames.size(), cell, min_margin])
 	return true
+
+# "grid" sheets: label the master's connected alpha islands (8-connected) and
+# give every grid cell the islands whose centroid lies in it. Returns one
+# {"image", "rect", "center"} per cell (reading order), [] on failure.
+func _island_frames(entry: Dictionary, img: Image) -> Array:
+	var sheet: Dictionary = entry["sheet"]
+	var grid: Vector2i = sheet["grid"]
+	var min_island: int = sheet.get("min_island", 200)
+	var use_centroid: bool = sheet.get("center", "bbox") == "centroid"
+	var w := img.get_width()
+	var h := img.get_height()
+	var data := img.get_data()
+	var labels := PackedInt32Array()
+	labels.resize(w * h)
+	labels.fill(-1)
+	# Per island: pixel count, bounding box, alpha-weighted coordinate sums
+	var islands: Array[Dictionary] = []
+	var stack := PackedInt32Array()
+	for start in w * h:
+		if labels[start] != -1 or data[start * 4 + 3] == 0:
+			continue
+		var id := islands.size()
+		var isl := {"count": 0, "x0": w, "y0": h, "x1": -1, "y1": -1, "sx": 0.0, "sy": 0.0, "sa": 0.0}
+		labels[start] = id
+		stack.append(start)
+		while not stack.is_empty():
+			var p: int = stack[stack.size() - 1]
+			stack.resize(stack.size() - 1)
+			var px := p % w
+			var py := p / w
+			var a := float(data[p * 4 + 3])
+			isl["count"] += 1
+			isl["x0"] = mini(isl["x0"], px)
+			isl["x1"] = maxi(isl["x1"], px)
+			isl["y0"] = mini(isl["y0"], py)
+			isl["y1"] = maxi(isl["y1"], py)
+			isl["sx"] += px * a
+			isl["sy"] += py * a
+			isl["sa"] += a
+			for qy in range(maxi(py - 1, 0), mini(py + 2, h)):
+				for qx in range(maxi(px - 1, 0), mini(px + 2, w)):
+					var q := qy * w + qx
+					if labels[q] == -1 and data[q * 4 + 3] != 0:
+						labels[q] = id
+						stack.append(q)
+		islands.append(isl)
+	var cell_size := Vector2(float(w) / grid.x, float(h) / grid.y)
+	var frames: Array = []
+	for i in grid.x * grid.y:
+		var cell_rect := Rect2(Vector2(i % grid.x, i / grid.x) * cell_size, cell_size)
+		var keep := {}
+		var bbox := Rect2i()
+		var sx := 0.0
+		var sy := 0.0
+		var sa := 0.0
+		for id in islands.size():
+			var isl: Dictionary = islands[id]
+			if isl["count"] < min_island:
+				continue
+			var centroid: Vector2 = Vector2(isl["sx"], isl["sy"]) / float(isl["sa"])
+			if not cell_rect.has_point(centroid):
+				continue
+			keep[id] = true
+			var r := Rect2i(isl["x0"], isl["y0"], isl["x1"] - isl["x0"] + 1, isl["y1"] - isl["y0"] + 1)
+			bbox = r if keep.size() == 1 else bbox.merge(r)
+			sx += isl["sx"]
+			sy += isl["sy"]
+			sa += isl["sa"]
+		if keep.is_empty():
+			push_error("resize_art: %s grid cell %d holds no island" % [entry["src"], i])
+			return []
+		# The frame's own pixels only (neighbours' slivers inside its bounding
+		# box are cleared)
+		var piece := PackedByteArray()
+		piece.resize(bbox.size.x * bbox.size.y * 4)
+		piece.fill(0)
+		for y in bbox.size.y:
+			var row := (bbox.position.y + y) * w + bbox.position.x
+			for x in bbox.size.x:
+				if keep.has(labels[row + x]):
+					var s := (row + x) * 4
+					var d := (y * bbox.size.x + x) * 4
+					piece[d] = data[s]
+					piece[d + 1] = data[s + 1]
+					piece[d + 2] = data[s + 2]
+					piece[d + 3] = data[s + 3]
+		var piece_img := Image.create_from_data(bbox.size.x, bbox.size.y, false, Image.FORMAT_RGBA8, piece)
+		var center: Vector2i
+		if use_centroid:
+			center = Vector2i(roundi(sx / sa), roundi(sy / sa)) - bbox.position
+		else:
+			center = Vector2i(bbox.size.x / 2, bbox.size.y / 2)
+		print("resize_art: %s frame %d: art %s, center %s" % [entry["src"], i, bbox,
+				center + bbox.position])
+		frames.append({"image": piece_img, "rect": Rect2i(Vector2i.ZERO, bbox.size), "center": center})
+	return frames
